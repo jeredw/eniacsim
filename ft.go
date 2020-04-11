@@ -3,10 +3,12 @@ package main
 import (
 	"fmt"
 	"strconv"
+
+	. "github.com/jeredw/eniacsim/lib"
 )
 
 type ft struct {
-	jack [27]chan pulse
+	jack [27]chan Pulse
 	inff1, inff2 [11]bool
 	opsw [11]int
 	rptsw [11]int
@@ -96,7 +98,7 @@ func ftreset(unit int) {
 	f.update <- 1
 }
 
-func ftplug(unit int, jack string, ch chan pulse) {
+func ftplug(unit int, jack string, ch chan Pulse) {
 	jacks := [22]string{"1i", "1o", "2i", "2o", "3i", "3o", "4i", "4o",
 		"5i", "5o", "6i", "6o", "7i", "7o", "8i", "8o", "9i", "9o",
 		"10i", "10o", "11i", "11o"}
@@ -355,11 +357,11 @@ func addlookup(f *ft, c int) {
 		}
 	}
 	if a != 0 && f.jack[1] != nil {
-		f.jack[1] <- pulse{a, f.resp}
+		f.jack[1] <- Pulse{a, f.resp}
 		<- f.resp
 	}
 	if b != 0 && f.jack[2] != nil {
-		f.jack[2] <- pulse{b, f.resp}
+		f.jack[2] <- Pulse{b, f.resp}
 		<- f.resp
 	}
 }
@@ -477,24 +479,24 @@ func subtrlookup(f *ft, c int) {
 		}
 	}
 	if a != 0 && f.jack[1] != nil {
-		f.jack[1] <- pulse{a, f.resp}
+		f.jack[1] <- Pulse{a, f.resp}
 		<- f.resp
 	}
 	if b != 0 && f.jack[2] != nil {
-		f.jack[2] <- pulse{b, f.resp}
+		f.jack[2] <- Pulse{b, f.resp}
 		<- f.resp
 	}
 }
 
-func ftpulse(f *ft, p pulse) {
+func ftpulse(f *ft, p Pulse) {
 	if f.px4119 {
-		if p.val & Cpp != 0 {
-			p.val |= Ninep
+		if p.Val & Cpp != 0 {
+			p.Val |= Ninep
 		} else {
-			p.val &= ^Ninep
+			p.Val &= ^Ninep
 		}
 	}
-	c := p.val
+	c := p.Val
 	if f.gatee42 {
 		sw := f.opsw[f.prog]
 		if c & Onep != 0 && (sw == 1 || sw == 3 || sw == 6 || sw == 8) {
@@ -531,12 +533,12 @@ func ftpulse(f *ft, p pulse) {
 			switch f.argsw[f.prog] {
 			case 1:
 				if f.jack[3] != nil {
-					f.jack[3] <- pulse{1, f.resp}
+					f.jack[3] <- Pulse{1, f.resp}
 					<- f.resp
 				}
 			case 2:
 				if f.jack[4] != nil {
-					f.jack[4] <- pulse{1, f.resp}
+					f.jack[4] <- Pulse{1, f.resp}
 					<- f.resp
 				}
 			}
@@ -566,7 +568,7 @@ func ftpulse(f *ft, p pulse) {
 		default:  // Stages 1-9
 			if f.rptsw[f.prog] == f.ring - 4 {
 				if f.jack[f.prog*2+6] != nil {
-					f.jack[f.prog*2+6] <- pulse{1, f.resp}
+					f.jack[f.prog*2+6] <- Pulse{1, f.resp}
 					<- f.resp
 				}
 				f.arg = 0
@@ -601,9 +603,9 @@ func ftpulse(f *ft, p pulse) {
 	}
 }
 
-func makeftpulse(unit int) pulsefn {
+func makeftpulse(unit int) ClockFunc {
 	f := &ftable[unit]
-	return func(p pulse) {
+	return func(p Pulse) {
 		ftpulse(f, p)
 	}
 }
@@ -616,77 +618,77 @@ func ftunit(unit int) {
 }
 
 func ftunit2(f *ft) {
-	var p pulse
+	var p Pulse
 
 	for {
 		select {
 		case <- f.update:
 		case p =<- f.jack[5]:
 			f.inff1[0] = true
-			if p.resp != nil {
-				p.resp <- 1
+			if p.Resp != nil {
+				p.Resp <- 1
 			}
 		case p =<- f.jack[7]:
 			f.inff1[1] = true
-			if p.resp != nil {
-				p.resp <- 1
+			if p.Resp != nil {
+				p.Resp <- 1
 			}
 		case p =<- f.jack[9]:
 			f.inff1[2] = true
-			if p.resp != nil {
-				p.resp <- 1
+			if p.Resp != nil {
+				p.Resp <- 1
 			}
 		case p =<- f.jack[11]:
 			f.inff1[3] = true
-			if p.resp != nil {
-				p.resp <- 1
+			if p.Resp != nil {
+				p.Resp <- 1
 			}
 		case p =<- f.jack[13]:
 			f.inff1[4] = true
-			if p.resp != nil {
-				p.resp <- 1
+			if p.Resp != nil {
+				p.Resp <- 1
 			}
 		case p =<- f.jack[15]:
 			f.inff1[5] = true
-			if p.resp != nil {
-				p.resp <- 1
+			if p.Resp != nil {
+				p.Resp <- 1
 			}
 		case p =<- f.jack[17]:
 			f.inff1[6] = true
-			if p.resp != nil {
-				p.resp <- 1
+			if p.Resp != nil {
+				p.Resp <- 1
 			}
 		case p =<- f.jack[19]:
 			f.inff1[7] = true
-			if p.resp != nil {
-				p.resp <- 1
+			if p.Resp != nil {
+				p.Resp <- 1
 			}
 		case p =<- f.jack[21]:
 			f.inff1[8] = true
-			if p.resp != nil {
-				p.resp <- 1
+			if p.Resp != nil {
+				p.Resp <- 1
 			}
 		case p =<- f.jack[23]:
 			f.inff1[9] = true
-			if p.resp != nil {
-				p.resp <- 1
+			if p.Resp != nil {
+				p.Resp <- 1
 			}
 		case p =<- f.jack[25]:
 			f.inff1[10] = true
-			if p.resp != nil {
-				p.resp <- 1
+			if p.Resp != nil {
+				p.Resp <- 1
 			}
 		case arg :=<- f.jack[0]:
 			if f.gateh42 {
-				if arg.val & 0x01 != 0 {
+				if arg.Val & 0x01 != 0 {
 					f.arg++
 				}
-				if arg.val & 0x02 != 0 {
+				if arg.Val & 0x02 != 0 {
 					f.arg += 10
 				}
 			}
-			if arg.resp != nil {
-				arg.resp <- 1
+			if arg.Resp != nil {
+				arg.Resp <- 1
 			}
 		}
 	}

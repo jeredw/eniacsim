@@ -1,10 +1,14 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+
+	. "github.com/jeredw/eniacsim/lib"
+)
 
 type trunk struct {
-	xmit [16]chan pulse
-	recv []chan pulse
+	xmit [16]chan Pulse
+	recv []chan Pulse
 	started bool
 	update chan int
 }
@@ -33,17 +37,17 @@ func trayreset() {
 	}
 }
 
-func handshake(val int, ch chan pulse, resp chan int) {
+func handshake(val int, ch chan Pulse, resp chan int) {
 	if ch != nil {
-		ch <- pulse{val, resp}
+		ch <- Pulse{val, resp}
 		<- resp
 	}
 }
 
 func dotrunk(t *trunk) {
-	var x, p pulse
+	var x, p Pulse
 
-	p.resp = make(chan int)
+	p.Resp = make(chan int)
 	for {
 		select {
 		case q :=<- t.update:
@@ -68,8 +72,8 @@ func dotrunk(t *trunk) {
 		case x =<- t.xmit[14]:
 		case x =<- t.xmit[15]:
 		}
-		p.val = x.val
-		if x.val != 0 {
+		p.Val = x.Val
+		if x.Val != 0 {
 			needresp := 0
 			for _, c := range t.recv {
 				if c != nil {
@@ -79,24 +83,24 @@ pulseloop:
 						case c <- p:
 							needresp++
 							break pulseloop
-						case <- p.resp:
+						case <- p.Resp:
 							needresp--
 						}
 					}
 				}
 			}
 			for needresp > 0 {
-				<- p.resp
+				<- p.Resp
 				needresp--
 			}
 		}
-		if x.resp != nil {
-			x.resp <- 1
+		if x.Resp != nil {
+			x.Resp <- 1
 		}
 	}
 }
 
-func trunkxmit(ilk, n int, ch chan pulse) {
+func trunkxmit(ilk, n int, ch chan Pulse) {
 	var t *trunk
 
 	if ilk == 0 {
@@ -119,7 +123,7 @@ func trunkxmit(ilk, n int, ch chan pulse) {
 	fmt.Printf("Too many transmitters on %d:%d\n", ilk, n)
 }
 
-func trunkrecv(ilk, n int, ch chan pulse) {
+func trunkrecv(ilk, n int, ch chan Pulse) {
 	var t *trunk
 
 	if ilk == 0 {
@@ -128,7 +132,7 @@ func trunkrecv(ilk, n int, ch chan pulse) {
 		t = &ctrays[n]
 	}
 	if t.recv == nil {
-		t.recv = make([]chan pulse, 0, 20)
+		t.recv = make([]chan Pulse, 0, 20)
 	}
 	for i, c := range t.recv {
 		if c == nil {

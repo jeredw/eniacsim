@@ -649,11 +649,11 @@ func innergui() {
 		if lastcmode != cmode && !*usecontrol {
 			lastcmode = cmode
 			switch lastcmode {
-			case Pulse:
+			case PulseMode:
 				fmt.Fprintln(gpipe, ".cmode configure -text \"1 Pulse\"")
-			case Add:
+			case AddMode:
 				fmt.Fprintln(gpipe, ".cmode configure -text \"1 Add\"")
-			case Cont:
+			case ContMode:
 				fmt.Fprintln(gpipe, ".cmode configure -text \"Cont.\"")
 			}
 			needupdate = true

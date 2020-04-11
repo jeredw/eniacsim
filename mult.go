@@ -3,16 +3,18 @@ package main
 import (
 	"fmt"
 	"strconv"
+
+	. "github.com/jeredw/eniacsim/lib"
 )
 
 type pulseset struct {
 	one, two, twop, four int
 }
 
-var multin, multout [24]chan pulse
-var R, D [5]chan pulse
-var A, S, AS, AC, SC, ASC, RS, DS, F chan pulse
-var lhppI, lhppII, rhppI, rhppII chan pulse
+var multin, multout [24]chan Pulse
+var R, D [5]chan Pulse
+var A, S, AS, AC, SC, ASC, RS, DS, F chan Pulse
+var lhppI, lhppII, rhppI, rhppII chan Pulse
 var stage int
 var multff [24]bool
 var iersw, iercl, icandsw, icandcl, sigsw, placsw, prodsw [24]int
@@ -130,7 +132,7 @@ func multreset() {
 func multclear() {
 }
 
-func multplug(jack string, ch chan pulse) {
+func multplug(jack string, ch chan Pulse) {
 	switch {
 	case jack == "Rα", jack == "Ra", jack == "rα", jack == "ra":
 		R[0] = ch
@@ -268,10 +270,10 @@ func multargs(prog int) {
 	ier := iersw[prog]
 	icand := icandsw[prog]
 	if ier < 5 && R[ier] != nil {
-		R[ier] <- pulse{1, resp1}
+		R[ier] <- Pulse{1, resp1}
 	}
 	if icand < 5 && D[icand] != nil {
-		D[icand] <- pulse{1, resp2}
+		D[icand] <- Pulse{1, resp2}
 	}
 	if ier < 5 && R[ier] != nil {
 		<- resp1
@@ -285,16 +287,16 @@ func multargs(prog int) {
 
 func shiftprod(lhpp, rhpp int, resp1, resp2, resp3, resp4 chan int) {
 	if lhppI != nil && lhpp != 0 {
-		lhppI <- pulse{lhpp >> uint(stage - 2), resp1}
+		lhppI <- Pulse{lhpp >> uint(stage - 2), resp1}
 	}
 	if lhppII != nil && lhpp != 0 {
-		lhppII <- pulse{(lhpp << uint(12 - stage)) & 0x3ff, resp2}
+		lhppII <- Pulse{(lhpp << uint(12 - stage)) & 0x3ff, resp2}
 	}
 	if rhppI != nil && rhpp != 0 {
-		rhppI <- pulse{rhpp >> uint(stage - 1), resp3}
+		rhppI <- Pulse{rhpp >> uint(stage - 1), resp3}
 	}
 	if rhppII != nil && rhpp != 0 {
-		rhppII <- pulse{(rhpp << uint(11 - stage)) & 0x3ff, resp4}
+		rhppII <- Pulse{(rhpp << uint(11 - stage)) & 0x3ff, resp4}
 	}
 	if lhppI != nil && lhpp != 0 {
 		<- resp1
@@ -310,9 +312,9 @@ func shiftprod(lhpp, rhpp int, resp1, resp2, resp3, resp4 chan int) {
 	}
 }
 
-func multpulse(c pulse, resp1, resp2, resp3, resp4 chan int) {
+func multpulse(c Pulse, resp1, resp2, resp3, resp4 chan int) {
 	switch {
-	case c.val & Cpp != 0:
+	case c.Val & Cpp != 0:
 		if f44 {
 			stage = 1
 			f44 = false
@@ -371,7 +373,7 @@ func multpulse(c pulse, resp1, resp2, resp3, resp4 chan int) {
 				stage++
 			}
 		}
-	case c.val & Ccg != 0 && stage == 13:
+	case c.Val & Ccg != 0 && stage == 13:
 		which := -1
 		for i, f := range multff {
 			if f {
@@ -385,7 +387,7 @@ func multpulse(c pulse, resp1, resp2, resp3, resp4 chan int) {
 		if icandcl[which] == 1 {
 			accclear(9)
 		}
-	case c.val & Onep != 0 && stage == 1:
+	case c.Val & Onep != 0 && stage == 1:
 		Multl = true
 		Multr = true
 		sigfig = -1
@@ -399,13 +401,13 @@ func multpulse(c pulse, resp1, resp2, resp3, resp4 chan int) {
 		} else if sigfig > 0 && sigfig < 9 && lhppI != nil {
 			handshake(1 << uint(sigfig - 1), lhppI, resp1)
 		}
-	case c.val & Fourp != 0 && stage == 1:
+	case c.Val & Fourp != 0 && stage == 1:
 		if sigfig == 0 && lhppII != nil {
 			handshake(1 << 10, lhppII, resp1)
 		} else if sigfig > 0 && sigfig < 9 && lhppI != nil {
 			handshake(1 << uint(sigfig - 1), lhppI, resp1)
 		}
-	case c.val & Onep != 0 && stage >= 2 && stage < 12:
+	case c.Val & Onep != 0 && stage >= 2 && stage < 12:
 		ier = accstat(8)[4:]
 		icand = accstat(9)[4:]
 		lhpp := 0
@@ -421,7 +423,7 @@ func multpulse(c pulse, resp1, resp2, resp3, resp4 chan int) {
 			}
 		}
 		shiftprod(lhpp, rhpp, resp1, resp2, resp3, resp4)
-	case c.val & Twop != 0 && stage >= 2 && stage < 12:
+	case c.Val & Twop != 0 && stage >= 2 && stage < 12:
 		lhpp := 0
 		rhpp := 0
 		for i := 0; i < 10; i++ {
@@ -435,7 +437,7 @@ func multpulse(c pulse, resp1, resp2, resp3, resp4 chan int) {
 			}
 		}
 		shiftprod(lhpp, rhpp, resp1, resp2, resp3, resp4)
-	case c.val & Twopp != 0 && stage >= 2 && stage < 12:
+	case c.Val & Twopp != 0 && stage >= 2 && stage < 12:
 		lhpp := 0
 		rhpp := 0
 		for i := 0; i < 10; i++ {
@@ -449,7 +451,7 @@ func multpulse(c pulse, resp1, resp2, resp3, resp4 chan int) {
 			}
 		}
 		shiftprod(lhpp, rhpp, resp1, resp2, resp3, resp4)
-	case c.val & Fourp != 0 && stage >= 2 && stage < 12:
+	case c.Val & Fourp != 0 && stage >= 2 && stage < 12:
 		lhpp := 0
 		rhpp := 0
 		for i := 0; i < 10; i++ {
@@ -463,7 +465,7 @@ func multpulse(c pulse, resp1, resp2, resp3, resp4 chan int) {
 			}
 		}
 		shiftprod(lhpp, rhpp, resp1, resp2, resp3, resp4)
-	case c.val & Onepp != 0 && stage >= 2 && stage < 12:
+	case c.Val & Onepp != 0 && stage >= 2 && stage < 12:
 		minplace := 10
 		for i := 0; i < 24; i++ {
 			if multff[i] && placsw[i] + 2 < minplace {
@@ -473,18 +475,18 @@ func multpulse(c pulse, resp1, resp2, resp3, resp4 chan int) {
 		if stage == minplace + 1 && ier[0] == 'M' && icand[0] == 'M' {
 			handshake(1 << 10, rhppI, resp1)
 		}
-	case c.val & Rp != 0 && buffer61:
+	case c.Val & Rp != 0 && buffer61:
 		buffer61 = false
 		f44 = true
 	}
 }
 
-func makemultpulse() pulsefn {
+func makemultpulse() ClockFunc {
 	resp1 := make(chan int)
 	resp2 := make(chan int)
 	resp3 := make(chan int)
 	resp4 := make(chan int)
-  return func(p pulse) {
+  return func(p Pulse) {
     multpulse(p, resp1, resp2, resp3, resp4)
   }
 }
@@ -495,10 +497,10 @@ func multunit() {
 }
 
 func multunit2() {
-	var p pulse
+	var p Pulse
 
 	for {
-		p.resp = nil
+		p.Resp = nil
 		select {
 		case <- multupdate:
 		case p =<- multin[0]:
@@ -550,8 +552,8 @@ func multunit2() {
 		case p =<- multin[23]:
 			multargs(23)
 		}
-		if p.resp != nil {
-			p.resp <- 1
+		if p.Resp != nil {
+			p.Resp <- 1
 		}
 	}
 }

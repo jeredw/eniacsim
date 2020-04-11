@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"sync"
+
+	. "github.com/jeredw/eniacsim/lib"
 )
 
 const (
@@ -20,9 +22,9 @@ const (
 )
 
 const (
-	Pulse = iota
-	Add
-	Cont
+	PulseMode = iota
+	AddMode
+	ContMode
 )
 
 var clocks = []int {
@@ -51,7 +53,7 @@ var clocks = []int {
 var intbch chan int
 var cycbutdone chan int
 var cmodemu sync.Mutex
-var cmode = Cont
+var cmode = ContMode
 var acycmu sync.Mutex
 var acyc = 0
 var stopmu sync.Mutex
@@ -68,11 +70,11 @@ func cycstat() string {
 }
 
 func cycsetmode(newmode int) {
-	if *testcycles > 0 && newmode != Cont {
+	if *testcycles > 0 && newmode != ContMode {
 		return
 	}
 	cmodemu.Lock()
-	waiting_for_button := intbch != nil && (cmode == Add || cmode == Pulse)
+	waiting_for_button := intbch != nil && (cmode == AddMode || cmode == PulseMode)
 	cmode = newmode
 	cmodemu.Unlock()
 	if waiting_for_button {
@@ -82,7 +84,7 @@ func cycsetmode(newmode int) {
 }
 
 func cycreset() {
-	cycsetmode(Cont)
+	cycsetmode(ContMode)
 }
 
 func cyclectl(cch chan [2]string) {
@@ -92,17 +94,17 @@ func cyclectl(cch chan [2]string) {
 		case "op":
 			switch x[1] {
 			case "1p", "1P":
-				cycsetmode(Pulse)
+				cycsetmode(PulseMode)
 			case "1a", "1A":
-				cycsetmode(Add)
+				cycsetmode(AddMode)
 				acycmu.Lock()
 				acyc = 0
 				acycmu.Unlock()
 			case "co", "CO":
-				cycsetmode(Cont)
+				cycsetmode(ContMode)
 			case "cy", "CY":
 				cmodemu.Lock()
-				waiting_for_button := cmode == Add || cmode == Pulse
+				waiting_for_button := cmode == AddMode || cmode == PulseMode
 				cmode = (cmode + 1) % 3
 				cmodemu.Unlock()
 				if waiting_for_button {
@@ -118,8 +120,8 @@ func cyclectl(cch chan [2]string) {
 	}
 }
 
-func cycleunit(fns []pulsefn, bch chan int) {
-	var p pulse
+func cycleunit(fns []ClockFunc, bch chan int) {
+	var p Pulse
 
 	if *testcycles > 0 {
 		<- teststart
@@ -130,7 +132,7 @@ func cycleunit(fns []pulsefn, bch chan int) {
 		for {
 			b :=<- bch
 			cmodemu.Lock()
-			waiting_for_button := cmode == Add || cmode == Pulse
+			waiting_for_button := cmode == AddMode || cmode == PulseMode
 			cmodemu.Unlock()
 			if waiting_for_button {
 				intbch <- b
@@ -140,35 +142,35 @@ func cycleunit(fns []pulsefn, bch chan int) {
 		}
 	} ()
 
-	p.resp = make(chan int)
+	p.Resp = make(chan int)
 	for {
 		stopmu.Lock()
 		stop = false
 		stopmu.Unlock()
 		cmodemu.Lock()
-		wait_for_add := cmode == Add
+		wait_for_add := cmode == AddMode
 		cmodemu.Unlock()
 		if wait_for_add {
 			<- intbch
 		}
 		for cyc = 0; cyc < len(clocks); cyc++ {
 			cmodemu.Lock()
-			wait_for_pulse := cmode == Pulse
+			wait_for_pulse := cmode == PulseMode
 			cmodemu.Unlock()
 			if wait_for_pulse {
 				<- intbch
 			}
 			if cyc == 32 && (initclrff[0] || initclrff[1] || initclrff[2] ||
 					initclrff[3] || initclrff[4] || initclrff[5]) {
-				p.val = Scg
+				p.Val = Scg
 				for _, f := range fns { f(p) }
 			} else if clocks[cyc] != 0 {
-				p.val = clocks[cyc]
+				p.Val = clocks[cyc]
 				for _, f := range fns { f(p) }
 			}
 			cyc++
 			if clocks[cyc] != 0 {
-				p.val = clocks[cyc]
+				p.Val = clocks[cyc]
 				for _, f := range fns { f(p) }
 			}
 			if wait_for_pulse {
@@ -189,7 +191,7 @@ func cycleunit(fns []pulsefn, bch chan int) {
 		stopmu.Lock()
 		if stop {
 			cmodemu.Lock()
-			cmode = Add
+			cmode = AddMode
 			cmodemu.Unlock()
 		}
 		stopmu.Unlock()

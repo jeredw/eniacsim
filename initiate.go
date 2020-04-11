@@ -3,11 +3,13 @@ package main
 import (
 	"fmt"
 	"strconv"
+
+	. "github.com/jeredw/eniacsim/lib"
 )
 
 var gate66, gate69 int
 var prff, printphase1, printphase2, rdff, rdilock, rdsync, rdfinish bool
-var initjack [18]chan pulse
+var initjack [18]chan Pulse
 var initclrff [6]bool
 var initupdate chan int
 var prtacyc int
@@ -45,7 +47,7 @@ func initreset() {
 	initupdate <- 1
 }
 
-func initplug(jack string, ch chan pulse) {
+func initplug(jack string, ch chan Pulse) {
 	switch jack[0] {
 	case 'c', 'C':
 		set, _ := strconv.Atoi(jack[2:])
@@ -81,8 +83,8 @@ func initplug(jack string, ch chan pulse) {
 	initupdate <- 1
 }
 
-func initiatepulse(p pulse, resp chan int) {
-	cyc := p.val
+func initiatepulse(p Pulse, resp chan int) {
+	cyc := p.Val
 	if cyc & Cpp != 0 {
 		if gate69 == 1 {
 			gate66 = 0
@@ -92,12 +94,12 @@ func initiatepulse(p pulse, resp chan int) {
 			gate69 = 1
 		}
 		cmodemu.Lock()
-		stepping := cmode == Add || cmode == Pulse
+		stepping := cmode == AddMode || cmode == PulseMode
 		cmodemu.Unlock()
 		for i, ff := range initclrff {
 			if ff {
 				if initjack[2*i+1] != nil {
-					initjack[2*i+1] <- pulse{1, resp}
+					initjack[2*i+1] <- Pulse{1, resp}
 					<- resp
 				}
 				initclrff[i] = false
@@ -164,9 +166,9 @@ func initiatepulse(p pulse, resp chan int) {
 	}
 }
 
-func makeinitiatepulse() pulsefn {
+func makeinitiatepulse() ClockFunc {
 	resp := make(chan int)
-	return func(p pulse) {
+	return func(p Pulse) {
 		initiatepulse(p, resp)
 	}
 }
@@ -199,13 +201,13 @@ func initiateunit2() {
 		case <- initupdate:
 		case p :=<- initjack[12]:
 			rdilock = true
-			if p.resp != nil {
-				p.resp <- 1
+			if p.Resp != nil {
+				p.Resp <- 1
 			}
 		case p :=<- initjack[13]:
 			rdff = true
-			if p.resp != nil {
-				p.resp <- 1
+			if p.Resp != nil {
+				p.Resp <- 1
 			}
 		case p :=<- initjack[15]:
 			if !printphase1 {
@@ -217,38 +219,38 @@ func initiateunit2() {
 					acycmu.Unlock()
 				}
 			}
-			if p.resp != nil {
-				p.resp <- 1
+			if p.Resp != nil {
+				p.Resp <- 1
 			}
 		case p :=<- initjack[0]:
 			initclrff[0] = true
-			if p.resp != nil {
-				p.resp <- 1
+			if p.Resp != nil {
+				p.Resp <- 1
 			}
 		case p :=<- initjack[2]:
 			initclrff[1] = true
-			if p.resp != nil {
-				p.resp <- 1
+			if p.Resp != nil {
+				p.Resp <- 1
 			}
 		case p :=<- initjack[4]:
 			initclrff[2] = true
-			if p.resp != nil {
-				p.resp <- 1
+			if p.Resp != nil {
+				p.Resp <- 1
 			}
 		case p :=<- initjack[6]:
 			initclrff[3] = true
-			if p.resp != nil {
-				p.resp <- 1
+			if p.Resp != nil {
+				p.Resp <- 1
 			}
 		case p :=<- initjack[8]:
 			initclrff[4] = true
-			if p.resp != nil {
-				p.resp <- 1
+			if p.Resp != nil {
+				p.Resp <- 1
 			}
 		case p :=<- initjack[10]:
 			initclrff[5] = true
-			if p.resp != nil {
-				p.resp <- 1
+			if p.Resp != nil {
+				p.Resp <- 1
 			}
 		}
 	}

@@ -9,14 +9,9 @@ import (
 	"time"
 	"unicode"
 	"flag"
+
+	. "github.com/jeredw/eniacsim/lib"
 )
-
-type pulse struct {
-	val int
-	resp chan int
-}
-
-type pulsefn func(pulse)
 
 var initbut, cycbut chan int
 var initbutdone chan int
@@ -39,35 +34,35 @@ func b2is(b bool) string {
 	return "0"
 }
 
-func tee(a, b chan pulse) chan pulse {
-	var t = make(chan pulse)
+func tee(a, b chan Pulse) chan Pulse {
+	var t = make(chan Pulse)
 	go func() {
 		for {
 			select {
 			case pa := <-a:
-				if pa.val != 0 {
+				if pa.Val != 0 {
 					t <- pa
 				}
 			case pb := <-b:
-				if pb.val != 0 {
+				if pb.Val != 0 {
 					t <- pb
 				}
 			case pt := <-t:
-				if pt.val != 0 {
-					var pt2 pulse
+				if pt.Val != 0 {
+					var pt2 Pulse
 					if a != nil {
-						pt2.resp = make(chan int)
-						pt2.val = pt.val
+						pt2.Resp = make(chan int)
+						pt2.Val = pt.Val
 						a <- pt2
-						<- pt2.resp
+						<- pt2.Resp
 					}
 					if b != nil {
-						pt2.resp = make(chan int)
-						pt2.val = pt.val
+						pt2.Resp = make(chan int)
+						pt2.Val = pt.Val
 						b <- pt2
-						<- pt2.resp
+						<- pt2.Resp
 					}
-					pt.resp <- 1
+					pt.Resp <- 1
 				}
 			}
 		}
@@ -214,7 +209,7 @@ func proccmd(cmd string) int {
 			accinterconnect(p1, p2)
 			break
 		}
-		ch := make(chan pulse)
+		ch := make(chan Pulse)
 		switch {
 		case p1[0] == "ad":
 			if len(p1) != 4 {
@@ -611,7 +606,7 @@ func main() {
 	divsw = make(chan [2]string)
 	multsw = make(chan [2]string)
 	conssw = make(chan [2]string)
-	f := []pulsefn{
+	f := []ClockFunc{
 		makeinitiatepulse(),
 		makemppulse(),
 		makedivpulse(),

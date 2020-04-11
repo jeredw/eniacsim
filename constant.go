@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strconv"
 	"unicode"
+
+	. "github.com/jeredw/eniacsim/lib"
 )
 
 var consupdate chan int
@@ -14,10 +16,10 @@ var consj [10]byte
 var signj [2]byte
 var consk [10]byte
 var signk [2]byte
-var consout chan pulse
-var conspin [30]chan pulse
+var consout chan Pulse
+var conspin [30]chan Pulse
 var consinff1, consinff2 [30]bool
-var conspout [30]chan pulse
+var conspout [30]chan Pulse
 
 func consstat() string {
 	s := ""
@@ -54,7 +56,7 @@ func consreset() {
 	consupdate <- 1
 }
 
-func consplug(jack string, ch chan pulse) {
+func consplug(jack string, ch chan Pulse) {
 	var prog int
 	var ilk rune
 
@@ -293,7 +295,7 @@ var sign byte
 var pos1pp int
 var whichrp bool
 
-func conspulse(p pulse, resp chan int) {
+func conspulse(p Pulse, resp chan int) {
 	sending := -1
 	for i := 0; i < 30; i++ {
 		if consinff2[i] {
@@ -302,7 +304,7 @@ func conspulse(p pulse, resp chan int) {
 			break
 		}
 	}
-	cyc := p.val
+	cyc := p.Val
 	if cyc & Ccg != 0 {
 		whichrp = false
 	} else if cyc & Rp != 0 {
@@ -342,9 +344,9 @@ func conspulse(p pulse, resp chan int) {
 	}
 }
 
-func makeconspulse() pulsefn {
+func makeconspulse() ClockFunc {
 	resp := make(chan int)
-	return func(p pulse) {
+	return func(p Pulse) {
 		conspulse(p, resp)
 	}
 }
@@ -355,220 +357,220 @@ func consunit() {
 }
 
 func consunit2() {
-	var prog pulse
+	var prog Pulse
 
 	for {
 		select {
 		case <- consupdate:
 		case prog =<- conspin[0]:
-			if(prog.val == 1) {
+			if(prog.Val == 1) {
 				consinff1[0] = true
 			}
-			if prog.resp != nil {
-				prog.resp <- 1
+			if prog.Resp != nil {
+				prog.Resp <- 1
 			}
 		case prog =<- conspin[1]:
-			if(prog.val == 1) {
+			if(prog.Val == 1) {
 				consinff1[1] = true
 			}
-			if prog.resp != nil {
-				prog.resp <- 1
+			if prog.Resp != nil {
+				prog.Resp <- 1
 			}
 		case prog =<- conspin[2]:
-			if(prog.val == 1) {
+			if(prog.Val == 1) {
 				consinff1[2] = true
 			}
-			if prog.resp != nil {
-				prog.resp <- 1
+			if prog.Resp != nil {
+				prog.Resp <- 1
 			}
 		case prog =<- conspin[3]:
-			if(prog.val == 1) {
+			if(prog.Val == 1) {
 				consinff1[3] = true
 			}
-			if prog.resp != nil {
-				prog.resp <- 1
+			if prog.Resp != nil {
+				prog.Resp <- 1
 			}
 		case prog =<- conspin[4]:
-			if(prog.val == 1) {
+			if(prog.Val == 1) {
 				consinff1[4] = true
 			}
-			if prog.resp != nil {
-				prog.resp <- 1
+			if prog.Resp != nil {
+				prog.Resp <- 1
 			}
 		case prog =<- conspin[5]:
-			if(prog.val == 1) {
+			if(prog.Val == 1) {
 				consinff1[5] = true
 			}
-			if prog.resp != nil {
-				prog.resp <- 1
+			if prog.Resp != nil {
+				prog.Resp <- 1
 			}
 		case prog =<- conspin[6]:
-			if(prog.val == 1) {
+			if(prog.Val == 1) {
 				consinff1[6] = true
 			}
-			if prog.resp != nil {
-				prog.resp <- 1
+			if prog.Resp != nil {
+				prog.Resp <- 1
 			}
 		case prog =<- conspin[7]:
-			if(prog.val == 1) {
+			if(prog.Val == 1) {
 				consinff1[7] = true
 			}
-			if prog.resp != nil {
-				prog.resp <- 1
+			if prog.Resp != nil {
+				prog.Resp <- 1
 			}
 		case prog =<- conspin[8]:
-			if(prog.val == 1) {
+			if(prog.Val == 1) {
 				consinff1[8] = true
 			}
-			if prog.resp != nil {
-				prog.resp <- 1
+			if prog.Resp != nil {
+				prog.Resp <- 1
 			}
 		case prog =<- conspin[9]:
-			if(prog.val == 1) {
+			if(prog.Val == 1) {
 				consinff1[9] = true
 			}
-			if prog.resp != nil {
-				prog.resp <- 1
+			if prog.Resp != nil {
+				prog.Resp <- 1
 			}
 		case prog =<- conspin[10]:
-			if(prog.val == 1) {
+			if(prog.Val == 1) {
 				consinff1[10] = true
 			}
-			if prog.resp != nil {
-				prog.resp <- 1
+			if prog.Resp != nil {
+				prog.Resp <- 1
 			}
 		case prog =<- conspin[11]:
-			if(prog.val == 1) {
+			if(prog.Val == 1) {
 				consinff1[11] = true
 			}
-			if prog.resp != nil {
-				prog.resp <- 1
+			if prog.Resp != nil {
+				prog.Resp <- 1
 			}
 		case prog =<- conspin[12]:
-			if(prog.val == 1) {
+			if(prog.Val == 1) {
 				consinff1[12] = true
 			}
-			if prog.resp != nil {
-				prog.resp <- 1
+			if prog.Resp != nil {
+				prog.Resp <- 1
 			}
 		case prog =<- conspin[13]:
-			if(prog.val == 1) {
+			if(prog.Val == 1) {
 				consinff1[13] = true
 			}
-			if prog.resp != nil {
-				prog.resp <- 1
+			if prog.Resp != nil {
+				prog.Resp <- 1
 			}
 		case prog =<- conspin[14]:
-			if(prog.val == 1) {
+			if(prog.Val == 1) {
 				consinff1[14] = true
 			}
-			if prog.resp != nil {
-				prog.resp <- 1
+			if prog.Resp != nil {
+				prog.Resp <- 1
 			}
 		case prog =<- conspin[15]:
-			if(prog.val == 1) {
+			if(prog.Val == 1) {
 				consinff1[15] = true
 			}
-			if prog.resp != nil {
-				prog.resp <- 1
+			if prog.Resp != nil {
+				prog.Resp <- 1
 			}
 		case prog =<- conspin[16]:
-			if(prog.val == 1) {
+			if(prog.Val == 1) {
 				consinff1[16] = true
 			}
-			if prog.resp != nil {
-				prog.resp <- 1
+			if prog.Resp != nil {
+				prog.Resp <- 1
 			}
 		case prog =<- conspin[17]:
-			if(prog.val == 1) {
+			if(prog.Val == 1) {
 				consinff1[17] = true
 			}
-			if prog.resp != nil {
-				prog.resp <- 1
+			if prog.Resp != nil {
+				prog.Resp <- 1
 			}
 		case prog =<- conspin[18]:
-			if(prog.val == 1) {
+			if(prog.Val == 1) {
 				consinff1[18] = true
 			}
-			if prog.resp != nil {
-				prog.resp <- 1
+			if prog.Resp != nil {
+				prog.Resp <- 1
 			}
 		case prog =<- conspin[19]:
-			if(prog.val == 1) {
+			if(prog.Val == 1) {
 				consinff1[19] = true
 			}
-			if prog.resp != nil {
-				prog.resp <- 1
+			if prog.Resp != nil {
+				prog.Resp <- 1
 			}
 		case prog =<- conspin[20]:
-			if(prog.val == 1) {
+			if(prog.Val == 1) {
 				consinff1[20] = true
 			}
-			if prog.resp != nil {
-				prog.resp <- 1
+			if prog.Resp != nil {
+				prog.Resp <- 1
 			}
 		case prog =<- conspin[21]:
-			if(prog.val == 1) {
+			if(prog.Val == 1) {
 				consinff1[21] = true
 			}
-			if prog.resp != nil {
-				prog.resp <- 1
+			if prog.Resp != nil {
+				prog.Resp <- 1
 			}
 		case prog =<- conspin[22]:
-			if(prog.val == 1) {
+			if(prog.Val == 1) {
 				consinff1[22] = true
 			}
-			if prog.resp != nil {
-				prog.resp <- 1
+			if prog.Resp != nil {
+				prog.Resp <- 1
 			}
 		case prog =<- conspin[23]:
-			if(prog.val == 1) {
+			if(prog.Val == 1) {
 				consinff1[23] = true
 			}
-			if prog.resp != nil {
-				prog.resp <- 1
+			if prog.Resp != nil {
+				prog.Resp <- 1
 			}
 		case prog =<- conspin[24]:
-			if(prog.val == 1) {
+			if(prog.Val == 1) {
 				consinff1[24] = true
 			}
-			if prog.resp != nil {
-				prog.resp <- 1
+			if prog.Resp != nil {
+				prog.Resp <- 1
 			}
 		case prog =<- conspin[25]:
-			if(prog.val == 1) {
+			if(prog.Val == 1) {
 				consinff1[25] = true
 			}
-			if prog.resp != nil {
-				prog.resp <- 1
+			if prog.Resp != nil {
+				prog.Resp <- 1
 			}
 		case prog =<- conspin[26]:
-			if(prog.val == 1) {
+			if(prog.Val == 1) {
 				consinff1[26] = true
 			}
-			if prog.resp != nil {
-				prog.resp <- 1
+			if prog.Resp != nil {
+				prog.Resp <- 1
 			}
 		case prog =<- conspin[27]:
-			if(prog.val == 1) {
+			if(prog.Val == 1) {
 				consinff1[27] = true
 			}
-			if prog.resp != nil {
-				prog.resp <- 1
+			if prog.Resp != nil {
+				prog.Resp <- 1
 			}
 		case prog =<- conspin[28]:
-			if(prog.val == 1) {
+			if(prog.Val == 1) {
 				consinff1[28] = true
 			}
-			if prog.resp != nil {
-				prog.resp <- 1
+			if prog.Resp != nil {
+				prog.Resp <- 1
 			}
 		case prog =<- conspin[29]:
-			if(prog.val == 1) {
+			if(prog.Val == 1) {
 				consinff1[29] = true
 			}
-			if prog.resp != nil {
-				prog.resp <- 1
+			if prog.Resp != nil {
+				prog.Resp <- 1
 			}
 		}
 	}

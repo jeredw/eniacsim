@@ -1,17 +1,21 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+
+	. "github.com/jeredw/eniacsim/lib"
+)
 
 type bp struct {
 	n int
-	ch chan pulse
+	ch chan Pulse
 	what string
 	update chan int
 }
 
 var bps [10]bp
 
-func debugplug(n int, ch chan pulse, what string) {
+func debugplug(n int, ch chan Pulse, what string) {
 	if bps[n].update != nil {
 		bps[n].update <- 1
 	}
@@ -30,20 +34,20 @@ func debugreset() {
 
 func dobp(b *bp) {
 	for {
-		var p pulse
+		var p Pulse
 		select {
 		case <- b.update:
 			return
 		case p =<- b.ch:
 		}
-		if p.val != 0 {
+		if p.Val != 0 {
 			fmt.Printf("triggered bp%d %s\n", b.n, b.what)
 			stopmu.Lock()
 			stop = true
 			stopmu.Unlock()
 		}
-		if p.resp != nil {
-			p.resp <- 1
+		if p.Resp != nil {
+			p.Resp <- 1
 		}
 	}
 }

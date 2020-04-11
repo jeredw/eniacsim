@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"strconv"
+
+	. "github.com/jeredw/eniacsim/lib"
 )
 
 const (
@@ -31,8 +33,8 @@ const (
 // Lots of state vars and I don't want to worry about name collisions
 var divsr struct {
 	divupdate chan int
-	progin, progout, ilock [8]chan pulse
-	answer chan pulse
+	progin, progout, ilock [8]chan Pulse
+	answer chan Pulse
 	numarg, numcl, denarg, dencl, roundoff, places, ilocksw, anssw [8]int
 	preff, progff [8]bool
 	placering, progring int
@@ -228,7 +230,7 @@ func divintclear() {
 	divsr.dβ = false
 }
 
-func divsrplug(jack string, ch chan pulse) {
+func divsrplug(jack string, ch chan Pulse) {
 	var prog int
 	var ilk rune
 
@@ -639,9 +641,9 @@ func doIIIP() {
 	divsr.progring++
 }
 
-func divpulse(p pulse, resp chan int) {
+func divpulse(p Pulse, resp chan int) {
 	switch {
-	case p.val & Cpp != 0:
+	case p.Val & Cpp != 0:
 		if divsr.progring == 0 {
 			divsr.ans1 = false
 			divsr.ans2 = false
@@ -657,7 +659,7 @@ func divpulse(p pulse, resp chan int) {
 				doIIIP()
 			}
 		}
-	case p.val & Rp != 0:
+	case p.Val & Rp != 0:
 		/*
 		 * Ugly hack to avoid races
 		 */
@@ -668,21 +670,21 @@ func divpulse(p pulse, resp chan int) {
 				divsr.curprog = i
 			}
 		}
-	case p.val & Onep != 0 && divsr.p1 || p.val & Twop != 0 && divsr.p2:
+	case p.Val & Onep != 0 && divsr.p1 || p.Val & Twop != 0 && divsr.p2:
 		if divsr.placering < 9 {
 			handshake(1 << uint(8 - divsr.placering), divsr.answer, resp)
 		}
-	case p.val & Onep != 0 && divsr.m2 || p.val & Twopp != 0 && divsr.m1:
+	case p.Val & Onep != 0 && divsr.m2 || p.Val & Twopp != 0 && divsr.m1:
 		handshake(0x7ff, divsr.answer, resp)
-	case p.val & Onep != 0 && divsr.m1 || p.val & Twopp != 0 && divsr.m2:
+	case p.Val & Onep != 0 && divsr.m1 || p.Val & Twopp != 0 && divsr.m2:
 		if divsr.placering < 9 {
 			handshake(0x7ff ^ (1 << uint(8 - divsr.placering)), divsr.answer, resp)
 		} else {
 			handshake(0x7ff, divsr.answer, resp)
 		}
-	case (p.val & Fourp != 0 || p.val & Twop != 0) && (divsr.m1 || divsr.m2):
+	case (p.Val & Fourp != 0 || p.Val & Twop != 0) && (divsr.m1 || divsr.m2):
 		handshake(0x7ff, divsr.answer, resp)
-	case p.val & Onepp != 0:
+	case p.Val & Onepp != 0:
 		if divsr.m1 || divsr.m2 {
 			handshake(1, divsr.answer, resp)
 		}
@@ -692,9 +694,9 @@ func divpulse(p pulse, resp chan int) {
 	}
 }
 
-func makedivpulse() pulsefn {
+func makedivpulse() ClockFunc {
 	resp := make(chan int)
-	return func(p pulse) {
+	return func(p Pulse) {
 		divpulse(p, resp)
 	}
 }
@@ -706,10 +708,10 @@ func divunit() {
 }
 
 func divunit2() {
-	var p pulse
+	var p Pulse
 
 	for {
-		p.resp = nil
+		p.Resp = nil
 		select {
 		case <- divsr.divupdate:
 		case p =<- divsr.progin[0]:
@@ -745,8 +747,8 @@ func divunit2() {
 		case p =<- divsr.ilock[7]:
 			divsr.ilockff = true
 		}
-		if p.resp != nil {
-			p.resp <- 1
+		if p.Resp != nil {
+			p.Resp <- 1
 		}
 	}
 }
