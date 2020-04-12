@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	. "github.com/jeredw/eniacsim/lib"
+	"github.com/jeredw/eniacsim/lib/cycle"
 )
 
 var gate66, gate69 int
@@ -14,6 +15,10 @@ var initclrff [6]bool
 var initupdate chan int
 var prtacyc int
 var lastread int
+
+func ShouldClear() bool {
+	return initclrff[0] || initclrff[1] || initclrff[2] || initclrff[3] || initclrff[4] || initclrff[5]
+}
 
 func initstat() string {
 	s := ""
@@ -93,9 +98,7 @@ func initiatepulse(p Pulse, resp chan int) {
 		} else if gate66 == 1 {
 			gate69 = 1
 		}
-		cmodemu.Lock()
-		stepping := cmode == AddMode || cmode == PulseMode
-		cmodemu.Unlock()
+		stepping := cycle.Stepping()
 		for i, ff := range initclrff {
 			if ff {
 				if initjack[2*i+1] != nil {
@@ -112,17 +115,13 @@ func initiatepulse(p Pulse, resp chan int) {
 			rdsync = false
 			rdfinish = false
 		}
-		acycmu.Lock()
-		sinceread := acyc - lastread
-		acycmu.Unlock()
+		sinceread := cycle.AddCycle() - lastread
 		if rdff && (stepping || sinceread > mstoacyc(375)) {
 			if cardscanner != nil {
 				if cardscanner.Scan() {
 					card := cardscanner.Text()
 					proccard(card)
-					acycmu.Lock()
-					lastread = acyc
-					acycmu.Unlock()
+					lastread = cycle.AddCycle()
 					rdfinish = true
 				} else {
 					cardscanner = nil
@@ -132,9 +131,7 @@ func initiatepulse(p Pulse, resp chan int) {
 		if rdfinish && rdilock {
 			rdsync = true
 		}
-		acycmu.Lock()
-		sinceprint := acyc - prtacyc
-		acycmu.Unlock()
+		sinceprint := cycle.AddCycle() - prtacyc
 		if printphase1 && (stepping || sinceprint > mstoacyc(150)) {
 			s := doprint()
 			if punchwriter != nil {
@@ -147,18 +144,14 @@ func initiatepulse(p Pulse, resp chan int) {
 				ppunch <- s
 			}
 			handshake(1, initjack[16], resp)
-			acycmu.Lock()
-			prtacyc = acyc
-			acycmu.Unlock()
+			prtacyc = cycle.AddCycle()
 			printphase1 = false
 			printphase2 = true
 			prff = false
 		}
 		if printphase2 && (stepping || sinceprint > mstoacyc(450)) {
 			if prff {
-				acycmu.Lock()
-				prtacyc = acyc
-				acycmu.Unlock()
+				prtacyc = cycle.AddCycle()
 				printphase1 = true
 			}
 			printphase2 = false
@@ -173,10 +166,10 @@ func makeinitiatepulse() ClockFunc {
 	}
 }
 
-func initiateunit(button chan int, butdone chan int) {
+func initiateunit(button Button) {
 	go initiateunit2()
 	for {
-		switch <-button {
+		switch <-button.Push {
 		case 4:
 			gate66 = 1
 		case 5:
@@ -190,7 +183,7 @@ func initiateunit(button chan int, butdone chan int) {
 			rdff = true
 			rdilock = true
 		}
-		butdone <- 1
+		button.Done <- 1
 	}
 }
 
@@ -214,9 +207,7 @@ func initiateunit2() {
 				prff = true
 				if !printphase2 {
 					printphase1 = true
-					acycmu.Lock()
-					prtacyc = acyc
-					acycmu.Unlock()
+					prtacyc = cycle.AddCycle()
 				}
 			}
 			if p.Resp != nil {

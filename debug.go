@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-
 	. "github.com/jeredw/eniacsim/lib"
 )
 
@@ -42,9 +41,7 @@ func dobp(b *bp) {
 		}
 		if p.Val != 0 {
 			fmt.Printf("triggered bp%d %s\n", b.n, b.what)
-			stopmu.Lock()
-			stop = true
-			stopmu.Unlock()
+			cycleStop <- 1
 		}
 		if p.Resp != nil {
 			p.Resp <- 1

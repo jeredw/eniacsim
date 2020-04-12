@@ -11,21 +11,23 @@ import (
 	"unicode"
 
 	. "github.com/jeredw/eniacsim/lib"
+	"github.com/jeredw/eniacsim/lib/cycle"
 )
 
-var initbut, cycbut chan int
-var initbutdone chan int
-var teststart chan int
-var testdone chan int
+var cycleButton Button
+var cycleSwitches chan [2]string
+var cycleReset chan int
+var cycleStop chan int
+var initButton Button
+var testButton Button
 var ppunch chan string
-var mpsw, conssw, cycsw, multsw, divsw, prsw chan [2]string
+var mpsw, conssw, multsw, divsw, prsw chan [2]string
 var accsw [20]chan [2]string
 var ftsw [3]chan [2]string
 var width, height int
 var cardscanner *bufio.Scanner
 var punchwriter *bufio.Writer
 var demomode, tkkludge, usecontrol *bool
-var testcycles *int
 
 func b2is(b bool) string {
 	if b {
@@ -109,21 +111,21 @@ func proccmd(cmd string) int {
 		}
 		switch f[1] {
 		case "c":
-			initbut <- 5
-			<-initbutdone
+			initButton.Push <- 5
+			<-initButton.Done
 		case "i":
-			initbut <- 4
-			<-initbutdone
+			initButton.Push <- 4
+			<-initButton.Done
 		case "p":
-			cycbut <- 1
-			<-cycbutdone
+			cycleButton.Push <- 1
+			<-cycleButton.Done
 		case "r":
-			initbut <- 3
-			<-initbutdone
+			initButton.Push <- 3
+			<-initButton.Done
 		}
 	case "n":
-		cycbut <- 1
-		<-cycbutdone
+		cycleButton.Push <- 1
+		<-cycleButton.Done
 		dumpall()
 	case "d":
 		if len(f) != 2 {
@@ -387,7 +389,7 @@ func proccmd(cmd string) int {
 		}
 	case "R":
 		initreset()
-		cycreset()
+		cycleReset <- 1
 		debugreset()
 		mpreset()
 		ftreset(0)
@@ -426,7 +428,7 @@ func proccmd(cmd string) int {
 			if len(p) != 2 {
 				fmt.Println("Cycling switch syntax: s cy.switch value")
 			} else {
-				cycsw <- [2]string{p[1], f[2]}
+				cycleSwitches <- [2]string{p[1], f[2]}
 			}
 		case p[0] == "d" || p[0] == "ds":
 			if len(p) != 2 {
@@ -584,7 +586,7 @@ func main() {
 	nogui := flag.Bool("g", false, "run without GUI")
 	tkkludge = flag.Bool("K", false, "work around wish memory leaks")
 	wp := flag.Int("w", 0, "`width` of the simulation window in pixels")
-	testcycles = flag.Int("t", 0, "run for n add cycles and dump state")
+	testCycles := flag.Int("t", 0, "run for n add cycles and dump state")
 	flag.Parse()
 	width = *wp
 	if !*nogui {
@@ -595,13 +597,12 @@ func main() {
 		go ctlstation()
 	}
 
-	initbut = make(chan int)
-	initbutdone = make(chan int)
-	cycsw = make(chan [2]string)
-	cycbut = make(chan int)
-	cycbutdone = make(chan int)
-	teststart = make(chan int)
-	testdone = make(chan int)
+	initButton = NewButton()
+	cycleSwitches = make(chan [2]string)
+	cycleReset = make(chan int)
+	cycleStop = make(chan int)
+	cycleButton = NewButton()
+	testButton = NewButton()
 	mpsw = make(chan [2]string)
 	divsw = make(chan [2]string)
 	multsw = make(chan [2]string)
@@ -625,14 +626,22 @@ func main() {
 
 	go consctl(conssw)
 	go mpctl(mpsw)
-	go cyclectl(cycsw)
 	go divsrctl(divsw)
 	go multctl(multsw)
 	go prctl(prsw)
 
-	go initiateunit(initbut, initbutdone)
+	go initiateunit(initButton)
 	go mpunit()
-	go cycleunit(f, cycbut)
+	go cycle.Run(cycle.Conn{
+		Units:       f,
+		Clear:       ShouldClear,
+		CycleButton: cycleButton,
+		Switches:    cycleSwitches,
+		Reset:       cycleReset,
+		Stop:        cycleStop,
+		TestButton:  testButton,
+		TestCycles:  *testCycles,
+	})
 	go divunit()
 	go multunit()
 	go consunit()
@@ -651,18 +660,16 @@ func main() {
 		proccmd("l " + flag.Arg(0))
 	}
 
-	if *testcycles > 0 {
-		teststart <- 1
-		<-testdone
+	if *testCycles > 0 {
+		testButton.Push <- 1
+		<-testButton.Done
 		dumpall()
 		return
 	}
 
 	sc := bufio.NewScanner(os.Stdin)
 	var prompt = func() {
-		acycmu.Lock()
-		fmt.Printf("%04d> ", acyc%10000)
-		acycmu.Unlock()
+		fmt.Printf("%04d> ", cycle.AddCycle()%10000)
 	}
 	prompt()
 	for sc.Scan() {

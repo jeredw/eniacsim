@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/jeredw/eniacsim/lib/cycle"
 )
 
 type gstat struct {
@@ -637,7 +639,7 @@ func innergui() {
 			needupdate = true
 		}
 		// Cycle unit
-		s = cycstat()
+		s = cycle.Stat()
 		if s != guistate.lastcyc {
 			n, _ := strconv.Atoi(s)
 			neonplcl(gpipe, ".cycst", true, 122+642+(n/2)*20, 40)
@@ -646,14 +648,14 @@ func innergui() {
 			guistate.lastcyc = s
 			needupdate = true
 		}
-		if lastcmode != cmode && !*usecontrol {
-			lastcmode = cmode
+		if lastcmode != cycle.Mode() && !*usecontrol {
+			lastcmode = cycle.Mode()
 			switch lastcmode {
-			case PulseMode:
+			case cycle.OnePulse:
 				fmt.Fprintln(gpipe, ".cmode configure -text \"1 Pulse\"")
-			case AddMode:
+			case cycle.OneAdd:
 				fmt.Fprintln(gpipe, ".cmode configure -text \"1 Add\"")
-			case ContMode:
+			case cycle.Continuous:
 				fmt.Fprintln(gpipe, ".cmode configure -text \"Cont.\"")
 			}
 			needupdate = true
