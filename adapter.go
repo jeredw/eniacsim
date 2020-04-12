@@ -16,7 +16,7 @@ var sdout [40]chan Pulse
 func adreset() {
 	for i := 0; i < 40; i++ {
 		dpin[i] = nil
-		for j := 0; j < 11;j ++ {
+		for j := 0; j < 11; j++ {
 			dpout[i][j] = nil
 		}
 		shiftin[i] = nil
@@ -70,11 +70,11 @@ func adplug(ilk string, inout, which, param int, ch chan Pulse) {
 func digitprog(in chan Pulse, which int) {
 	resp := make(chan int)
 	for {
-		d :=<- in
+		d := <-in
 		for i := uint(0); i < 11; i++ {
-			if d.Val & (1 << i) != 0 &&  dpout[which][i] != nil {
+			if d.Val&(1<<i) != 0 && dpout[which][i] != nil {
 				dpout[which][i] <- Pulse{1, resp}
-				<- resp
+				<-resp
 			}
 		}
 		if d.Resp != nil {
@@ -85,13 +85,13 @@ func digitprog(in chan Pulse, which int) {
 
 func shifter(in, out chan Pulse, shift int) {
 	for {
-		d :=<- in
+		d := <-in
 		if shift >= 0 {
-			d.Val = (d.Val & (1 << 10)) | ((d.Val  << uint(shift)) & ((1 << 10) - 1))
+			d.Val = (d.Val & (1 << 10)) | ((d.Val << uint(shift)) & ((1 << 10) - 1))
 		} else {
 			x := d.Val >> uint(-shift)
-			if d.Val & (1 << 10) != 0 {
-				d.Val = x | (((1 << 11) - 1) & ^((1 << uint(11 + shift)) - 1))
+			if d.Val&(1<<10) != 0 {
+				d.Val = x | (((1 << 11) - 1) & ^((1 << uint(11+shift)) - 1))
 			} else {
 				d.Val = x
 			}
@@ -106,11 +106,11 @@ func shifter(in, out chan Pulse, shift int) {
 
 func deleter(in, out chan Pulse, which int) {
 	for {
-		d :=<- in
+		d := <-in
 		if which >= 0 {
-			d.Val &= ^((1 << uint(10 - which)) - 1)
+			d.Val &= ^((1 << uint(10-which)) - 1)
 		} else {
-			d.Val &= (1 << uint(10 + which)) - 1
+			d.Val &= (1 << uint(10+which)) - 1
 		}
 		if d.Val != 0 {
 			out <- d
@@ -122,10 +122,10 @@ func deleter(in, out chan Pulse, which int) {
 
 func specdig(in, out chan Pulse, which uint) {
 	for {
-		d :=<- in
+		d := <-in
 		x := d.Val >> which
 		mask := 0x07fc
-		if d.Val & (1 << 10) != 0 {
+		if d.Val&(1<<10) != 0 {
 			d.Val = x | mask
 		} else {
 			d.Val = x & ^mask

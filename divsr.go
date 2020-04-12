@@ -8,41 +8,41 @@ import (
 )
 
 const (
-	svα = 1 << 0
-	svβ = 1 << 1
-	svγ = 1 << 2
-	svA = 1 << 5
+	svα   = 1 << 0
+	svβ   = 1 << 1
+	svγ   = 1 << 2
+	svA   = 1 << 5
 	svCLR = 1 << 8
 
-	su2qα = 1 << 0
-	su2qA = 1 << 3
-	su2qS = 1 << 4
+	su2qα   = 1 << 0
+	su2qA   = 1 << 3
+	su2qS   = 1 << 4
 	su2qCLR = 1 << 5
-	su2sα = 1 << 1
-	su2sA = 1 << 2
+	su2sα   = 1 << 1
+	su2sA   = 1 << 2
 	su2sCLR = 1 << 6
 
-	su3α = 1 << 0
-	su3β = 1 << 1
-	su3γ = 1 << 2
-	su3A = 1 << 3
-	su3S = 1 << 4
+	su3α   = 1 << 0
+	su3β   = 1 << 1
+	su3γ   = 1 << 2
+	su3A   = 1 << 3
+	su3S   = 1 << 4
 	su3CLR = 1 << 5
 )
 
 // Lots of state vars and I don't want to worry about name collisions
 var divsr struct {
-	divupdate chan int
-	progin, progout, ilock [8]chan Pulse
-	answer chan Pulse
-	numarg, numcl, denarg, dencl, roundoff, places, ilocksw, anssw [8]int
-	preff, progff [8]bool
-	placering, progring int
+	divupdate                                                                  chan int
+	progin, progout, ilock                                                     [8]chan Pulse
+	answer                                                                     chan Pulse
+	numarg, numcl, denarg, dencl, roundoff, places, ilocksw, anssw             [8]int
+	preff, progff                                                              [8]bool
+	placering, progring                                                        int
 	divff, clrff, ilockff, coinff, dpγ, nγ, psrcff, pringff, denomff, numrplus bool
 	numrmin, qα, sac, m2, m1, nac, da, nα, dα, dγ, npγ, p2, p1, sα, ds, nβ, dβ bool
-	ans1, ans2, ans3, ans4 bool
-	curprog, divadap, sradap int
-	sv, su2, su3 int
+	ans1, ans2, ans3, ans4                                                     bool
+	curprog, divadap, sradap                                                   int
+	sv, su2, su3                                                               int
 }
 
 func divsrstat() string {
@@ -252,7 +252,7 @@ func divsrplug(jack string, ch chan Pulse) {
 
 func divsrctl(ch chan [2]string) {
 	for {
-		ctl :=<- ch
+		ctl := <-ch
 		sw, _ := strconv.Atoi(ctl[0][2:])
 		switch ctl[0][:2] {
 		case "da":
@@ -382,7 +382,7 @@ func doS() {
 	} else {
 		p += 6
 	}
-	if divsr.placering == p - 2 {		// Gate E6
+	if divsr.placering == p-2 { // Gate E6
 		divsr.psrcff = true
 	}
 }
@@ -397,7 +397,7 @@ func overflow() bool {
 }
 
 func doGP(resp chan int) {
-	if divsr.coinff {			// Gate E50
+	if divsr.coinff { // Gate E50
 		if divsr.ilocksw[divsr.curprog] == 0 || divsr.ilockff {
 			divsr.coinff = false
 			divsr.clrff = true
@@ -458,14 +458,14 @@ func doGP(resp chan int) {
 	if divsr.qα {
 		divsr.p1 = false
 		divsr.m1 = false
-		if overflow() {		// Gates D9, D11, D12
+		if overflow() { // Gates D9, D11, D12
 			doS()
 		} else {
 			doP()
 		}
 		divsr.qα = false
 		divsr.su2 &^= su2qα
-	} else if divsr.nγ {		//  Gates L10, G11, H11
+	} else if divsr.nγ { //  Gates L10, G11, H11
 		divsr.nγ = false
 		divsr.sv &^= svγ
 		if divsr.divff {
@@ -493,7 +493,7 @@ func doGP(resp chan int) {
 				divsr.m2 = true
 			}
 		}
-	} else if divsr.npγ {		// Gate C9
+	} else if divsr.npγ { // Gate C9
 		divsr.npγ = false
 		divsr.sv &^= svγ
 		divsr.sac = false
@@ -503,7 +503,7 @@ func doGP(resp chan int) {
 		divsr.dpγ = false
 		divsr.su3 &^= su3γ
 		doP()
-	} else if divsr.sα {		// Gates K7, L1
+	} else if divsr.sα { // Gates K7, L1
 		divsr.sα = false
 		divsr.su2 &^= su2sα
 		divsr.nac = false
@@ -535,7 +535,7 @@ func doGP(resp chan int) {
 		if !divsr.pringff {
 			divsr.progring++
 		}
-	case 1: 		// Gate D6
+	case 1: // Gate D6
 		s := accstat(2)[4:]
 		if s[0] == 'M' {
 			divsr.numrplus, divsr.numrmin = divsr.numrmin, divsr.numrplus
@@ -547,7 +547,7 @@ func doGP(resp chan int) {
 		if !divsr.pringff {
 			divsr.progring++
 		}
-	case 2:		// Gate A7, B7, B8
+	case 2: // Gate A7, B7, B8
 		if divsr.divff {
 			doP()
 			divsr.pringff = true
@@ -569,7 +569,7 @@ func doGP(resp chan int) {
 }
 
 func doIIIP() {
-	if divsr.npγ {		// Gate C9
+	if divsr.npγ { // Gate C9
 		divsr.npγ = false
 		divsr.sv &^= svγ
 		divsr.sac = false
@@ -608,14 +608,14 @@ func doIIIP() {
 	switch divsr.progring {
 	case 1:
 		doP()
-	case 6:			// Gate D4
+	case 6: // Gate D4
 		divsr.nγ = false
 		divsr.sv &^= svγ
 		divsr.da = false
 		divsr.ds = false
 		divsr.su3 &^= su3A | su3S
-	case 7:			// Gate J13
-		if !overflow() && divsr.roundoff[divsr.curprog] == 1 {	// Gate K12
+	case 7: // Gate J13
+		if !overflow() && divsr.roundoff[divsr.curprog] == 1 { // Gate K12
 			if divsr.divff {
 				divsr.qα = true
 				divsr.su2 |= su2qα
@@ -634,7 +634,7 @@ func doIIIP() {
 				}
 			}
 		}
-	case 8:			// Gate E3. L50
+	case 8: // Gate E3. L50
 		divsr.psrcff = false
 		divsr.coinff = true
 	}
@@ -643,7 +643,7 @@ func doIIIP() {
 
 func divpulse(p Pulse, resp chan int) {
 	switch {
-	case p.Val & Cpp != 0:
+	case p.Val&Cpp != 0:
 		if divsr.progring == 0 {
 			divsr.ans1 = false
 			divsr.ans2 = false
@@ -653,13 +653,13 @@ func divpulse(p Pulse, resp chan int) {
 			divsr.su3 &^= su3A | su3S | su3CLR
 		}
 		if divsr.curprog >= 0 {
-			if divsr.psrcff == false {			// Gate F4
+			if divsr.psrcff == false { // Gate F4
 				doGP(resp)
-			} else {						// Gate F5
+			} else { // Gate F5
 				doIIIP()
 			}
 		}
-	case p.Val & Rp != 0:
+	case p.Val&Rp != 0:
 		/*
 		 * Ugly hack to avoid races
 		 */
@@ -670,25 +670,25 @@ func divpulse(p Pulse, resp chan int) {
 				divsr.curprog = i
 			}
 		}
-	case p.Val & Onep != 0 && divsr.p1 || p.Val & Twop != 0 && divsr.p2:
+	case p.Val&Onep != 0 && divsr.p1 || p.Val&Twop != 0 && divsr.p2:
 		if divsr.placering < 9 {
-			handshake(1 << uint(8 - divsr.placering), divsr.answer, resp)
+			handshake(1<<uint(8-divsr.placering), divsr.answer, resp)
 		}
-	case p.Val & Onep != 0 && divsr.m2 || p.Val & Twopp != 0 && divsr.m1:
+	case p.Val&Onep != 0 && divsr.m2 || p.Val&Twopp != 0 && divsr.m1:
 		handshake(0x7ff, divsr.answer, resp)
-	case p.Val & Onep != 0 && divsr.m1 || p.Val & Twopp != 0 && divsr.m2:
+	case p.Val&Onep != 0 && divsr.m1 || p.Val&Twopp != 0 && divsr.m2:
 		if divsr.placering < 9 {
-			handshake(0x7ff ^ (1 << uint(8 - divsr.placering)), divsr.answer, resp)
+			handshake(0x7ff^(1<<uint(8-divsr.placering)), divsr.answer, resp)
 		} else {
 			handshake(0x7ff, divsr.answer, resp)
 		}
-	case (p.Val & Fourp != 0 || p.Val & Twop != 0) && (divsr.m1 || divsr.m2):
+	case (p.Val&Fourp != 0 || p.Val&Twop != 0) && (divsr.m1 || divsr.m2):
 		handshake(0x7ff, divsr.answer, resp)
-	case p.Val & Onepp != 0:
+	case p.Val&Onepp != 0:
 		if divsr.m1 || divsr.m2 {
 			handshake(1, divsr.answer, resp)
 		}
-		if divsr.psrcff == false && divsr.sα {		// Gate L45
+		if divsr.psrcff == false && divsr.sα { // Gate L45
 			divsr.placering++
 		}
 	}
@@ -713,38 +713,38 @@ func divunit2() {
 	for {
 		p.Resp = nil
 		select {
-		case <- divsr.divupdate:
-		case p =<- divsr.progin[0]:
+		case <-divsr.divupdate:
+		case p = <-divsr.progin[0]:
 			divargs(0)
-		case p =<- divsr.progin[1]:
+		case p = <-divsr.progin[1]:
 			divargs(1)
-		case p =<- divsr.progin[2]:
+		case p = <-divsr.progin[2]:
 			divargs(2)
-		case p =<- divsr.progin[3]:
+		case p = <-divsr.progin[3]:
 			divargs(3)
-		case p =<- divsr.progin[4]:
+		case p = <-divsr.progin[4]:
 			divargs(4)
-		case p =<- divsr.progin[5]:
+		case p = <-divsr.progin[5]:
 			divargs(5)
-		case p =<- divsr.progin[6]:
+		case p = <-divsr.progin[6]:
 			divargs(6)
-		case p =<- divsr.progin[7]:
+		case p = <-divsr.progin[7]:
 			divargs(7)
-		case p =<- divsr.ilock[0]:
+		case p = <-divsr.ilock[0]:
 			divsr.ilockff = true
-		case p =<- divsr.ilock[1]:
+		case p = <-divsr.ilock[1]:
 			divsr.ilockff = true
-		case p =<- divsr.ilock[2]:
+		case p = <-divsr.ilock[2]:
 			divsr.ilockff = true
-		case p =<- divsr.ilock[3]:
+		case p = <-divsr.ilock[3]:
 			divsr.ilockff = true
-		case p =<- divsr.ilock[4]:
+		case p = <-divsr.ilock[4]:
 			divsr.ilockff = true
-		case p =<- divsr.ilock[5]:
+		case p = <-divsr.ilock[5]:
 			divsr.ilockff = true
-		case p =<- divsr.ilock[6]:
+		case p = <-divsr.ilock[6]:
 			divsr.ilockff = true
-		case p =<- divsr.ilock[7]:
+		case p = <-divsr.ilock[7]:
 			divsr.ilockff = true
 		}
 		if p.Resp != nil {

@@ -7,9 +7,9 @@ import (
 )
 
 type bp struct {
-	n int
-	ch chan Pulse
-	what string
+	n      int
+	ch     chan Pulse
+	what   string
 	update chan int
 }
 
@@ -36,9 +36,9 @@ func dobp(b *bp) {
 	for {
 		var p Pulse
 		select {
-		case <- b.update:
+		case <-b.update:
 			return
-		case p =<- b.ch:
+		case p = <-b.ch:
 		}
 		if p.Val != 0 {
 			fmt.Printf("triggered bp%d %s\n", b.n, b.what)

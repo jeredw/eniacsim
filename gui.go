@@ -1,32 +1,32 @@
 package main
 
 import (
-	"fmt"
 	"bufio"
-	"strings"
-	"strconv"
-	"time"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"runtime"
 	"sort"
+	"strconv"
+	"strings"
+	"time"
 )
 
 type gstat struct {
-	guimode int
+	guimode                                                int
 	lastinit, lastcyc, lastmp, lastdiv, lastmult, lastcons string
-	lastft [3]string
-	lastacc [20]string
-	upd chan int
+	lastft                                                 [3]string
+	lastacc                                                [20]string
+	upd                                                    chan int
 }
 
 var guistate gstat
 
 var ftuoff = []int{4, 28, 30}
-var accoff = []int{6*642, 7*642, 9*642, 10*642, 11*642, 12*642, 13*642, 14*642, 15*642,
-	16*642, 20*642, 21*642, 22*642, 23*642,
-	24*642, 25*642, 26*642, 27*642, 32*642, 33*642}
+var accoff = []int{6 * 642, 7 * 642, 9 * 642, 10 * 642, 11 * 642, 12 * 642, 13 * 642, 14 * 642, 15 * 642,
+	16 * 642, 20 * 642, 21 * 642, 22 * 642, 23 * 642,
+	24 * 642, 25 * 642, 26 * 642, 27 * 642, 32 * 642, 33 * 642}
 
 func loadmenu(gpipe io.Writer) {
 	f, err := os.Open("programs")
@@ -44,7 +44,7 @@ func loadmenu(gpipe io.Writer) {
 	p := sort.StringSlice(l)
 	p.Sort()
 	for _, n := range p {
-		fmt.Fprintf(gpipe, ".mlib add command -label %s " +
+		fmt.Fprintf(gpipe, ".mlib add command -label %s "+
 			"-command {puts stdout \"l %s\"}\n", n, n)
 	}
 	fmt.Fprintln(gpipe, "tk_popup .mlib 10 10")
@@ -233,11 +233,11 @@ func setneonsize(gpipe io.Writer, img string) {
 	fmt.Fprintln(gpipe, ".dans3 configure -image", img)
 	fmt.Fprintln(gpipe, ".dans4 configure -image", img)
 	for i := 0; i < 3; i++ {
-		fmt.Fprintf(gpipe, ".mh%d configure -image %s\n", 2 * i, img)
-		fmt.Fprintf(gpipe, ".mh%d configure -image %s\n", 2 * i + 1, img)
+		fmt.Fprintf(gpipe, ".mh%d configure -image %s\n", 2*i, img)
+		fmt.Fprintf(gpipe, ".mh%d configure -image %s\n", 2*i+1, img)
 	}
 	for i := 0; i < 24; i++ {
-		fmt.Fprintf(gpipe, ".mi%d configure -image %s\n", i + 1, img)
+		fmt.Fprintf(gpipe, ".mi%d configure -image %s\n", i+1, img)
 	}
 	fmt.Fprintln(gpipe, ".mr1 configure -image", img)
 	fmt.Fprintln(gpipe, ".mr3 configure -image", img)
@@ -295,7 +295,7 @@ func innergui() {
 		sc.Scan()
 		h, _ := strconv.Atoi(sc.Text())
 		if w/2+120 > h {
-			w = (h-120)*2
+			w = (h - 120) * 2
 		}
 		width = 0
 		for i, wid := range widset {
@@ -336,41 +336,41 @@ func innergui() {
 	} else {
 		butparam += " -padx 1"
 	}
-	fmt.Fprintln(gpipe, "button .copc " + butparam + " -text Co -command {puts stdout \"s cy.op co\"}")
-	fmt.Fprintln(gpipe, "button .copp " + butparam + " -text 1P -command {puts stdout \"s cy.op 1p\"}")
-	fmt.Fprintln(gpipe, "button .copa " + butparam + " -text 1A -command {puts stdout \"s cy.op 1a\"}")
-	fmt.Fprintln(gpipe, "button .clbut " + butparam + " -text CLEAR -command {puts stdout \"b c\"}")
-	fmt.Fprintln(gpipe, "button .readbut " + butparam + " -text READ -command {puts stdout \"b r\"}")
-	fmt.Fprintln(gpipe, "button .initbut " + butparam + " -text INIT -command {puts stdout \"b i\"}")
-	fmt.Fprintln(gpipe, "button .pulbut " + butparam + " -text PULSE -command {puts stdout \"b p\"}")
+	fmt.Fprintln(gpipe, "button .copc "+butparam+" -text Co -command {puts stdout \"s cy.op co\"}")
+	fmt.Fprintln(gpipe, "button .copp "+butparam+" -text 1P -command {puts stdout \"s cy.op 1p\"}")
+	fmt.Fprintln(gpipe, "button .copa "+butparam+" -text 1A -command {puts stdout \"s cy.op 1a\"}")
+	fmt.Fprintln(gpipe, "button .clbut "+butparam+" -text CLEAR -command {puts stdout \"b c\"}")
+	fmt.Fprintln(gpipe, "button .readbut "+butparam+" -text READ -command {puts stdout \"b r\"}")
+	fmt.Fprintln(gpipe, "button .initbut "+butparam+" -text INIT -command {puts stdout \"b i\"}")
+	fmt.Fprintln(gpipe, "button .pulbut "+butparam+" -text PULSE -command {puts stdout \"b p\"}")
 	if !*usecontrol {
 		if width > 480 {
-			fmt.Fprintf(gpipe, "place .control -x %d -y %d\n", width / 12, height - 82)
+			fmt.Fprintf(gpipe, "place .control -x %d -y %d\n", width/12, height-82)
 			fmt.Fprintf(gpipe, "place .cmode -x %d -y %d\n",
-				width / 12 + 12, height - 82 + 5)
+				width/12+12, height-82+5)
 			fmt.Fprintf(gpipe, "place .copc -x %d -y %d\n",
-				width / 12 + 5, height - 82 + 27)
+				width/12+5, height-82+27)
 			fmt.Fprintf(gpipe, "place .copp -x %d -y %d\n",
-				width / 12 + 30, height - 82 + 27)
+				width/12+30, height-82+27)
 			fmt.Fprintf(gpipe, "place .copa -x %d -y %d\n",
-				width / 12 + 55, height - 82 + 27)
+				width/12+55, height-82+27)
 			fmt.Fprintf(gpipe, "place .clbut -x %d -y %d\n",
-				width / 12 + 5, height - 82 + 53)
+				width/12+5, height-82+53)
 			fmt.Fprintf(gpipe, "place .readbut -x %d -y %d\n",
-				width / 12 + 5, height - 82 + 83)
+				width/12+5, height-82+83)
 			fmt.Fprintf(gpipe, "place .initbut -x %d -y %d\n",
-				width / 12 + 5, height - 82 + 113)
+				width/12+5, height-82+113)
 			fmt.Fprintf(gpipe, "place .pulbut -x %d -y %d\n",
-				width / 12 + 5, height - 82 + 143)
+				width/12+5, height-82+143)
 		} else {
-			fmt.Fprintf(gpipe, "place .cmode -x %d -y %d\n", width / 10 + 5, height - 78)
-			fmt.Fprintf(gpipe, "place .copc -x %d -y %d\n", width / 10 + 5, height - 65)
-			fmt.Fprintf(gpipe, "place .copp -x %d -y %d\n", width / 10 + 30, height - 65)
-			fmt.Fprintf(gpipe, "place .copa -x %d -y %d\n", width / 10 + 55, height - 65)
-			fmt.Fprintf(gpipe, "place .clbut -x %d -y %d\n", width / 10 + 40, height - 52)
-			fmt.Fprintf(gpipe, "place .readbut -x %d -y %d\n", width / 10 + 40, height - 31)
-			fmt.Fprintf(gpipe, "place .initbut -x %d -y %d\n", width / 10 + 40, height - 10)
-			fmt.Fprintf(gpipe, "place .pulbut -x %d -y %d\n", width / 10 + 40, height + 11)
+			fmt.Fprintf(gpipe, "place .cmode -x %d -y %d\n", width/10+5, height-78)
+			fmt.Fprintf(gpipe, "place .copc -x %d -y %d\n", width/10+5, height-65)
+			fmt.Fprintf(gpipe, "place .copp -x %d -y %d\n", width/10+30, height-65)
+			fmt.Fprintf(gpipe, "place .copa -x %d -y %d\n", width/10+55, height-65)
+			fmt.Fprintf(gpipe, "place .clbut -x %d -y %d\n", width/10+40, height-52)
+			fmt.Fprintf(gpipe, "place .readbut -x %d -y %d\n", width/10+40, height-31)
+			fmt.Fprintf(gpipe, "place .initbut -x %d -y %d\n", width/10+40, height-10)
+			fmt.Fprintf(gpipe, "place .pulbut -x %d -y %d\n", width/10+40, height+11)
 		}
 	}
 	butparam = "-borderwidth 2 -font [list Clean 10] -width 5 -pady 0"
@@ -379,57 +379,57 @@ func innergui() {
 	} else {
 		butparam += " -padx 2"
 	}
-	fmt.Fprintln(gpipe, "button .resetbut " + butparam + " -text RESET " +
+	fmt.Fprintln(gpipe, "button .resetbut "+butparam+" -text RESET "+
 		"-command {puts stdout \"R\"}\n")
-	fmt.Fprintln(gpipe, "button .loadbut " + butparam +
+	fmt.Fprintln(gpipe, "button .loadbut "+butparam+
 		" -text \"LOAD\\nCONF\" -command {puts stdout \"loadmenu\"}\n")
 	if width > 480 {
-		fmt.Fprintf(gpipe, "place .resetbut -anchor c -x %d -y %d\n", width / 24, height + 25)
-		fmt.Fprintf(gpipe, "place .loadbut -anchor c -x %d -y %d\n", width / 24, height + 70)
+		fmt.Fprintf(gpipe, "place .resetbut -anchor c -x %d -y %d\n", width/24, height+25)
+		fmt.Fprintf(gpipe, "place .loadbut -anchor c -x %d -y %d\n", width/24, height+70)
 	} else {
-		fmt.Fprintf(gpipe, "place .resetbut -x 3 -y %d\n", height + 11)
-		fmt.Fprintf(gpipe, "place .loadbut -x 3 -y %d\n", height - 30)
+		fmt.Fprintf(gpipe, "place .resetbut -x 3 -y %d\n", height+11)
+		fmt.Fprintf(gpipe, "place .loadbut -x 3 -y %d\n", height-30)
 	}
-	fmt.Fprintf(gpipe, "button .s1but -borderwidth 2 -pady 0 -font [list Clean 10] " +
+	fmt.Fprintf(gpipe, "button .s1but -borderwidth 2 -pady 0 -font [list Clean 10] "+
 		"-text \"S1 View\" -command {puts stdout \"s1view\"}\n")
-	fmt.Fprintf(gpipe, "button .s2but -borderwidth 2 -pady 0 -font [list Clean 10] " +
+	fmt.Fprintf(gpipe, "button .s2but -borderwidth 2 -pady 0 -font [list Clean 10] "+
 		"-text \"S2 View\" -command {puts stdout \"s2view\"}\n")
-	fmt.Fprintf(gpipe, "button .s3but -borderwidth 2 -pady 0 -font [list Clean 10] " +
+	fmt.Fprintf(gpipe, "button .s3but -borderwidth 2 -pady 0 -font [list Clean 10] "+
 		"-text \"S3 View\" -command {puts stdout \"s3view\"}\n")
-	fmt.Fprintf(gpipe, "button .s4but -borderwidth 2 -pady 0 -font [list Clean 10] " +
+	fmt.Fprintf(gpipe, "button .s4but -borderwidth 2 -pady 0 -font [list Clean 10] "+
 		"-text \"S4 View\" -command {puts stdout \"s4view\"}\n")
-	fmt.Fprintf(gpipe, "button .s5but -borderwidth 2 -pady 0 -font [list Clean 10] " +
+	fmt.Fprintf(gpipe, "button .s5but -borderwidth 2 -pady 0 -font [list Clean 10] "+
 		"-text \"S5 View\" -command {puts stdout \"s5view\"}\n")
-	fmt.Fprintf(gpipe, "button .perspbut -borderwidth 2 -pady 0 -font [list Clean 10] " +
+	fmt.Fprintf(gpipe, "button .perspbut -borderwidth 2 -pady 0 -font [list Clean 10] "+
 		"-text \"Perspective View\" -relief sunken -command {puts stdout \"perspview\"}\n")
 	if width > 480 {
 		if *usecontrol {
 			fmt.Fprintf(gpipe, "place .s1but -anchor c -x %d -y %d\n",
-				width / 8, height - 48)
+				width/8, height-48)
 			fmt.Fprintf(gpipe, "place .s2but -anchor c -x %d -y %d\n",
-				width / 3, height - 48)
+				width/3, height-48)
 		} else {
 			fmt.Fprintf(gpipe, "place .s1but -anchor c -x %d -y %d\n",
-				width / 12 + 130, height - 48)
+				width/12+130, height-48)
 			if width > 720 {
 				fmt.Fprintf(gpipe, "place .s2but -anchor c -x %d -y %d\n",
-					width / 3, height - 48)
+					width/3, height-48)
 			} else {
 				fmt.Fprintf(gpipe, "place .s2but -anchor c -x %d -y %d\n",
-					width / 12 + 215, height - 48)
+					width/12+215, height-48)
 			}
 		}
-		fmt.Fprintf(gpipe, "place .s3but -anchor c -x %d -y %d\n", width / 2, height - 48)
-		fmt.Fprintf(gpipe, "place .s4but -anchor c -x %d -y %d\n", 2 * width / 3, height - 48)
-		fmt.Fprintf(gpipe, "place .s5but -anchor c -x %d -y %d\n", 7 * width / 8, height - 48)
-		fmt.Fprintf(gpipe, "place .perspbut -anchor c -x %d -y %d\n", width / 2, height - 79)
+		fmt.Fprintf(gpipe, "place .s3but -anchor c -x %d -y %d\n", width/2, height-48)
+		fmt.Fprintf(gpipe, "place .s4but -anchor c -x %d -y %d\n", 2*width/3, height-48)
+		fmt.Fprintf(gpipe, "place .s5but -anchor c -x %d -y %d\n", 7*width/8, height-48)
+		fmt.Fprintf(gpipe, "place .perspbut -anchor c -x %d -y %d\n", width/2, height-79)
 	} else {
-		fmt.Fprintf(gpipe, "place .s1but -x %d -y %d\n", width / 10 + 100, height - 73)
-		fmt.Fprintf(gpipe, "place .s2but -x %d -y %d\n", width / 10 + 100, height - 52)
-		fmt.Fprintf(gpipe, "place .s3but -x %d -y %d\n", width / 10 + 100, height - 31)
-		fmt.Fprintf(gpipe, "place .s4but -x %d -y %d\n", width / 10 + 100, height - 10)
-		fmt.Fprintf(gpipe, "place .s5but -x %d -y %d\n", width / 10 + 100, height + 11)
-		fmt.Fprintf(gpipe, "place .perspbut -x %d -y %d\n", width / 10 + 182, height + 11)
+		fmt.Fprintf(gpipe, "place .s1but -x %d -y %d\n", width/10+100, height-73)
+		fmt.Fprintf(gpipe, "place .s2but -x %d -y %d\n", width/10+100, height-52)
+		fmt.Fprintf(gpipe, "place .s3but -x %d -y %d\n", width/10+100, height-31)
+		fmt.Fprintf(gpipe, "place .s4but -x %d -y %d\n", width/10+100, height-10)
+		fmt.Fprintf(gpipe, "place .s5but -x %d -y %d\n", width/10+100, height+11)
+		fmt.Fprintf(gpipe, "place .perspbut -x %d -y %d\n", width/10+182, height+11)
 	}
 	fmt.Fprintln(gpipe, "image create photo neon -file images/orange.ppm")
 	if width >= 1600 {
@@ -441,10 +441,10 @@ func innergui() {
 	fmt.Fprintln(gpipe, "image create photo apilot1 -file images/apilot.ppm")
 	// Initiating unit
 	fmt.Fprintln(gpipe, "image create photo gpilot2")
-	fmt.Fprintf(gpipe, "gpilot2 copy gpilot1 -subsample %d %d\n", 16000 / width, 13000 / width)
+	fmt.Fprintf(gpipe, "gpilot2 copy gpilot1 -subsample %d %d\n", 16000/width, 13000/width)
 	fmt.Fprintln(gpipe, "label .gpilot -image gpilot2 -borderwidth 0")
 	fmt.Fprintln(gpipe, "image create photo apilot2")
-	fmt.Fprintf(gpipe, "apilot2 copy apilot1 -subsample %d %d\n", 16000 / width, 13000 / width)
+	fmt.Fprintf(gpipe, "apilot2 copy apilot1 -subsample %d %d\n", 16000/width, 13000/width)
 	fmt.Fprintln(gpipe, "label .apilot -image apilot2 -borderwidth 0")
 	fmt.Fprintln(gpipe, "label .ih1 -borderwidth 0 -image neon")
 	fmt.Fprintln(gpipe, "label .ih2 -borderwidth 0 -image neon")
@@ -473,7 +473,7 @@ func innergui() {
 		fmt.Fprintf(gpipe, "label .acc%dh1 -borderwidth 0 -image neon\n", i)
 		fmt.Fprintf(gpipe, "label .acc%dh2 -borderwidth 0 -image neon\n", i)
 		fmt.Fprintf(gpipe, "label .acc%ds -borderwidth 0 -image neon\n", i)
-		x, y, _ = ray(accoff[i - 1] + 59, 160, 1);
+		x, y, _ = ray(accoff[i-1]+59, 160, 1)
 		fmt.Fprintf(gpipe, "place .acc%ds -x %d -y %d\n", i, x, y)
 		for j := 9; j >= 0; j-- {
 			fmt.Fprintf(gpipe, "label .a%dd%d -borderwidth 0 -image neon\n", i, j)
@@ -496,20 +496,20 @@ func innergui() {
 		fmt.Fprintf(gpipe, "label .pi%d -borderwidth 0 -image neon\n", i)
 		fmt.Fprintf(gpipe, "label .ps%d -borderwidth 0 -image neon\n", i)
 		if i < 5 {
-			x, y, _ = ray(158 + 73 * i + 2 * 642, -273, 1)
+			x, y, _ = ray(158+73*i+2*642, -273, 1)
 			fmt.Fprintf(gpipe, "place .ps%d -x %d -y %d\n", i, x, y)
 		} else {
-			x, y, _ = ray(758 + 73 * (i-5) + 2 * 642, -273, 1)
+			x, y, _ = ray(758+73*(i-5)+2*642, -273, 1)
 			fmt.Fprintf(gpipe, "place .ps%d -x %d -y %d\n", i, x, y)
 		}
 	}
 	for i := 0; i < 20; i++ {
 		fmt.Fprintf(gpipe, "label .pd%d -borderwidth 0 -image neon\n", i)
 		if i < 10 {
-			x, y, _ = ray(160 + 37 * i + 2 * 642, 118, 1)
+			x, y, _ = ray(160+37*i+2*642, 118, 1)
 			fmt.Fprintf(gpipe, "place .pd%d -x %d -y %d\n", i, x, y)
 		} else {
-			x, y, _ = ray(762 + 37 * (i-10) + 2 * 642, 118, 1)
+			x, y, _ = ray(762+37*(i-10)+2*642, 118, 1)
 			fmt.Fprintf(gpipe, "place .pd%d -x %d -y %d\n", i, x, y)
 		}
 	}
@@ -553,11 +553,11 @@ func innergui() {
 	fmt.Fprintln(gpipe, "label .dans4 -borderwidth 0 -image neon")
 	// Multiplier
 	for i := 0; i < 3; i++ {
-		fmt.Fprintf(gpipe, "label .mh%d -borderwidth 0 -image neon\n", 2 * i)
-		fmt.Fprintf(gpipe, "label .mh%d -borderwidth 0 -image neon\n", 2 * i + 1)
+		fmt.Fprintf(gpipe, "label .mh%d -borderwidth 0 -image neon\n", 2*i)
+		fmt.Fprintf(gpipe, "label .mh%d -borderwidth 0 -image neon\n", 2*i+1)
 	}
 	for i := 0; i < 24; i++ {
-		fmt.Fprintf(gpipe, "label .mi%d -borderwidth 0 -image neon\n", i + 1)
+		fmt.Fprintf(gpipe, "label .mi%d -borderwidth 0 -image neon\n", i+1)
 	}
 	fmt.Fprintln(gpipe, "label .mr1 -borderwidth 0 -image neon")
 	fmt.Fprintln(gpipe, "label .mr3 -borderwidth 0 -image neon")
@@ -577,13 +577,13 @@ func innergui() {
 			fmt.Fprintf(gpipe, "label .ft%dh%d -borderwidth 0 -image neon\n", i+1, j+1)
 		}
 		fmt.Fprintf(gpipe, "label .ft%da1 -borderwidth 0 -image neon\n", i+1)
-		x, y, _ = ray(115 + ftuoff[i] * 642, -80, 1)
+		x, y, _ = ray(115+ftuoff[i]*642, -80, 1)
 		fmt.Fprintf(gpipe, "place .ft%da1 -x %d -y %d\n", i+1, x, y)
 		fmt.Fprintf(gpipe, "label .ft%da10 -borderwidth 0 -image neon\n", i+1)
-		x, y, _ = ray(321 + ftuoff[i] * 642, -80, 1)
+		x, y, _ = ray(321+ftuoff[i]*642, -80, 1)
 		fmt.Fprintf(gpipe, "place .ft%da10 -x %d -y %d\n", i+1, x, y)
 		fmt.Fprintf(gpipe, "label .ft%dr -borderwidth 0 -image neon\n", i+1)
-		x, y, _ = ray(268 + ftuoff[i] * 642, -142, 1)
+		x, y, _ = ray(268+ftuoff[i]*642, -142, 1)
 		fmt.Fprintf(gpipe, "place .ft%dr -x %d -y %d\n", i+1, x, y)
 		fmt.Fprintf(gpipe, "label .ft%daset -borderwidth 0 -image neon\n", i+1)
 		fmt.Fprintf(gpipe, "label .ft%dadd -borderwidth 0 -image neon\n", i+1)
@@ -612,7 +612,7 @@ func innergui() {
 		if needupdate {
 			fmt.Fprintln(gpipe, "update")
 			fmt.Fprintln(gpipe, "puts update")
-			<- guistate.upd
+			<-guistate.upd
 		} else {
 			time.Sleep(50 * time.Millisecond)
 		}
@@ -622,7 +622,7 @@ func innergui() {
 		if s != guistate.lastinit {
 			for i, f := range s[:6] {
 				nname = fmt.Sprintf(".initc%d", i+1)
-				neonplcl(gpipe, nname, f == '1', 90 + 45 * i, -1150)
+				neonplcl(gpipe, nname, f == '1', 90+45*i, -1150)
 			}
 			neonplcl(gpipe, ".initrs", s[6] == '1', 360, -1150)
 			neonplcl(gpipe, ".initps", s[7] == '1', 360, -1160)
@@ -640,9 +640,9 @@ func innergui() {
 		s = cycstat()
 		if s != guistate.lastcyc {
 			n, _ := strconv.Atoi(s)
-			neonplcl(gpipe, ".cycst", true, 122 + 642 + (n/2) * 20, 40)
+			neonplcl(gpipe, ".cycst", true, 122+642+(n/2)*20, 40)
 			neonplcl(gpipe, ".cyccg", n >= 22 && n <= 36, 1010, -18)
-			neonplcl(gpipe, ".cy10p", n < 20 && n % 2 == 1, 884, -18)
+			neonplcl(gpipe, ".cy10p", n < 20 && n%2 == 1, 884, -18)
 			guistate.lastcyc = s
 			needupdate = true
 		}
@@ -660,7 +660,7 @@ func innergui() {
 		}
 		// Accumulators
 		for i := 1; i <= 20; i++ {
-			s = accstat(i-1)[4:]
+			s = accstat(i - 1)[4:]
 			if s != guistate.lastacc[i-1] {
 				p := strings.Split(s, " ")
 				if p[0][0] == 'P' {
@@ -673,22 +673,22 @@ func innergui() {
 					x, y = neonpos(i, j, d, accoff)
 					neonplcl(gpipe, fmt.Sprintf(".a%dd%d", i, j), true, x, y)
 					neonplcl(gpipe, fmt.Sprintf(".aff%dd%d", i, j), p[2][9-j] == '1',
-						accoff[i-1] + (9-j) * 49 + 112, -31)
+						accoff[i-1]+(9-j)*49+112, -31)
 				}
 				rep, _ := strconv.Atoi(p[3])
 				neonplcl(gpipe, fmt.Sprintf(".acc%drep", i), true,
-					accoff[i-1] + 90, -1310 + 20 * rep)
+					accoff[i-1]+90, -1310+20*rep)
 				nname = fmt.Sprintf(".acc%dff1", i)
-				neonplcl(gpipe, nname, p[4][0] == '1', accoff[i-1] + 135, -1150)
+				neonplcl(gpipe, nname, p[4][0] == '1', accoff[i-1]+135, -1150)
 				nname = fmt.Sprintf(".acc%dff2", i)
-				neonplcl(gpipe, nname, p[4][1] == '1', accoff[i-1] + 135, -1160)
+				neonplcl(gpipe, nname, p[4][1] == '1', accoff[i-1]+135, -1160)
 				nname = fmt.Sprintf(".acc%dff3", i)
-				neonplcl(gpipe, nname, p[4][2] == '1', accoff[i-1] + 180, -1150)
+				neonplcl(gpipe, nname, p[4][2] == '1', accoff[i-1]+180, -1150)
 				nname = fmt.Sprintf(".acc%dff4", i)
-				neonplcl(gpipe, nname, p[4][3] == '1', accoff[i-1] + 180, -1160)
+				neonplcl(gpipe, nname, p[4][3] == '1', accoff[i-1]+180, -1160)
 				for j, f := range p[4][4:] {
 					nname = fmt.Sprintf(".acc%dff%d", i, j+5)
-					neonplcl(gpipe, nname, f == '1', accoff[i-1] + 225 + 45 * j, -1150)
+					neonplcl(gpipe, nname, f == '1', accoff[i-1]+225+45*j, -1150)
 				}
 				guistate.lastacc[i-1] = s
 				needupdate = true
@@ -700,46 +700,46 @@ func innergui() {
 			p := strings.Split(s, " ")
 			plring, _ := strconv.Atoi(p[0])
 			prring, _ := strconv.Atoi(p[1])
-			neonplcl(gpipe, ".dplr", true, 8 * 642 + 88, -320 + 15 * plring)
-			neonplcl(gpipe, ".dprr", true, 8 * 642 + 534, -1346 + 15 * prring)
-			neonplcl(gpipe, ".dprogff1", p[2][0] == '1', 8 * 642 + 94, -1156)
-			neonplcl(gpipe, ".dprogff2", p[2][1] == '1', 8 * 642 + 139, -1156)
-			neonplcl(gpipe, ".dprogff3", p[2][2] == '1', 8 * 642 + 184, -1156)
-			neonplcl(gpipe, ".dprogff4", p[2][3] == '1', 8 * 642 + 229, -1156)
-			neonplcl(gpipe, ".dprogff5", p[2][4] == '1', 8 * 642 + 358, -1156)
-			neonplcl(gpipe, ".dprogff6", p[2][5] == '1', 8 * 642 + 403, -1156)
-			neonplcl(gpipe, ".dprogff7", p[2][6] == '1', 8 * 642 + 448, -1156)
-			neonplcl(gpipe, ".dprogff8", p[2][7] == '1', 8 * 642 + 493, -1156)
-			neonplcl(gpipe, ".ddivff", p[3][0] == '1', 8 * 642 + 417, 39)
-			neonplcl(gpipe, ".dclrff", p[3][1] == '1', 8 * 642 + 400, 39)
-			neonplcl(gpipe, ".dilockff", p[3][2] == '1', 8 * 642 + 383, 39)
-			neonplcl(gpipe, ".ddpgamma", p[3][3] == '1', 8 * 642 + 356, 39)
-			neonplcl(gpipe, ".dngamma", p[3][4] == '1', 8 * 642 + 339, 39)
-			neonplcl(gpipe, ".dpsrcff", p[3][5] == '0', 8 * 642 + 286, 39)
-			neonplcl(gpipe, ".dpringff", p[3][6] == '0', 8 * 642 + 269, 39)
-			neonplcl(gpipe, ".ddenomff", p[3][7] == '0', 8 * 642 + 252, 39)
-			neonplcl(gpipe, ".dnumrplus", p[3][8] == '1', 8 * 642 + 235, 39)
-			neonplcl(gpipe, ".dnumrmin", p[3][0] == '1', 8 * 642 + 218, 39)
-			neonplcl(gpipe, ".dqalpha", p[3][10] == '1', 8 * 642 + 140, -135)
-			neonplcl(gpipe, ".dsac", p[3][11] == '1', 8 * 642 + 186, -135)
-			neonplcl(gpipe, ".dm2", p[3][12] == '1', 8 * 642 + 234, -135)
-			neonplcl(gpipe, ".dm1", p[3][13] == '1', 8 * 642 + 286, -135)
-			neonplcl(gpipe, ".dnac", p[3][14] == '1', 8 * 642 + 334, -135)
-			neonplcl(gpipe, ".dda", p[3][15] == '1', 8 * 642 + 384, -135)
-			neonplcl(gpipe, ".dnalpha", p[3][16] == '1', 8 * 642 + 430, -135)
-			neonplcl(gpipe, ".ddalpha", p[3][17] == '1', 8 * 642 + 480, -135)
-			neonplcl(gpipe, ".dans2", p[3][27] == '1', 8 * 642 + 530, -135)
-			neonplcl(gpipe, ".dans4", p[3][29] == '1', 8 * 642 + 578, -135)
-			neonplcl(gpipe, ".ddgamma", p[3][18] == '1', 8 * 642 + 140, -156)
-			neonplcl(gpipe, ".dnpgamma", p[3][19] == '1', 8 * 642 + 186, -156)
-			neonplcl(gpipe, ".dp2", p[3][20] == '1', 8 * 642 + 234, -156)
-			neonplcl(gpipe, ".dp1", p[3][21] == '1', 8 * 642 + 286, -156)
-			neonplcl(gpipe, ".dsalpha", p[3][22] == '1', 8 * 642 + 334, -156)
-			neonplcl(gpipe, ".dds", p[3][23] == '1', 8 * 642 + 384, -156)
-			neonplcl(gpipe, ".dnbeta", p[3][24] == '1', 8 * 642 + 430, -156)
-			neonplcl(gpipe, ".ddbeta", p[3][25] == '1', 8 * 642 + 480, -156)
-			neonplcl(gpipe, ".dans1", p[3][26] == '1', 8 * 642 + 530, -156)
-			neonplcl(gpipe, ".dans3", p[3][28] == '1', 8 * 642 + 580, -156)
+			neonplcl(gpipe, ".dplr", true, 8*642+88, -320+15*plring)
+			neonplcl(gpipe, ".dprr", true, 8*642+534, -1346+15*prring)
+			neonplcl(gpipe, ".dprogff1", p[2][0] == '1', 8*642+94, -1156)
+			neonplcl(gpipe, ".dprogff2", p[2][1] == '1', 8*642+139, -1156)
+			neonplcl(gpipe, ".dprogff3", p[2][2] == '1', 8*642+184, -1156)
+			neonplcl(gpipe, ".dprogff4", p[2][3] == '1', 8*642+229, -1156)
+			neonplcl(gpipe, ".dprogff5", p[2][4] == '1', 8*642+358, -1156)
+			neonplcl(gpipe, ".dprogff6", p[2][5] == '1', 8*642+403, -1156)
+			neonplcl(gpipe, ".dprogff7", p[2][6] == '1', 8*642+448, -1156)
+			neonplcl(gpipe, ".dprogff8", p[2][7] == '1', 8*642+493, -1156)
+			neonplcl(gpipe, ".ddivff", p[3][0] == '1', 8*642+417, 39)
+			neonplcl(gpipe, ".dclrff", p[3][1] == '1', 8*642+400, 39)
+			neonplcl(gpipe, ".dilockff", p[3][2] == '1', 8*642+383, 39)
+			neonplcl(gpipe, ".ddpgamma", p[3][3] == '1', 8*642+356, 39)
+			neonplcl(gpipe, ".dngamma", p[3][4] == '1', 8*642+339, 39)
+			neonplcl(gpipe, ".dpsrcff", p[3][5] == '0', 8*642+286, 39)
+			neonplcl(gpipe, ".dpringff", p[3][6] == '0', 8*642+269, 39)
+			neonplcl(gpipe, ".ddenomff", p[3][7] == '0', 8*642+252, 39)
+			neonplcl(gpipe, ".dnumrplus", p[3][8] == '1', 8*642+235, 39)
+			neonplcl(gpipe, ".dnumrmin", p[3][0] == '1', 8*642+218, 39)
+			neonplcl(gpipe, ".dqalpha", p[3][10] == '1', 8*642+140, -135)
+			neonplcl(gpipe, ".dsac", p[3][11] == '1', 8*642+186, -135)
+			neonplcl(gpipe, ".dm2", p[3][12] == '1', 8*642+234, -135)
+			neonplcl(gpipe, ".dm1", p[3][13] == '1', 8*642+286, -135)
+			neonplcl(gpipe, ".dnac", p[3][14] == '1', 8*642+334, -135)
+			neonplcl(gpipe, ".dda", p[3][15] == '1', 8*642+384, -135)
+			neonplcl(gpipe, ".dnalpha", p[3][16] == '1', 8*642+430, -135)
+			neonplcl(gpipe, ".ddalpha", p[3][17] == '1', 8*642+480, -135)
+			neonplcl(gpipe, ".dans2", p[3][27] == '1', 8*642+530, -135)
+			neonplcl(gpipe, ".dans4", p[3][29] == '1', 8*642+578, -135)
+			neonplcl(gpipe, ".ddgamma", p[3][18] == '1', 8*642+140, -156)
+			neonplcl(gpipe, ".dnpgamma", p[3][19] == '1', 8*642+186, -156)
+			neonplcl(gpipe, ".dp2", p[3][20] == '1', 8*642+234, -156)
+			neonplcl(gpipe, ".dp1", p[3][21] == '1', 8*642+286, -156)
+			neonplcl(gpipe, ".dsalpha", p[3][22] == '1', 8*642+334, -156)
+			neonplcl(gpipe, ".dds", p[3][23] == '1', 8*642+384, -156)
+			neonplcl(gpipe, ".dnbeta", p[3][24] == '1', 8*642+430, -156)
+			neonplcl(gpipe, ".ddbeta", p[3][25] == '1', 8*642+480, -156)
+			neonplcl(gpipe, ".dans1", p[3][26] == '1', 8*642+530, -156)
+			neonplcl(gpipe, ".dans3", p[3][28] == '1', 8*642+580, -156)
 			guistate.lastdiv = s
 			needupdate = true
 		}
@@ -749,13 +749,13 @@ func innergui() {
 			p := strings.Split(s, " ")
 			stage, _ := strconv.Atoi(p[0])
 			neonplcl(gpipe, ".mstage", true,
-				18 * 642 + 188 + stage * 20, -36)
+				18*642+188+stage*20, -36)
 			fmt.Fprintf(gpipe, "place .mstage -x %d -y %d\n", x, y)
-			neonplcl(gpipe, ".mr1", p[2] == "1", 17 * 642 + 312, 29)
-			neonplcl(gpipe, ".mr3", p[3] == "1", 19 * 642 + 351, 29)
+			neonplcl(gpipe, ".mr1", p[2] == "1", 17*642+312, 29)
+			neonplcl(gpipe, ".mr3", p[3] == "1", 19*642+351, 29)
 			for i := 0; i < 24; i++ {
-				xpos := 642 * (17 + i / 8) + 92 + 41 * (i % 8)
-				if i % 8 >= 4 {
+				xpos := 642*(17+i/8) + 92 + 41*(i%8)
+				if i%8 >= 4 {
 					xpos += 255
 				}
 				nname = fmt.Sprintf(".mi%d", i+1)
@@ -771,24 +771,24 @@ func innergui() {
 				d := int(s[i]) - int('0')
 				if i < 5 {
 					neonplcl(gpipe, fmt.Sprintf(".ps%d", i), true,
-						82 + 99 * i + 2 * 642, -223 + d * 19)
+						82+99*i+2*642, -223+d*19)
 					nname = fmt.Sprintf(".pi%d", i)
-					neonplcl(gpipe, nname, s[i+32] == '1', 95 + i * 82 + 2 * 642, -1150)
+					neonplcl(gpipe, nname, s[i+32] == '1', 95+i*82+2*642, -1150)
 				} else {
 					neonplcl(gpipe, fmt.Sprintf(".ps%d", i), true,
-						723 + 99 * (i-5) + 2 * 642, -223 + d * 19)
+						723+99*(i-5)+2*642, -223+d*19)
 					neonplcl(gpipe, fmt.Sprintf(".pi%d", i), s[i+32] == '1',
-						695 + (i-5) * 82 + 2 * 642, -1150)
+						695+(i-5)*82+2*642, -1150)
 				}
 			}
 			for i := 0; i < 20; i++ {
 				d := int(s[i+11]) - int('0')
 				if i < 10 {
 					neonplcl(gpipe, fmt.Sprintf(".pd%d", i), true,
-						131 + 49 * i + 2 * 642, 191 + d * 19)
+						131+49*i+2*642, 191+d*19)
 				} else {
 					neonplcl(gpipe, fmt.Sprintf(".pd%d", i), true,
-						774 + 49 * (i-10) + 2 * 642, 191 + d * 19)
+						774+49*(i-10)+2*642, 191+d*19)
 				}
 			}
 			guistate.lastmp = s
@@ -801,22 +801,22 @@ func innergui() {
 				p := strings.Split(s, " ")
 				for j, f := range p[0] {
 					nname = fmt.Sprintf(".ft%dt%d", i+1, j+1)
-					neonplcl(gpipe, nname, f == '1', 90 + ftuoff[i] * 642 + 45 * j, -1150)
+					neonplcl(gpipe, nname, f == '1', 90+ftuoff[i]*642+45*j, -1150)
 				}
 				arg, _ := strconv.Atoi(p[1])
 				ring, _ := strconv.Atoi(p[2])
 				neonplcl(gpipe, fmt.Sprintf(".ft%da1", i+1), true,
-					88 + ftuoff[i] * 642 + 20 * (arg % 10), 40)
+					88+ftuoff[i]*642+20*(arg%10), 40)
 				neonplcl(gpipe, fmt.Sprintf(".ft%da10", i+1), true,
-					347 + ftuoff[i] * 642 + 20 * (arg / 10), 40)
+					347+ftuoff[i]*642+20*(arg/10), 40)
 				neonplcl(gpipe, fmt.Sprintf(".ft%dr", i+1), true,
-					308 + ftuoff[i] * 642 + 20 * ring, -25)
+					308+ftuoff[i]*642+20*ring, -25)
 				nname = fmt.Sprintf(".ft%dadd", i+1)
-				neonplcl(gpipe, nname, p[3] == "1", 190 + ftuoff[i] * 642, -25)
+				neonplcl(gpipe, nname, p[3] == "1", 190+ftuoff[i]*642, -25)
 				nname = fmt.Sprintf(".ft%dsubt", i+1)
-				neonplcl(gpipe, nname, p[4] == "1", 210 + ftuoff[i] * 642, -25)
+				neonplcl(gpipe, nname, p[4] == "1", 210+ftuoff[i]*642, -25)
 				nname = fmt.Sprintf(".ft%daset", i+1)
-				neonplcl(gpipe, nname, p[5] == "1", 107 + ftuoff[i] * 642, -25)
+				neonplcl(gpipe, nname, p[5] == "1", 107+ftuoff[i]*642, -25)
 				guistate.lastft[i] = s
 				needupdate = true
 			}
@@ -827,7 +827,7 @@ func innergui() {
 			for i, f := range s {
 				row := i / 10
 				col := i % 10
-				x := 90 + 34 * 642 + int(float32(col) * 48.6 + 0.5)
+				x := 90 + 34*642 + int(float32(col)*48.6+0.5)
 				nname = fmt.Sprintf(".ct%d", i+1)
 				switch row {
 				case 0:
@@ -900,7 +900,7 @@ func rundemo(gpipe io.Writer) {
 			drawfixed(gpipe)
 		}
 	}
-}			
+}
 
 func drawfixed(gpipe io.Writer) {
 	x, y, vis := ray(245, -805, 0)
@@ -923,8 +923,8 @@ func drawfixed(gpipe io.Writer) {
 	neonplcl(gpipe, ".cych3", true, 456+642, -1192)
 	neonplcl(gpipe, ".cych4", true, 479+642, -1192)
 	for i := 1; i <= 20; i++ {
-		neonplcl(gpipe, fmt.Sprintf(".acc%dh1", i), true, accoff[i-1] + 395, -1196)
-		neonplcl(gpipe, fmt.Sprintf(".acc%dh2", i), true, accoff[i-1] + 420, -1196)
+		neonplcl(gpipe, fmt.Sprintf(".acc%dh1", i), true, accoff[i-1]+395, -1196)
+		neonplcl(gpipe, fmt.Sprintf(".acc%dh2", i), true, accoff[i-1]+420, -1196)
 	}
 	neonplcl(gpipe, ".ph1", true, 320+2*642, -1198)
 	neonplcl(gpipe, ".ph2", true, 341+2*642, -1198)
@@ -964,10 +964,10 @@ func neonplcl(gpipe io.Writer, name string, cond bool, x, y int) {
 func prngui(gpipe io.Writer) {
 	fmt.Fprintln(gpipe, "text .outdeck -width 80 -height 10")
 	if width > 480 {
-		fmt.Fprintf(gpipe, "place .outdeck -x %d -y %d\n", width - 570, height - 30)
+		fmt.Fprintf(gpipe, "place .outdeck -x %d -y %d\n", width-570, height-30)
 	}
-	for l := 0; ; l++{
-		s :=<- ppunch
+	for l := 0; ; l++ {
+		s := <-ppunch
 		if s == "exit" {
 			return
 		}
@@ -981,8 +981,8 @@ func prngui(gpipe io.Writer) {
 }
 
 func neonpos(acc, dec, val int, accoff []int) (x, y int) {
-	x = accoff[acc - 1] + (9 - dec) * 49 + 112
-	y = 149 + val * 38
+	x = accoff[acc-1] + (9-dec)*49 + 112
+	y = 149 + val*38
 	return
 }
 
@@ -995,34 +995,34 @@ func ray(xprime, yprime, offset int) (x, y int, vis bool) {
 		z0 := (x1 * f * 2) / width
 
 		if xprime < 16*642 {
-			x = width / 2 - ((x1 + offset * 160) * f) / (xprime + z0)
-			y = height / 4 - (yprime * f) / (xprime + z0)
+			x = width/2 - ((x1+offset*160)*f)/(xprime+z0)
+			y = height/4 - (yprime*f)/(xprime+z0)
 		} else if xprime < 24*642 {
-			x = width / 2 + ((xprime - 20*642) * f) / (16*642 + z0)
-			y = height / 4 - (yprime * f) / (16*642 + z0)
+			x = width/2 + ((xprime-20*642)*f)/(16*642+z0)
+			y = height/4 - (yprime*f)/(16*642+z0)
 		} else {
-			x = width / 2 + ((x1 + offset * 160) * f) / (40*642 - xprime + z0)
-			y = height / 4 - (yprime * f) / (40*642 - xprime + z0)
+			x = width/2 + ((x1+offset*160)*f)/(40*642-xprime+z0)
+			y = height/4 - (yprime*f)/(40*642-xprime+z0)
 		}
-	case guistate.guimode == 1 && xprime < 8 * 642:
+	case guistate.guimode == 1 && xprime < 8*642:
 		x = (xprime * width / 8) / 642
-		y = height / 4 - (yprime * width / 8) / 642
+		y = height/4 - (yprime*width/8)/642
 		vis = true
-	case guistate.guimode == 2 && xprime >= 8 * 642 && xprime < 16 * 642:
-		x = ((xprime - 8 * 642) * width / 8) / 642
-		y = height / 4 - (yprime * width / 8) / 642
+	case guistate.guimode == 2 && xprime >= 8*642 && xprime < 16*642:
+		x = ((xprime - 8*642) * width / 8) / 642
+		y = height/4 - (yprime*width/8)/642
 		vis = true
-	case guistate.guimode == 3 && xprime >= 16 * 642 && xprime < 24 * 642:
-		x = ((xprime - 16 * 642) * width / 8) / 642
-		y = height / 4 - (yprime * width / 8) / 642
+	case guistate.guimode == 3 && xprime >= 16*642 && xprime < 24*642:
+		x = ((xprime - 16*642) * width / 8) / 642
+		y = height/4 - (yprime*width/8)/642
 		vis = true
-	case guistate.guimode == 4 && xprime >= 24 * 642 && xprime < 32 * 642:
-		x = ((xprime - 24 * 642) * width / 8) / 642
-		y = height / 4 - (yprime * width / 8) / 642
+	case guistate.guimode == 4 && xprime >= 24*642 && xprime < 32*642:
+		x = ((xprime - 24*642) * width / 8) / 642
+		y = height/4 - (yprime*width/8)/642
 		vis = true
-	case guistate.guimode == 5 && xprime >= 32 * 642:
-		x = ((xprime - 32 * 642) * width / 8) / 642
-		y = height / 4 - (yprime * width / 8) / 642
+	case guistate.guimode == 5 && xprime >= 32*642:
+		x = ((xprime - 32*642) * width / 8) / 642
+		y = height/4 - (yprime*width/8)/642
 		vis = true
 	default:
 		x = 0

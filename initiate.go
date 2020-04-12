@@ -85,7 +85,7 @@ func initplug(jack string, ch chan Pulse) {
 
 func initiatepulse(p Pulse, resp chan int) {
 	cyc := p.Val
-	if cyc & Cpp != 0 {
+	if cyc&Cpp != 0 {
 		if gate69 == 1 {
 			gate66 = 0
 			gate69 = 0
@@ -100,7 +100,7 @@ func initiatepulse(p Pulse, resp chan int) {
 			if ff {
 				if initjack[2*i+1] != nil {
 					initjack[2*i+1] <- Pulse{1, resp}
-					<- resp
+					<-resp
 				}
 				initclrff[i] = false
 			}
@@ -198,18 +198,18 @@ func initiateunit2() {
 	initupdate = make(chan int)
 	for {
 		select {
-		case <- initupdate:
-		case p :=<- initjack[12]:
+		case <-initupdate:
+		case p := <-initjack[12]:
 			rdilock = true
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p :=<- initjack[13]:
+		case p := <-initjack[13]:
 			rdff = true
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p :=<- initjack[15]:
+		case p := <-initjack[15]:
 			if !printphase1 {
 				prff = true
 				if !printphase2 {
@@ -222,32 +222,32 @@ func initiateunit2() {
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p :=<- initjack[0]:
+		case p := <-initjack[0]:
 			initclrff[0] = true
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p :=<- initjack[2]:
+		case p := <-initjack[2]:
 			initclrff[1] = true
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p :=<- initjack[4]:
+		case p := <-initjack[4]:
 			initclrff[2] = true
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p :=<- initjack[6]:
+		case p := <-initjack[6]:
 			initclrff[3] = true
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p :=<- initjack[8]:
+		case p := <-initjack[8]:
 			initclrff[4] = true
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p :=<- initjack[10]:
+		case p := <-initjack[10]:
 			initclrff[5] = true
 			if p.Resp != nil {
 				p.Resp <- 1

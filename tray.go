@@ -7,10 +7,10 @@ import (
 )
 
 type trunk struct {
-	xmit [16]chan Pulse
-	recv []chan Pulse
+	xmit    [16]chan Pulse
+	recv    []chan Pulse
 	started bool
-	update chan int
+	update  chan int
 }
 
 var dtrays [20]trunk
@@ -40,7 +40,7 @@ func trayreset() {
 func handshake(val int, ch chan Pulse, resp chan int) {
 	if ch != nil {
 		ch <- Pulse{val, resp}
-		<- resp
+		<-resp
 	}
 }
 
@@ -50,47 +50,47 @@ func dotrunk(t *trunk) {
 	p.Resp = make(chan int)
 	for {
 		select {
-		case q :=<- t.update:
+		case q := <-t.update:
 			if q == -1 {
 				return
 			}
 			continue
-		case x =<- t.xmit[0]:
-		case x =<- t.xmit[1]:
-		case x =<- t.xmit[2]:
-		case x =<- t.xmit[3]:
-		case x =<- t.xmit[4]:
-		case x =<- t.xmit[5]:
-		case x =<- t.xmit[6]:
-		case x =<- t.xmit[7]:
-		case x =<- t.xmit[8]:
-		case x =<- t.xmit[9]:
-		case x =<- t.xmit[10]:
-		case x =<- t.xmit[11]:
-		case x =<- t.xmit[12]:
-		case x =<- t.xmit[13]:
-		case x =<- t.xmit[14]:
-		case x =<- t.xmit[15]:
+		case x = <-t.xmit[0]:
+		case x = <-t.xmit[1]:
+		case x = <-t.xmit[2]:
+		case x = <-t.xmit[3]:
+		case x = <-t.xmit[4]:
+		case x = <-t.xmit[5]:
+		case x = <-t.xmit[6]:
+		case x = <-t.xmit[7]:
+		case x = <-t.xmit[8]:
+		case x = <-t.xmit[9]:
+		case x = <-t.xmit[10]:
+		case x = <-t.xmit[11]:
+		case x = <-t.xmit[12]:
+		case x = <-t.xmit[13]:
+		case x = <-t.xmit[14]:
+		case x = <-t.xmit[15]:
 		}
 		p.Val = x.Val
 		if x.Val != 0 {
 			needresp := 0
 			for _, c := range t.recv {
 				if c != nil {
-pulseloop:
+				pulseloop:
 					for {
 						select {
 						case c <- p:
 							needresp++
 							break pulseloop
-						case <- p.Resp:
+						case <-p.Resp:
 							needresp--
 						}
 					}
 				}
 			}
 			for needresp > 0 {
-				<- p.Resp
+				<-p.Resp
 				needresp--
 			}
 		}

@@ -27,27 +27,27 @@ const (
 	ContMode
 )
 
-var clocks = []int {
-	0, Tenp,				// 0
-	Onep | Ninep, Tenp,		// 1
-	Twop | Ninep, Tenp,		// 2
-	Twop | Ninep, Tenp,		// 3
-	Twopp | Ninep, Tenp,	// 4
-	Twopp | Ninep, Tenp,	// 5
-	Fourp | Ninep, Tenp,		// 6
-	Fourp | Ninep, Tenp,		// 7
-	Fourp | Ninep, Tenp,		// 8
-	Fourp | Ninep, Tenp,		// 9
-	Onepp, 0,				// 10
-	Ccg, 0,				// 11
-	0, 0,					// 12
-	Rp, 0,				// 13
-	0, 0,					// 14
-	0, 0,					// 15
-	0, 0,					// 16
-	Cpp, 0,				// 17
-	0, 0,					// 18
-	Rp, 0,				// 19
+var clocks = []int{
+	0, Tenp, // 0
+	Onep | Ninep, Tenp, // 1
+	Twop | Ninep, Tenp, // 2
+	Twop | Ninep, Tenp, // 3
+	Twopp | Ninep, Tenp, // 4
+	Twopp | Ninep, Tenp, // 5
+	Fourp | Ninep, Tenp, // 6
+	Fourp | Ninep, Tenp, // 7
+	Fourp | Ninep, Tenp, // 8
+	Fourp | Ninep, Tenp, // 9
+	Onepp, 0, // 10
+	Ccg, 0, // 11
+	0, 0, // 12
+	Rp, 0, // 13
+	0, 0, // 14
+	0, 0, // 15
+	0, 0, // 16
+	Cpp, 0, // 17
+	0, 0, // 18
+	Rp, 0, // 19
 }
 
 var intbch chan int
@@ -79,7 +79,7 @@ func cycsetmode(newmode int) {
 	cmodemu.Unlock()
 	if waiting_for_button {
 		intbch <- 1
-		<- cycbutdone
+		<-cycbutdone
 	}
 }
 
@@ -89,7 +89,7 @@ func cycreset() {
 
 func cyclectl(cch chan [2]string) {
 	for {
-		x :=<- cch
+		x := <-cch
 		switch x[0] {
 		case "op":
 			switch x[1] {
@@ -109,7 +109,7 @@ func cyclectl(cch chan [2]string) {
 				cmodemu.Unlock()
 				if waiting_for_button {
 					intbch <- 1
-					<- cycbutdone
+					<-cycbutdone
 				}
 			default:
 				fmt.Println("cycle unit op swtch value: one of 1p, 1a, co, cy")
@@ -124,13 +124,13 @@ func cycleunit(fns []ClockFunc, bch chan int) {
 	var p Pulse
 
 	if *testcycles > 0 {
-		<- teststart
+		<-teststart
 	}
 
 	intbch = make(chan int)
-	go func () {
+	go func() {
 		for {
-			b :=<- bch
+			b := <-bch
 			cmodemu.Lock()
 			waiting_for_button := cmode == AddMode || cmode == PulseMode
 			cmodemu.Unlock()
@@ -140,7 +140,7 @@ func cycleunit(fns []ClockFunc, bch chan int) {
 				cycbutdone <- 1
 			}
 		}
-	} ()
+	}()
 
 	p.Resp = make(chan int)
 	for {
@@ -151,27 +151,33 @@ func cycleunit(fns []ClockFunc, bch chan int) {
 		wait_for_add := cmode == AddMode
 		cmodemu.Unlock()
 		if wait_for_add {
-			<- intbch
+			<-intbch
 		}
 		for cyc = 0; cyc < len(clocks); cyc++ {
 			cmodemu.Lock()
 			wait_for_pulse := cmode == PulseMode
 			cmodemu.Unlock()
 			if wait_for_pulse {
-				<- intbch
+				<-intbch
 			}
 			if cyc == 32 && (initclrff[0] || initclrff[1] || initclrff[2] ||
-					initclrff[3] || initclrff[4] || initclrff[5]) {
+				initclrff[3] || initclrff[4] || initclrff[5]) {
 				p.Val = Scg
-				for _, f := range fns { f(p) }
+				for _, f := range fns {
+					f(p)
+				}
 			} else if clocks[cyc] != 0 {
 				p.Val = clocks[cyc]
-				for _, f := range fns { f(p) }
+				for _, f := range fns {
+					f(p)
+				}
 			}
 			cyc++
 			if clocks[cyc] != 0 {
 				p.Val = clocks[cyc]
-				for _, f := range fns { f(p) }
+				for _, f := range fns {
+					f(p)
+				}
 			}
 			if wait_for_pulse {
 				cycbutdone <- 1

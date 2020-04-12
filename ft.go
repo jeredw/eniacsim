@@ -8,27 +8,27 @@ import (
 )
 
 type ft struct {
-	jack [27]chan Pulse
-	inff1, inff2 [11]bool
-	opsw [11]int
-	rptsw [11]int
-	argsw [11]int
-	pm1, pm2 int
-	cons [8]int
-	del [8]int
-	sub [12]int
-	tab [104][14]int
-	arg int
-	ring int
-	add bool
-	subtr bool
-	argsetup bool
+	jack             [27]chan Pulse
+	inff1, inff2     [11]bool
+	opsw             [11]int
+	rptsw            [11]int
+	argsw            [11]int
+	pm1, pm2         int
+	cons             [8]int
+	del              [8]int
+	sub              [12]int
+	tab              [104][14]int
+	arg              int
+	ring             int
+	add              bool
+	subtr            bool
+	argsetup         bool
 	gateh42, gatee42 bool
-	update chan int
-	resp chan int
-	whichrp bool
-	px4119 bool
-	prog int
+	update           chan int
+	resp             chan int
+	whichrp          bool
+	px4119           bool
+	prog             int
 }
 
 var ftable [3]ft
@@ -130,7 +130,7 @@ func ftctl(unit int, ch chan [2]string) {
 
 	ops := [10]string{"A-2", "A-1", "A0", "A+1", "A+2", "S+2", "S+1", "S0", "S-1", "S-2"}
 	for {
-		swval :=<- ch
+		swval := <-ch
 		switch {
 		case swval[0][:2] == "op":
 			sw, _ := strconv.Atoi(swval[0][2:])
@@ -205,7 +205,7 @@ func ftctl(unit int, ch chan [2]string) {
 				}
 			}
 		case swval[0][0] == 'R':
-			n,_ := fmt.Sscanf(swval[0], "R%c%dL%d", &bank, &row, &digit)
+			n, _ := fmt.Sscanf(swval[0], "R%c%dL%d", &bank, &row, &digit)
 			if n == 3 {
 				val, _ = strconv.Atoi(swval[1])
 				if bank == 'A' {
@@ -242,7 +242,7 @@ func addlookup(f *ft, c int) {
 	a := 0
 	b := 0
 	arg := f.arg
-	if c & Ninep != 0 {
+	if c&Ninep != 0 {
 		as := f.pm1 == 1 || f.pm1 == 2 && f.tab[arg][0] == 1
 		bs := f.pm2 == 1 || f.pm2 == 2 && f.tab[arg][13] == 1
 		if as {
@@ -284,7 +284,7 @@ func addlookup(f *ft, c int) {
 			}
 		}
 	}
-	if c & Fourp != 0 {
+	if c&Fourp != 0 {
 		for i := 0; i < 4; i++ {
 			if x := f.cons[i]; x >= 4 && x <= 8 {
 				a |= 1 << (9 - uint(i))
@@ -302,7 +302,7 @@ func addlookup(f *ft, c int) {
 			}
 		}
 	}
-	if c & Twopp != 0 {
+	if c&Twopp != 0 {
 		for i := 0; i < 4; i++ {
 			if x := f.cons[i]; x == 8 || x == 8 {
 				a |= 1 << (9 - uint(i))
@@ -320,7 +320,7 @@ func addlookup(f *ft, c int) {
 			}
 		}
 	}
-	if c & Twop != 0 {
+	if c&Twop != 0 {
 		for i := 0; i < 4; i++ {
 			if x := f.cons[i]; x == 2 || x == 3 || (x > 5 && x < 9) {
 				a |= 1 << (9 - uint(i))
@@ -338,31 +338,31 @@ func addlookup(f *ft, c int) {
 			}
 		}
 	}
-	if c & Onep != 0 {
+	if c&Onep != 0 {
 		for i := 0; i < 4; i++ {
-			if x := f.cons[i]; x < 9 && x % 2 == 1 {
+			if x := f.cons[i]; x < 9 && x%2 == 1 {
 				a |= 1 << (9 - uint(i))
 			}
-			if x := f.cons[i+4]; x < 9 && x % 2 == 1 {
+			if x := f.cons[i+4]; x < 9 && x%2 == 1 {
 				b |= 1 << (9 - uint(i))
 			}
 		}
 		for i := 0; i < 6; i++ {
-			if x := f.tab[arg][i+1]; x < 9 && x % 2 == 1 {
+			if x := f.tab[arg][i+1]; x < 9 && x%2 == 1 {
 				a |= 1 << (5 - uint(i))
 			}
-			if x := f.tab[arg][i+7]; x < 9 && x % 2 == 1 {
+			if x := f.tab[arg][i+7]; x < 9 && x%2 == 1 {
 				b |= 1 << (5 - uint(i))
 			}
 		}
 	}
 	if a != 0 && f.jack[1] != nil {
 		f.jack[1] <- Pulse{a, f.resp}
-		<- f.resp
+		<-f.resp
 	}
 	if b != 0 && f.jack[2] != nil {
 		f.jack[2] <- Pulse{b, f.resp}
-		<- f.resp
+		<-f.resp
 	}
 }
 
@@ -370,7 +370,7 @@ func subtrlookup(f *ft, c int) {
 	a := 0
 	b := 0
 	arg := f.arg
-	if c & Ninep != 0 {
+	if c&Ninep != 0 {
 		as := f.pm1 == 0 || f.pm1 == 2 && f.tab[arg][0] == 0
 		bs := f.pm2 == 0 || f.pm2 == 2 && f.tab[arg][13] == 0
 		if as {
@@ -396,7 +396,7 @@ func subtrlookup(f *ft, c int) {
 			}
 		}
 	}
-	if c & Fourp != 0 {
+	if c&Fourp != 0 {
 		for i := 0; i < 4; i++ {
 			if x := f.cons[i]; x < 6 {
 				a |= 1 << (9 - uint(i))
@@ -414,7 +414,7 @@ func subtrlookup(f *ft, c int) {
 			}
 		}
 	}
-	if c & Twopp != 0 {
+	if c&Twopp != 0 {
 		for i := 0; i < 4; i++ {
 			if x := f.cons[i]; x < 2 {
 				a |= 1 << (9 - uint(i))
@@ -432,7 +432,7 @@ func subtrlookup(f *ft, c int) {
 			}
 		}
 	}
-	if c & Twop != 0 {
+	if c&Twop != 0 {
 		for i := 0; i < 4; i++ {
 			if x := f.cons[i]; x == 6 || x == 7 || x < 4 {
 				a |= 1 << (9 - uint(i))
@@ -450,25 +450,25 @@ func subtrlookup(f *ft, c int) {
 			}
 		}
 	}
-	if c & Onep != 0 {
+	if c&Onep != 0 {
 		for i := 0; i < 4; i++ {
-			if x := f.cons[i]; x < 10 && x % 2 == 0 {
+			if x := f.cons[i]; x < 10 && x%2 == 0 {
 				a |= 1 << (9 - uint(i))
 			}
-			if x := f.cons[i+4]; x < 10 && x % 2 == 0 {
+			if x := f.cons[i+4]; x < 10 && x%2 == 0 {
 				b |= 1 << (9 - uint(i))
 			}
 		}
 		for i := 0; i < 6; i++ {
-			if x := f.tab[arg][i+1]; x < 10 && x % 2 == 0 {
+			if x := f.tab[arg][i+1]; x < 10 && x%2 == 0 {
 				a |= 1 << (5 - uint(i))
 			}
-			if x := f.tab[arg][i+7]; x < 10 && x % 2 == 0 {
+			if x := f.tab[arg][i+7]; x < 10 && x%2 == 0 {
 				b |= 1 << (5 - uint(i))
 			}
 		}
 	}
-	if c & Onepp != 0 {
+	if c&Onepp != 0 {
 		for i := 0; i < 6; i++ {
 			if f.sub[i] == 1 {
 				a |= 1 << (5 - uint(i))
@@ -480,17 +480,17 @@ func subtrlookup(f *ft, c int) {
 	}
 	if a != 0 && f.jack[1] != nil {
 		f.jack[1] <- Pulse{a, f.resp}
-		<- f.resp
+		<-f.resp
 	}
 	if b != 0 && f.jack[2] != nil {
 		f.jack[2] <- Pulse{b, f.resp}
-		<- f.resp
+		<-f.resp
 	}
 }
 
 func ftpulse(f *ft, p Pulse) {
 	if f.px4119 {
-		if p.Val & Cpp != 0 {
+		if p.Val&Cpp != 0 {
 			p.Val |= Ninep
 		} else {
 			p.Val &= ^Ninep
@@ -499,13 +499,13 @@ func ftpulse(f *ft, p Pulse) {
 	c := p.Val
 	if f.gatee42 {
 		sw := f.opsw[f.prog]
-		if c & Onep != 0 && (sw == 1 || sw == 3 || sw == 6 || sw == 8) {
+		if c&Onep != 0 && (sw == 1 || sw == 3 || sw == 6 || sw == 8) {
 			f.arg++
 		}
-		if c & Twop != 0 && (sw == 2 || sw == 3 || sw == 6 || sw == 7) {
+		if c&Twop != 0 && (sw == 2 || sw == 3 || sw == 6 || sw == 7) {
 			f.arg++
 		}
-		if c & Fourp != 0 && (sw == 4 || sw == 5) {
+		if c&Fourp != 0 && (sw == 4 || sw == 5) {
 			f.arg++
 		}
 	}
@@ -523,10 +523,11 @@ func ftpulse(f *ft, p Pulse) {
 			fmt.Println("Invalid function table argument", f.arg)
 		}
 	}
-	if c & Cpp != 0 {
+	if c&Cpp != 0 {
 		switch f.ring {
-		case 0:  	// Stage -3
-			for f.prog = 0; f.prog < 11 && !f.inff2[f.prog]; f.prog++ { }
+		case 0: // Stage -3
+			for f.prog = 0; f.prog < 11 && !f.inff2[f.prog]; f.prog++ {
+			}
 			if f.prog >= 11 {
 				break
 			}
@@ -534,42 +535,42 @@ func ftpulse(f *ft, p Pulse) {
 			case 1:
 				if f.jack[3] != nil {
 					f.jack[3] <- Pulse{1, f.resp}
-					<- f.resp
+					<-f.resp
 				}
 			case 2:
 				if f.jack[4] != nil {
 					f.jack[4] <- Pulse{1, f.resp}
-					<- f.resp
+					<-f.resp
 				}
 			}
-			f.ring++		// Stage -2 begins
+			f.ring++ // Stage -2 begins
 			f.gateh42 = true
 		case 1:
-			f.ring++		// Stage -1 begins
+			f.ring++ // Stage -1 begins
 			f.gateh42 = false
 			f.gatee42 = true
 		case 2:
-			f.ring++		// Stage 0 begins
+			f.ring++ // Stage 0 begins
 			f.gatee42 = false
-/*
+			/*
+				if f.opsw[f.prog] < 5 {
+					f.add = true
+				} else {
+					f.subtr = true
+				}
+			*/
+		case 3: // Stage 0
+			f.ring++ // Stage 1 begins
 			if f.opsw[f.prog] < 5 {
 				f.add = true
 			} else {
 				f.subtr = true
 			}
-*/
-		case 3: 	 // Stage 0
-			f.ring++		// Stage 1 begins
-			if f.opsw[f.prog] < 5 {
-				f.add = true
-			} else {
-				f.subtr = true
-			}
-		default:  // Stages 1-9
-			if f.rptsw[f.prog] == f.ring - 4 {
+		default: // Stages 1-9
+			if f.rptsw[f.prog] == f.ring-4 {
 				if f.jack[f.prog*2+6] != nil {
 					f.jack[f.prog*2+6] <- Pulse{1, f.resp}
-					<- f.resp
+					<-f.resp
 				}
 				f.arg = 0
 				f.add = false
@@ -582,12 +583,12 @@ func ftpulse(f *ft, p Pulse) {
 			}
 		}
 	}
-	if c & Ccg != 0 {
+	if c&Ccg != 0 {
 		f.whichrp = false
 	}
-	if c & Rp != 0 {
+	if c&Rp != 0 {
 		if f.whichrp {
-			for i, _ := range(f.inff1) {
+			for i, _ := range f.inff1 {
 				if f.inff1[i] {
 					f.inff1[i] = false
 					f.inff2[i] = true
@@ -595,10 +596,10 @@ func ftpulse(f *ft, p Pulse) {
 			}
 			f.whichrp = false
 		} else {
-			f. whichrp = true
+			f.whichrp = true
 		}
 	}
-	if f.ring == 2 && c & Onepp != 0 {
+	if f.ring == 2 && c&Onepp != 0 {
 		f.argsetup = true
 	}
 }
@@ -622,68 +623,68 @@ func ftunit2(f *ft) {
 
 	for {
 		select {
-		case <- f.update:
-		case p =<- f.jack[5]:
+		case <-f.update:
+		case p = <-f.jack[5]:
 			f.inff1[0] = true
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- f.jack[7]:
+		case p = <-f.jack[7]:
 			f.inff1[1] = true
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- f.jack[9]:
+		case p = <-f.jack[9]:
 			f.inff1[2] = true
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- f.jack[11]:
+		case p = <-f.jack[11]:
 			f.inff1[3] = true
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- f.jack[13]:
+		case p = <-f.jack[13]:
 			f.inff1[4] = true
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- f.jack[15]:
+		case p = <-f.jack[15]:
 			f.inff1[5] = true
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- f.jack[17]:
+		case p = <-f.jack[17]:
 			f.inff1[6] = true
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- f.jack[19]:
+		case p = <-f.jack[19]:
 			f.inff1[7] = true
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- f.jack[21]:
+		case p = <-f.jack[21]:
 			f.inff1[8] = true
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- f.jack[23]:
+		case p = <-f.jack[23]:
 			f.inff1[9] = true
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- f.jack[25]:
+		case p = <-f.jack[25]:
 			f.inff1[10] = true
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case arg :=<- f.jack[0]:
+		case arg := <-f.jack[0]:
 			if f.gateh42 {
-				if arg.Val & 0x01 != 0 {
+				if arg.Val&0x01 != 0 {
 					f.arg++
 				}
-				if arg.Val & 0x02 != 0 {
+				if arg.Val&0x02 != 0 {
 					f.arg += 10
 				}
 			}

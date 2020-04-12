@@ -34,43 +34,43 @@ const (
  * Signal names on ST1 and ST2 connectors
  */
 const (
-	stα = pin1
-	stβ = pin2
-	stγ = pin3
-	stδ = pin4
-	stε = pin5
-	stA = pin6
-	stAS = pin7
-	stS = pin8
-	stCLR = pin9
-	stCORR = pin10
-	stPMinp = pin14
-	stCORRsrc = pin14
+	stα        = pin1
+	stβ        = pin2
+	stγ        = pin3
+	stδ        = pin4
+	stε        = pin5
+	stA        = pin6
+	stAS       = pin7
+	stS        = pin8
+	stCLR      = pin9
+	stCORR     = pin10
+	stPMinp    = pin14
+	stCORRsrc  = pin14
 	stDEC10CAR = pin15
-	stDEC1inp = pin15
-	stSF0out = pin16
-	stDEC1sub = pin16
-	stSFSWinp = pin17
-	stSF10out = pin17
+	stDEC1inp  = pin15
+	stSF0out   = pin16
+	stDEC1sub  = pin16
+	stSFSWinp  = pin17
+	stSF10out  = pin17
 )
 
 type accumulator struct {
 	α, β, γ, δ, ε, A, S chan Pulse
-	ctlterm [20]chan Pulse
-	inff1, inff2 [12]bool
-	opsw [12]byte
-	clrsw [12]bool
-	rptsw [8]byte
-	sigfig int
-	sc byte
-	val [10]byte
-	decff [10]bool
-	sign bool
-	h50 bool
-	rep int
-	whichrp bool
-	change chan int
-	lbuddy, rbuddy int
+	ctlterm             [20]chan Pulse
+	inff1, inff2        [12]bool
+	opsw                [12]byte
+	clrsw               [12]bool
+	rptsw               [8]byte
+	sigfig              int
+	sc                  byte
+	val                 [10]byte
+	decff               [10]bool
+	sign                bool
+	h50                 bool
+	rep                 int
+	whichrp             bool
+	change              chan int
+	lbuddy, rbuddy      int
 }
 
 var units [20]accumulator
@@ -79,7 +79,7 @@ func accstat(unit int) string {
 	var s string
 
 	// NB used by doprint()
-	s = fmt.Sprintf("a%-2d ", unit + 1)
+	s = fmt.Sprintf("a%-2d ", unit+1)
 	if units[unit].sign {
 		s += "M "
 	} else {
@@ -236,7 +236,7 @@ func accctl(unit int, ch chan [2]string) {
 	units[unit].lbuddy = unit
 	units[unit].rbuddy = unit
 	for {
-		ctl :=<- ch
+		ctl := <-ch
 		prog, _ := strconv.Atoi(ctl[0][2:])
 		prog--
 		switch ctl[0][:2] {
@@ -277,7 +277,7 @@ func accctl(unit int, ch chan [2]string) {
 		case "rp":
 			rpt, err := strconv.Atoi(ctl[1])
 			if err == nil {
-				units[unit].rptsw[prog-4] = byte(rpt-1)
+				units[unit].rptsw[prog-4] = byte(rpt - 1)
 			} else {
 				fmt.Println("Invalid repeat count:", ctl[1], "on unit",
 					unit+1, "program", prog+1)
@@ -389,7 +389,7 @@ func st1(unit int) int {
 }
 
 func st2(unit int) int {
-//	u := &units[unit]
+	//	u := &units[unit]
 	x := st1(unit) & 0x03ff
 
 	return x
@@ -398,7 +398,7 @@ func st2(unit int) int {
 func accrecv(unit, dat int) {
 	u := &units[unit]
 	for i := 0; i < 10; i++ {
-		if dat & 1 == 1 {
+		if dat&1 == 1 {
 			u.val[i]++
 			if u.val[i] >= 10 {
 				u.decff[i] = true
@@ -407,7 +407,7 @@ func accrecv(unit, dat int) {
 		}
 		dat >>= 1
 	}
-	if dat & 1 == 1 {
+	if dat&1 == 1 {
 		u.sign = !u.sign
 	}
 }
@@ -423,14 +423,14 @@ func docpp(u *accumulator, resp chan int, cyc int) {
 		u.rep++
 		rstrep := false
 		for i := 4; i < 12; i++ {
-			if u.inff2[i] && u.rep == int(u.rptsw[i-4]) + 1 {
+			if u.inff2[i] && u.rep == int(u.rptsw[i-4])+1 {
 				u.inff1[i] = false
 				u.inff2[i] = false
 				rstrep = true
-				t := (i - 4) * 2 + 5
+				t := (i-4)*2 + 5
 				if u.ctlterm[t] != nil {
 					u.ctlterm[t] <- Pulse{1, resp}
-					<- resp
+					<-resp
 				}
 			}
 		}
@@ -477,7 +477,7 @@ func ripple(unit int) {
 func doccg(u *accumulator, unit int, resp chan int) {
 	curprog := st1(unit)
 	u.whichrp = false
-	if curprog & 0x1f != 0 {
+	if curprog&0x1f != 0 {
 		if u.rbuddy == unit {
 			ripple(unit)
 		}
@@ -514,7 +514,7 @@ func dorp(u *accumulator) {
 
 func dotenp(u *accumulator, unit int) {
 	curprog := st1(unit)
- 	if curprog & (stA | stAS | stS) != 0 {
+	if curprog&(stA|stAS|stS) != 0 {
 		for i := 0; i < 10; i++ {
 			u.val[i]++
 			if u.val[i] == 10 {
@@ -527,7 +527,7 @@ func dotenp(u *accumulator, unit int) {
 
 func doninep(u *accumulator, unit int, resp chan int) {
 	curprog := st1(unit)
-	if curprog & (stA | stAS) != 0 {
+	if curprog&(stA|stAS) != 0 {
 		if u.A != nil {
 			n := 0
 			for i := 0; i < 10; i++ {
@@ -540,11 +540,11 @@ func doninep(u *accumulator, unit int, resp chan int) {
 			}
 			if n != 0 {
 				u.A <- Pulse{n, resp}
-				<- resp
+				<-resp
 			}
 		}
 	}
-	if curprog & (stAS | stS) != 0 {
+	if curprog&(stAS|stS) != 0 {
 		if u.S != nil {
 			n := 0
 			for i := 0; i < 10; i++ {
@@ -557,7 +557,7 @@ func doninep(u *accumulator, unit int, resp chan int) {
 			}
 			if n != 0 {
 				u.S <- Pulse{n, resp}
-				<- resp
+				<-resp
 			}
 		}
 	}
@@ -565,7 +565,7 @@ func doninep(u *accumulator, unit int, resp chan int) {
 
 func doonepp(u *accumulator, unit int, resp chan int) {
 	curprog := st1(unit)
-	if curprog & stCORR != 0 {
+	if curprog&stCORR != 0 {
 		/*
 		 * Connection of PX-5-109 pins 14, 15
 		 */
@@ -577,13 +577,13 @@ func doonepp(u *accumulator, unit int, resp chan int) {
 			}
 		}
 	}
-	if curprog & (stAS | stS) != 0 && u.S != nil {
+	if curprog&(stAS|stS) != 0 && u.S != nil {
 		if ((u.lbuddy < 0 || u.lbuddy == unit) && u.rbuddy == unit && u.sigfig > 0) ||
-				(u.rbuddy != unit && u.sigfig < 10) ||
-				(u.lbuddy != unit && u.lbuddy >= 0 && units[u.lbuddy].sigfig == 10 && u.sigfig > 0) ||
-				(u.rbuddy != unit && u.sigfig == 10 && units[u.rbuddy].sigfig == 0) {
-			u.S <- Pulse{1 << uint(10 - u.sigfig), resp}
-			<- resp
+			(u.rbuddy != unit && u.sigfig < 10) ||
+			(u.lbuddy != unit && u.lbuddy >= 0 && units[u.lbuddy].sigfig == 10 && u.sigfig > 0) ||
+			(u.rbuddy != unit && u.sigfig == 10 && units[u.rbuddy].sigfig == 0) {
+			u.S <- Pulse{1 << uint(10-u.sigfig), resp}
+			<-resp
 		}
 	}
 }
@@ -591,21 +591,21 @@ func doonepp(u *accumulator, unit int, resp chan int) {
 func accpulse(u *accumulator, unit int, resp chan int, p Pulse) {
 	cyc := p.Val
 	switch {
-	case cyc & Cpp != 0:
+	case cyc&Cpp != 0:
 		docpp(u, resp, cyc)
-	case cyc & Ccg != 0:
+	case cyc&Ccg != 0:
 		doccg(u, unit, resp)
-	case cyc & Scg != 0:
+	case cyc&Scg != 0:
 		if u.sc == 1 {
 			accclear(unit)
 		}
-	case cyc & Rp != 0:
+	case cyc&Rp != 0:
 		dorp(u)
-	case cyc & Tenp != 0:
+	case cyc&Tenp != 0:
 		dotenp(u, unit)
-	case cyc & Ninep != 0:
+	case cyc&Ninep != 0:
 		doninep(u, unit, resp)
-	case cyc & Onepp != 0:
+	case cyc&Onepp != 0:
 		doonepp(u, unit, resp)
 	}
 }
@@ -633,120 +633,120 @@ func accunit2(unit int) {
 	u := &units[unit]
 	for {
 		select {
-		case <- u.change:
-		case dat =<- u.α:
-			if st1(unit) & stα != 0 {
+		case <-u.change:
+		case dat = <-u.α:
+			if st1(unit)&stα != 0 {
 				accrecv(unit, dat.Val)
 			}
 			if dat.Resp != nil {
 				dat.Resp <- 1
 			}
-		case dat =<- u.β:
-			if st1(unit) & stβ != 0 {
+		case dat = <-u.β:
+			if st1(unit)&stβ != 0 {
 				accrecv(unit, dat.Val)
 			}
 			if dat.Resp != nil {
 				dat.Resp <- 1
 			}
-		case dat =<- u.γ:
-			if st1(unit) & stγ != 0 {
+		case dat = <-u.γ:
+			if st1(unit)&stγ != 0 {
 				accrecv(unit, dat.Val)
 			}
 			if dat.Resp != nil {
 				dat.Resp <- 1
 			}
-		case dat =<- u.δ:
-			if st1(unit) & stδ != 0 {
+		case dat = <-u.δ:
+			if st1(unit)&stδ != 0 {
 				accrecv(unit, dat.Val)
 			}
 			if dat.Resp != nil {
 				dat.Resp <- 1
 			}
-		case dat =<- u.ε:
-			if st1(unit) & stε != 0 {
+		case dat = <-u.ε:
+			if st1(unit)&stε != 0 {
 				accrecv(unit, dat.Val)
 			}
 			if dat.Resp != nil {
 				dat.Resp <- 1
 			}
-		case prog =<- u.ctlterm[0]:
+		case prog = <-u.ctlterm[0]:
 			if prog.Val == 1 {
 				u.inff1[0] = true
 			}
 			if prog.Resp != nil {
 				prog.Resp <- 1
 			}
-		case prog =<- u.ctlterm[1]:
+		case prog = <-u.ctlterm[1]:
 			if prog.Val == 1 {
 				u.inff1[1] = true
 			}
 			if prog.Resp != nil {
 				prog.Resp <- 1
 			}
-		case prog =<- u.ctlterm[2]:
+		case prog = <-u.ctlterm[2]:
 			if prog.Val == 1 {
 				u.inff1[2] = true
 			}
 			if prog.Resp != nil {
 				prog.Resp <- 1
 			}
-		case prog =<- u.ctlterm[3]:
+		case prog = <-u.ctlterm[3]:
 			if prog.Val == 1 {
 				u.inff1[3] = true
 			}
 			if prog.Resp != nil {
 				prog.Resp <- 1
 			}
-		case prog =<- u.ctlterm[4]:
+		case prog = <-u.ctlterm[4]:
 			if prog.Val == 1 {
 				u.inff1[4] = true
 			}
 			if prog.Resp != nil {
 				prog.Resp <- 1
 			}
-		case prog =<- u.ctlterm[6]:
+		case prog = <-u.ctlterm[6]:
 			if prog.Val == 1 {
 				u.inff1[5] = true
 			}
 			if prog.Resp != nil {
 				prog.Resp <- 1
 			}
-		case prog =<- u.ctlterm[8]:
+		case prog = <-u.ctlterm[8]:
 			if prog.Val == 1 {
 				u.inff1[6] = true
 			}
 			if prog.Resp != nil {
 				prog.Resp <- 1
 			}
-		case prog =<- u.ctlterm[10]:
+		case prog = <-u.ctlterm[10]:
 			if prog.Val == 1 {
 				u.inff1[7] = true
 			}
 			if prog.Resp != nil {
 				prog.Resp <- 1
 			}
-		case prog =<- u.ctlterm[12]:
+		case prog = <-u.ctlterm[12]:
 			if prog.Val == 1 {
 				u.inff1[8] = true
 			}
 			if prog.Resp != nil {
 				prog.Resp <- 1
 			}
-		case prog =<- u.ctlterm[14]:
+		case prog = <-u.ctlterm[14]:
 			if prog.Val == 1 {
 				u.inff1[9] = true
 			}
 			if prog.Resp != nil {
 				prog.Resp <- 1
 			}
-		case prog =<- u.ctlterm[16]:
+		case prog = <-u.ctlterm[16]:
 			if prog.Val == 1 {
 				u.inff1[10] = true
 			}
 			if prog.Resp != nil {
 				prog.Resp <- 1
 			}
-		case prog =<- u.ctlterm[18]:
+		case prog = <-u.ctlterm[18]:
 			if prog.Val == 1 {
 				u.inff1[11] = true
 			}

@@ -1,14 +1,14 @@
 package main
 
 import (
-	"fmt"
 	"bufio"
-	"strings"
-	"strconv"
+	"flag"
+	"fmt"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 	"unicode"
-	"flag"
 
 	. "github.com/jeredw/eniacsim/lib"
 )
@@ -54,13 +54,13 @@ func tee(a, b chan Pulse) chan Pulse {
 						pt2.Resp = make(chan int)
 						pt2.Val = pt.Val
 						a <- pt2
-						<- pt2.Resp
+						<-pt2.Resp
 					}
 					if b != nil {
 						pt2.Resp = make(chan int)
 						pt2.Val = pt.Val
 						b <- pt2
-						<- pt2.Resp
+						<-pt2.Resp
 					}
 					pt.Resp <- 1
 				}
@@ -79,7 +79,7 @@ func dumpall() {
 	for i := 0; i < 20; i += 2 {
 		fmt.Print(accstat(i))
 		fmt.Print("   ")
-		fmt.Println(accstat(i+1))
+		fmt.Println(accstat(i + 1))
 	}
 	fmt.Println(divsrstat2())
 	fmt.Println(multstat())
@@ -110,20 +110,20 @@ func proccmd(cmd string) int {
 		switch f[1] {
 		case "c":
 			initbut <- 5
-			<- initbutdone
+			<-initbutdone
 		case "i":
 			initbut <- 4
-			<- initbutdone
+			<-initbutdone
 		case "p":
 			cycbut <- 1
-			<- cycbutdone
+			<-cycbutdone
 		case "r":
 			initbut <- 3
-			<- initbutdone
+			<-initbutdone
 		}
 	case "n":
 		cycbut <- 1
-		<- cycbutdone
+		<-cycbutdone
 		dumpall()
 	case "d":
 		if len(f) != 2 {
@@ -133,7 +133,7 @@ func proccmd(cmd string) int {
 		switch f[1][0] {
 		case 'a':
 			unit, _ := strconv.Atoi(f[1][1:])
-			fmt.Println(accstat(unit-1))
+			fmt.Println(accstat(unit - 1))
 		case 'b':
 			fmt.Println(debugstat())
 		case 'c':
@@ -142,7 +142,7 @@ func proccmd(cmd string) int {
 			fmt.Println(divsrstat2())
 		case 'f':
 			unit, _ := strconv.Atoi(f[1][1:])
-			fmt.Println(ftstat(unit-1))
+			fmt.Println(ftstat(unit - 1))
 		case 'i':
 			fmt.Println(initstat())
 		case 'm':
@@ -204,8 +204,8 @@ func proccmd(cmd string) int {
 		 * Ugly special case of 20 digit interconnects
 		 */
 		if len(p1) == 2 && p1[0][0] == 'a' && len(p1[1]) >= 2 &&
-				(p1[1][:2] == "st" || p1[1][:2] == "su" ||
-				 p1[1][:2] == "il" || p1[1][:2] == "ir") {
+			(p1[1][:2] == "st" || p1[1][:2] == "su" ||
+				p1[1][:2] == "il" || p1[1][:2] == "ir") {
 			accinterconnect(p1, p2)
 			break
 		}
@@ -214,18 +214,18 @@ func proccmd(cmd string) int {
 		case p1[0] == "ad":
 			if len(p1) != 4 {
 				fmt.Println("Adapter jumper syntax: ad.ilk.unit.param")
-				break;
+				break
 			}
 			unit, _ := strconv.Atoi(p1[2])
 			param, _ := strconv.Atoi(p1[3])
-			adplug(p1[1], 1, unit - 1, param, ch)
+			adplug(p1[1], 1, unit-1, param, ch)
 		case p1[0][0] == 'a':
 			if len(p1) != 2 {
 				fmt.Println("Accumulator jumper syntax: aunit.terminal")
 				break
 			}
 			unit, _ := strconv.Atoi(p1[0][1:])
-			accplug(unit - 1, p1[1], ch)
+			accplug(unit-1, p1[1], ch)
 		case p1[0] == "c":
 			if len(p1) != 2 {
 				fmt.Println("Invalid constant jumper:", cmd)
@@ -244,7 +244,7 @@ func proccmd(cmd string) int {
 				break
 			}
 			unit, _ := strconv.Atoi(p1[0][1:])
-			ftplug(unit - 1, p1[1], ch)
+			ftplug(unit-1, p1[1], ch)
 		case p1[0] == "i":
 			if len(p1) != 2 {
 				fmt.Println("Initiator jumper syntax: i.terminal")
@@ -267,11 +267,11 @@ func proccmd(cmd string) int {
 					fmt.Println("Invalid data trunk", p1[0])
 					break
 				}
-				trunkrecv(0, tray - 1, ch)
+				trunkrecv(0, tray-1, ch)
 			} else {
 				tray, _ := strconv.Atoi(p1[0][:hpos])
 				line, _ := strconv.Atoi(p1[0][hpos+1:])
-				trunkrecv(1, (tray - 1) * 11 + line - 1, ch)
+				trunkrecv(1, (tray-1)*11+line-1, ch)
 			}
 		default:
 			fmt.Println("Invalid jack spec: ", p1)
@@ -280,18 +280,18 @@ func proccmd(cmd string) int {
 		case p2[0] == "ad":
 			if len(p2) != 4 {
 				fmt.Println("Adapter jumper syntax: ad.ilk.unit.param")
-				break;
+				break
 			}
 			unit, _ := strconv.Atoi(p2[2])
 			param, _ := strconv.Atoi(p2[3])
-			adplug(p2[1], 0, unit - 1, param, ch)
+			adplug(p2[1], 0, unit-1, param, ch)
 		case p2[0][0] == 'a':
 			if len(p2) != 2 {
 				fmt.Println("Accumulator jumper syntax: aunit.terminal")
 				break
 			}
 			unit, _ := strconv.Atoi(p2[0][1:])
-			accplug(unit - 1, p2[1], ch)
+			accplug(unit-1, p2[1], ch)
 		case p2[0] == "debug":
 			if len(p2) != 2 {
 				fmt.Println("Debugger jumper syntax: debug.bpn")
@@ -317,7 +317,7 @@ func proccmd(cmd string) int {
 				break
 			}
 			unit, _ := strconv.Atoi(p2[0][1:])
-			ftplug(unit - 1, p2[1], ch)
+			ftplug(unit-1, p2[1], ch)
 		case p2[0] == "i":
 			if len(p2) != 2 {
 				fmt.Println("Initiator jumper syntax: i.terminal")
@@ -340,11 +340,11 @@ func proccmd(cmd string) int {
 					fmt.Println("Invalid data trunk", p2[0])
 					break
 				}
-				trunkxmit(0, tray - 1, ch)
+				trunkxmit(0, tray-1, ch)
 			} else {
 				tray, _ := strconv.Atoi(p2[0][:hpos])
 				line, _ := strconv.Atoi(p2[0][hpos+1:])
-				trunkxmit(1, (tray - 1) * 11 + line - 1, ch)
+				trunkxmit(1, (tray-1)*11+line-1, ch)
 			}
 		default:
 			fmt.Println("Invalid jack spec: ", p2)
@@ -469,7 +469,7 @@ func proccmd(cmd string) int {
 		}
 		unit, _ := strconv.Atoi(f[1][1:])
 		value, _ := strconv.ParseInt(f[2], 10, 64)
-		accset(unit - 1, value)
+		accset(unit-1, value)
 	case "u":
 	case "dt":
 	case "pt":
@@ -502,9 +502,9 @@ func ctlstation() {
 	filterset := 0
 	filtercnt := 0
 	// Seriously ugly hack to give other goprocs time to get initialized
-	time.Sleep(100*time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	for {
-		time.Sleep(10*time.Millisecond)
+		time.Sleep(10 * time.Millisecond)
 		newstate := 0
 		n, err := fd5.ReadAt(buf, 0)
 		if n != 1 {
@@ -537,7 +537,7 @@ func ctlstation() {
 		if buf[0] == '0' {
 			newstate |= 0x08
 		}
-		if newstate != filterset || newstate & 0x70 == 0 {
+		if newstate != filterset || newstate&0x70 == 0 {
 			filtercnt = 0
 			filterset = newstate
 		} else {
@@ -546,7 +546,7 @@ func ctlstation() {
 		if filtercnt == 4 {
 			if newstate != curstate {
 				diff := newstate ^ curstate
-				if diff & 0x70 != 0 {
+				if diff&0x70 != 0 {
 					switch newstate & 0x70 {
 					case 0x10:
 						proccmd("s cy.op 1a")
@@ -556,16 +556,16 @@ func ctlstation() {
 						proccmd("s cy.op co")
 					}
 				}
-				if diff & 0x01 != 0 && newstate & 0x01 != 0 {
+				if diff&0x01 != 0 && newstate&0x01 != 0 {
 					proccmd("b c")
 				}
-				if diff & 0x02 != 0 && newstate & 0x02 != 0 {
+				if diff&0x02 != 0 && newstate&0x02 != 0 {
 					proccmd("b r")
 				}
-				if diff & 0x04 != 0 && newstate & 0x04 != 0 {
+				if diff&0x04 != 0 && newstate&0x04 != 0 {
 					proccmd("b i")
 				}
-				if diff & 0x08 != 0 && newstate & 0x08 != 0 {
+				if diff&0x08 != 0 && newstate&0x08 != 0 {
 					proccmd("b p")
 				}
 				curstate = newstate
@@ -575,7 +575,7 @@ func ctlstation() {
 }
 
 func main() {
-	flag.Usage = func () {
+	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [options] [configuration file]\n", os.Args[0])
 		flag.PrintDefaults()
 	}
@@ -647,13 +647,13 @@ func main() {
 
 	if flag.NArg() >= 1 {
 		// Seriously ugly hack to give other goprocs time to get initialized
-		time.Sleep(100*time.Millisecond)
+		time.Sleep(100 * time.Millisecond)
 		proccmd("l " + flag.Arg(0))
 	}
 
 	if *testcycles > 0 {
 		teststart <- 1
-		<- testdone
+		<-testdone
 		dumpall()
 		return
 	}
@@ -661,7 +661,7 @@ func main() {
 	sc := bufio.NewScanner(os.Stdin)
 	var prompt = func() {
 		acycmu.Lock()
-		fmt.Printf("%04d> ", acyc % 10000)
+		fmt.Printf("%04d> ", acyc%10000)
 		acycmu.Unlock()
 	}
 	prompt()

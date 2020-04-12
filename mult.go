@@ -25,46 +25,45 @@ var multupdate chan int
 var ier, icand string
 var sigfig int
 
-
 var table10 [10][10]pulseset = [10][10]pulseset{{},
 	{},
 	{{}, {}, {}, {}, {},
-	{1, 0, 0, 0}, {1, 0, 0, 0}, {1, 0, 0, 0}, {1, 0, 0, 0}, {1, 0, 0, 0}},
+		{1, 0, 0, 0}, {1, 0, 0, 0}, {1, 0, 0, 0}, {1, 0, 0, 0}, {1, 0, 0, 0}},
 	{{}, {}, {}, {}, {1, 0, 0, 0},
-	{1, 0, 0, 0}, {1, 0, 0, 0}, {0, 1, 0, 0}, {0, 1, 0, 0}, {0, 1, 0, 0}},
+		{1, 0, 0, 0}, {1, 0, 0, 0}, {0, 1, 0, 0}, {0, 1, 0, 0}, {0, 1, 0, 0}},
 	{{}, {}, {}, {1, 0, 0, 0}, {1, 0, 0, 0},
-	{0, 1, 0, 0}, {0, 1, 0, 0}, {0, 1, 0, 0}, {1, 1, 0, 0}, {1, 1, 0, 0}},
+		{0, 1, 0, 0}, {0, 1, 0, 0}, {0, 1, 0, 0}, {1, 1, 0, 0}, {1, 1, 0, 0}},
 	{{}, {}, {1, 0, 0, 0}, {1, 0, 0, 0}, {0, 1, 0, 0},
-	{0, 1, 0, 0}, {1, 1, 0, 0}, {1, 1, 0, 0}, {0, 1, 1, 0}, {0, 1, 1, 0}},
+		{0, 1, 0, 0}, {1, 1, 0, 0}, {1, 1, 0, 0}, {0, 1, 1, 0}, {0, 1, 1, 0}},
 	{{}, {}, {1, 0, 0, 0}, {1, 0, 0, 0}, {0, 1, 0, 0},
-	{1, 1, 0, 0}, {1, 1, 0, 0}, {0, 1, 1, 0}, {0, 1, 1, 0}, {1, 1, 1, 0}},
+		{1, 1, 0, 0}, {1, 1, 0, 0}, {0, 1, 1, 0}, {0, 1, 1, 0}, {1, 1, 1, 0}},
 	{{}, {}, {1, 0, 0, 0}, {0, 1, 0, 0}, {0, 1, 0, 0},
-	{1, 1, 0, 0}, {0, 0, 0, 1}, {0, 0, 0, 1}, {1, 0, 0, 1}, {0, 1, 0, 1}},
+		{1, 1, 0, 0}, {0, 0, 0, 1}, {0, 0, 0, 1}, {1, 0, 0, 1}, {0, 1, 0, 1}},
 	{{}, {}, {1, 0, 0, 0}, {0, 1, 0, 0}, {1, 1, 0, 0},
-	{0, 0, 0, 1}, {0, 0, 0, 1}, {1, 0, 0, 1}, {0, 1, 0, 1}, {1, 1, 0, 1}},
+		{0, 0, 0, 1}, {0, 0, 0, 1}, {1, 0, 0, 1}, {0, 1, 0, 1}, {1, 1, 0, 1}},
 	{{}, {}, {1, 0, 0, 0}, {0, 1, 0, 0}, {1, 0, 1, 0},
-	{0, 0, 0, 1}, {1, 1, 1, 0}, {0, 1, 0, 1}, {1, 0, 1, 1}, {0, 1, 1, 1}},
+		{0, 0, 0, 1}, {1, 1, 1, 0}, {0, 1, 0, 1}, {1, 0, 1, 1}, {0, 1, 1, 1}},
 }
 
 var table1 [10][10]pulseset = [10][10]pulseset{{},
 	{{}, {1, 0, 0, 0}, {0, 1, 0, 0}, {1, 0, 1, 0}, {0, 1, 1, 0},
-	{1, 0, 0, 1}, {0, 1, 0, 1}, {1, 0, 1, 1}, {0, 1, 1, 1}, {1, 1, 1, 1}},
+		{1, 0, 0, 1}, {0, 1, 0, 1}, {1, 0, 1, 1}, {0, 1, 1, 1}, {1, 1, 1, 1}},
 	{{}, {0, 1, 0, 0}, {0, 0, 0, 1}, {0, 0, 1, 1}, {0, 1, 1, 1},
-	{}, {0, 1, 0, 0}, {0, 1, 1, 0}, {0, 0, 1, 1}, {0, 1, 1, 1}},
+		{}, {0, 1, 0, 0}, {0, 1, 1, 0}, {0, 0, 1, 1}, {0, 1, 1, 1}},
 	{{}, {1, 1, 0, 0}, {0, 0, 1, 1}, {1, 1, 1, 1}, {0, 1, 0, 0},
-	{1, 1, 1, 0}, {0, 1, 1, 1}, {1, 0, 0, 0}, {0, 0, 0, 1}, {1, 0, 1, 1}},
+		{1, 1, 1, 0}, {0, 1, 1, 1}, {1, 0, 0, 0}, {0, 0, 0, 1}, {1, 0, 1, 1}},
 	{{}, {0, 1, 1, 0}, {0, 1, 1, 1}, {0, 1, 0, 0}, {0, 0, 1, 1},
-	{}, {0, 1, 1, 0}, {0, 1, 1, 1}, {0, 1, 0, 0}, {0, 0, 1, 1}},
+		{}, {0, 1, 1, 0}, {0, 1, 1, 1}, {0, 1, 0, 0}, {0, 0, 1, 1}},
 	{{}, {1, 0, 0, 1}, {}, {1, 0, 0, 1}, {},
-	{1, 0, 0, 1}, {}, {1, 0, 0, 1}, {}, {1, 0, 0, 1}},
+		{1, 0, 0, 1}, {}, {1, 0, 0, 1}, {}, {1, 0, 0, 1}},
 	{{}, {0, 0, 1, 1}, {0, 1, 0, 0}, {0, 1, 1, 1}, {0, 1, 1, 0},
-	{}, {0, 0, 1, 1}, {0, 1, 0, 0}, {0, 1, 1, 1}, {0, 0, 0, 1}},
+		{}, {0, 0, 1, 1}, {0, 1, 0, 0}, {0, 1, 1, 1}, {0, 0, 0, 1}},
 	{{}, {1, 0, 1, 1}, {0, 1, 1, 0}, {1, 0, 0, 0}, {0, 1, 1, 1},
-	{1, 1, 1, 0}, {0, 1, 0, 0}, {1, 1, 1, 1}, {0, 0, 1, 1}, {1, 1, 0, 0}},
+		{1, 1, 1, 0}, {0, 1, 0, 0}, {1, 1, 1, 1}, {0, 0, 1, 1}, {1, 1, 0, 0}},
 	{{}, {0, 1, 1, 1}, {0, 0, 1, 1}, {0, 1, 1, 0}, {0, 1, 0, 0},
-	{}, {0, 1, 1, 1}, {0, 0, 1, 1}, {0, 0, 0, 1}, {0, 1, 0, 0}},
+		{}, {0, 1, 1, 1}, {0, 0, 1, 1}, {0, 0, 0, 1}, {0, 1, 0, 0}},
 	{{}, {1, 1, 1, 1}, {0, 1, 1, 1}, {1, 0, 1, 1}, {0, 1, 0, 1},
-	{1, 0, 0, 1}, {0, 1, 1, 0}, {1, 0, 1, 0}, {0, 1, 0, 0}, {1, 0, 0, 0}},
+		{1, 0, 0, 1}, {0, 1, 1, 0}, {1, 0, 1, 0}, {0, 1, 0, 0}, {1, 0, 0, 0}},
 }
 
 func multstat() string {
@@ -193,7 +192,7 @@ func multplug(jack string, ch chan Pulse) {
 			multout[prog-1] = ch
 		}
 	}
-	multupdate <- 1		
+	multupdate <- 1
 }
 
 func recv2val(recv string) int {
@@ -217,7 +216,7 @@ func recv2val(recv string) int {
 func multctl(ch chan [2]string) {
 	products := [7]string{"A", "S", "AS", "0", "AC", "SC", "ASC"}
 	for {
-		ctl :=<- ch
+		ctl := <-ch
 		switch {
 		case len(ctl[0]) > 6 && ctl[0][:6] == "ieracc":
 			prog, _ := strconv.Atoi(ctl[0][6:])
@@ -276,10 +275,10 @@ func multargs(prog int) {
 		D[icand] <- Pulse{1, resp2}
 	}
 	if ier < 5 && R[ier] != nil {
-		<- resp1
+		<-resp1
 	}
 	if icand < 5 && D[icand] != nil {
-		<- resp2
+		<-resp2
 	}
 	multff[prog] = true
 	buffer61 = true
@@ -287,34 +286,34 @@ func multargs(prog int) {
 
 func shiftprod(lhpp, rhpp int, resp1, resp2, resp3, resp4 chan int) {
 	if lhppI != nil && lhpp != 0 {
-		lhppI <- Pulse{lhpp >> uint(stage - 2), resp1}
+		lhppI <- Pulse{lhpp >> uint(stage-2), resp1}
 	}
 	if lhppII != nil && lhpp != 0 {
-		lhppII <- Pulse{(lhpp << uint(12 - stage)) & 0x3ff, resp2}
+		lhppII <- Pulse{(lhpp << uint(12-stage)) & 0x3ff, resp2}
 	}
 	if rhppI != nil && rhpp != 0 {
-		rhppI <- Pulse{rhpp >> uint(stage - 1), resp3}
+		rhppI <- Pulse{rhpp >> uint(stage-1), resp3}
 	}
 	if rhppII != nil && rhpp != 0 {
-		rhppII <- Pulse{(rhpp << uint(11 - stage)) & 0x3ff, resp4}
+		rhppII <- Pulse{(rhpp << uint(11-stage)) & 0x3ff, resp4}
 	}
 	if lhppI != nil && lhpp != 0 {
-		<- resp1
+		<-resp1
 	}
 	if lhppII != nil && lhpp != 0 {
-		<- resp2
+		<-resp2
 	}
 	if rhppI != nil && rhpp != 0 {
-		<- resp3
+		<-resp3
 	}
 	if rhppII != nil && rhpp != 0 {
-		<- resp4
+		<-resp4
 	}
 }
 
 func multpulse(c Pulse, resp1, resp2, resp3, resp4 chan int) {
 	switch {
-	case c.Val & Cpp != 0:
+	case c.Val&Cpp != 0:
 		if f44 {
 			stage = 1
 			f44 = false
@@ -355,11 +354,11 @@ func multpulse(c Pulse, resp1, resp2, resp3, resp4 chan int) {
 		} else if stage != 0 {
 			minplace := 10
 			for i := 0; i < 24; i++ {
-				if multff[i] && placsw[i] + 2 < minplace {
+				if multff[i] && placsw[i]+2 < minplace {
 					minplace = placsw[i] + 2
 				}
 			}
-			if stage == minplace + 1 {
+			if stage == minplace+1 {
 				if ier[0] == 'M' {
 					handshake(1, DS, resp1)
 				}
@@ -373,7 +372,7 @@ func multpulse(c Pulse, resp1, resp2, resp3, resp4 chan int) {
 				stage++
 			}
 		}
-	case c.Val & Ccg != 0 && stage == 13:
+	case c.Val&Ccg != 0 && stage == 13:
 		which := -1
 		for i, f := range multff {
 			if f {
@@ -387,7 +386,7 @@ func multpulse(c Pulse, resp1, resp2, resp3, resp4 chan int) {
 		if icandcl[which] == 1 {
 			accclear(9)
 		}
-	case c.Val & Onep != 0 && stage == 1:
+	case c.Val&Onep != 0 && stage == 1:
 		Multl = true
 		Multr = true
 		sigfig = -1
@@ -397,17 +396,17 @@ func multpulse(c Pulse, resp1, resp2, resp3, resp4 chan int) {
 			}
 		}
 		if sigfig == 0 && lhppII != nil {
-			handshake(1 << 10, lhppII, resp1)
+			handshake(1<<10, lhppII, resp1)
 		} else if sigfig > 0 && sigfig < 9 && lhppI != nil {
-			handshake(1 << uint(sigfig - 1), lhppI, resp1)
+			handshake(1<<uint(sigfig-1), lhppI, resp1)
 		}
-	case c.Val & Fourp != 0 && stage == 1:
+	case c.Val&Fourp != 0 && stage == 1:
 		if sigfig == 0 && lhppII != nil {
-			handshake(1 << 10, lhppII, resp1)
+			handshake(1<<10, lhppII, resp1)
 		} else if sigfig > 0 && sigfig < 9 && lhppI != nil {
-			handshake(1 << uint(sigfig - 1), lhppI, resp1)
+			handshake(1<<uint(sigfig-1), lhppI, resp1)
 		}
-	case c.Val & Onep != 0 && stage >= 2 && stage < 12:
+	case c.Val&Onep != 0 && stage >= 2 && stage < 12:
 		ier = accstat(8)[4:]
 		icand = accstat(9)[4:]
 		lhpp := 0
@@ -416,66 +415,66 @@ func multpulse(c Pulse, resp1, resp2, resp3, resp4 chan int) {
 			ps10 := table10[ier[stage]-'0'][icand[i+2]-'0']
 			ps1 := table1[ier[stage]-'0'][icand[i+2]-'0']
 			if ps10.one == 1 {
-				lhpp |= 1 << uint(9 - i)
+				lhpp |= 1 << uint(9-i)
 			}
 			if ps1.one == 1 {
-				rhpp |= 1 << uint(9 - i)
+				rhpp |= 1 << uint(9-i)
 			}
 		}
 		shiftprod(lhpp, rhpp, resp1, resp2, resp3, resp4)
-	case c.Val & Twop != 0 && stage >= 2 && stage < 12:
+	case c.Val&Twop != 0 && stage >= 2 && stage < 12:
 		lhpp := 0
 		rhpp := 0
 		for i := 0; i < 10; i++ {
 			ps10 := table10[ier[stage]-'0'][icand[i+2]-'0']
 			ps1 := table1[ier[stage]-'0'][icand[i+2]-'0']
 			if ps10.two == 1 {
-				lhpp |= 1 << uint(9 - i)
+				lhpp |= 1 << uint(9-i)
 			}
 			if ps1.two == 1 {
-				rhpp |= 1 << uint(9 - i)
+				rhpp |= 1 << uint(9-i)
 			}
 		}
 		shiftprod(lhpp, rhpp, resp1, resp2, resp3, resp4)
-	case c.Val & Twopp != 0 && stage >= 2 && stage < 12:
+	case c.Val&Twopp != 0 && stage >= 2 && stage < 12:
 		lhpp := 0
 		rhpp := 0
 		for i := 0; i < 10; i++ {
 			ps10 := table10[ier[stage]-'0'][icand[i+2]-'0']
 			ps1 := table1[ier[stage]-'0'][icand[i+2]-'0']
 			if ps10.twop == 1 {
-				lhpp |= 1 << uint(9 - i)
+				lhpp |= 1 << uint(9-i)
 			}
 			if ps1.twop == 1 {
-				rhpp |= 1 << uint(9 - i)
+				rhpp |= 1 << uint(9-i)
 			}
 		}
 		shiftprod(lhpp, rhpp, resp1, resp2, resp3, resp4)
-	case c.Val & Fourp != 0 && stage >= 2 && stage < 12:
+	case c.Val&Fourp != 0 && stage >= 2 && stage < 12:
 		lhpp := 0
 		rhpp := 0
 		for i := 0; i < 10; i++ {
 			ps10 := table10[ier[stage]-'0'][icand[i+2]-'0']
 			ps1 := table1[ier[stage]-'0'][icand[i+2]-'0']
 			if ps10.four == 1 {
-				lhpp |= 1 << uint(9 - i)
+				lhpp |= 1 << uint(9-i)
 			}
 			if ps1.four == 1 {
-				rhpp |= 1 << uint(9 - i)
+				rhpp |= 1 << uint(9-i)
 			}
 		}
 		shiftprod(lhpp, rhpp, resp1, resp2, resp3, resp4)
-	case c.Val & Onepp != 0 && stage >= 2 && stage < 12:
+	case c.Val&Onepp != 0 && stage >= 2 && stage < 12:
 		minplace := 10
 		for i := 0; i < 24; i++ {
-			if multff[i] && placsw[i] + 2 < minplace {
+			if multff[i] && placsw[i]+2 < minplace {
 				minplace = placsw[i] + 2
 			}
 		}
-		if stage == minplace + 1 && ier[0] == 'M' && icand[0] == 'M' {
-			handshake(1 << 10, rhppI, resp1)
+		if stage == minplace+1 && ier[0] == 'M' && icand[0] == 'M' {
+			handshake(1<<10, rhppI, resp1)
 		}
-	case c.Val & Rp != 0 && buffer61:
+	case c.Val&Rp != 0 && buffer61:
 		buffer61 = false
 		f44 = true
 	}
@@ -486,9 +485,9 @@ func makemultpulse() ClockFunc {
 	resp2 := make(chan int)
 	resp3 := make(chan int)
 	resp4 := make(chan int)
-  return func(p Pulse) {
-    multpulse(p, resp1, resp2, resp3, resp4)
-  }
+	return func(p Pulse) {
+		multpulse(p, resp1, resp2, resp3, resp4)
+	}
 }
 
 func multunit() {
@@ -502,54 +501,54 @@ func multunit2() {
 	for {
 		p.Resp = nil
 		select {
-		case <- multupdate:
-		case p =<- multin[0]:
+		case <-multupdate:
+		case p = <-multin[0]:
 			multargs(0)
-		case p =<- multin[1]:
+		case p = <-multin[1]:
 			multargs(1)
-		case p =<- multin[2]:
+		case p = <-multin[2]:
 			multargs(2)
-		case p =<- multin[3]:
+		case p = <-multin[3]:
 			multargs(3)
-		case p =<- multin[4]:
+		case p = <-multin[4]:
 			multargs(4)
-		case p =<- multin[5]:
+		case p = <-multin[5]:
 			multargs(5)
-		case p =<- multin[6]:
+		case p = <-multin[6]:
 			multargs(6)
-		case p =<- multin[7]:
+		case p = <-multin[7]:
 			multargs(7)
-		case p =<- multin[8]:
+		case p = <-multin[8]:
 			multargs(8)
-		case p =<- multin[9]:
+		case p = <-multin[9]:
 			multargs(9)
-		case p =<- multin[10]:
+		case p = <-multin[10]:
 			multargs(10)
-		case p =<- multin[11]:
+		case p = <-multin[11]:
 			multargs(11)
-		case p =<- multin[12]:
+		case p = <-multin[12]:
 			multargs(12)
-		case p =<- multin[13]:
+		case p = <-multin[13]:
 			multargs(13)
-		case p =<- multin[14]:
+		case p = <-multin[14]:
 			multargs(14)
-		case p =<- multin[15]:
+		case p = <-multin[15]:
 			multargs(15)
-		case p =<- multin[16]:
+		case p = <-multin[16]:
 			multargs(16)
-		case p =<- multin[17]:
+		case p = <-multin[17]:
 			multargs(17)
-		case p =<- multin[18]:
+		case p = <-multin[18]:
 			multargs(18)
-		case p =<- multin[19]:
+		case p = <-multin[19]:
 			multargs(19)
-		case p =<- multin[20]:
+		case p = <-multin[20]:
 			multargs(20)
-		case p =<- multin[21]:
+		case p = <-multin[21]:
 			multargs(21)
-		case p =<- multin[22]:
+		case p = <-multin[22]:
 			multargs(22)
-		case p =<- multin[23]:
+		case p = <-multin[23]:
 			multargs(23)
 		}
 		if p.Resp != nil {

@@ -9,19 +9,19 @@ import (
 )
 
 var step [10]struct {
-	stage int
+	stage      int
 	di, i, cdi chan Pulse
-	o [6]chan Pulse
-	csw int
-	inff int
-	kludge bool
+	o          [6]chan Pulse
+	csw        int
+	inff       int
+	kludge     bool
 }
 
 var dec [20]struct {
-	di chan Pulse
-	val int
+	di    chan Pulse
+	val   int
 	carry bool
-	lim [6]int
+	lim   [6]int
 }
 
 var assoc [8]int
@@ -91,7 +91,7 @@ func mpplug(jack string, ch chan Pulse) {
 		dec[20-n].di = ch
 	} else {
 		prog := int(jack[0] - 'A')
-		if prog > 7 {		// Correct for the lack of program I
+		if prog > 7 { // Correct for the lack of program I
 			prog--
 		}
 		switch jack[1:] {
@@ -117,7 +117,7 @@ func mpctl(ch chan [2]string) {
 	var d, s int
 
 	for {
-		ctl :=<- ch
+		ctl := <-ch
 		switch ctl[0][0] {
 		case 'a', 'A':
 			switch ctl[0] {
@@ -173,7 +173,7 @@ func mpctl(ch chan [2]string) {
 				fmt.Printf("Invalid MP associator switch %s\n", ctl[0])
 				break
 			}
-			
+
 		case 'd', 'D':
 			fmt.Sscanf(ctl[0], "d%ds%d", &d, &s)
 			n, _ := strconv.Atoi(ctl[1])
@@ -536,7 +536,7 @@ func incdecset(st int) {
 
 func mppulse(p Pulse, resp chan int) {
 	cyc := p.Val
-	if cyc & Cpp != 0 {
+	if cyc&Cpp != 0 {
 		for i, s := range step {
 			if cycgate(i) {
 				clrdecset(i)
@@ -548,11 +548,11 @@ func mppulse(p Pulse, resp chan int) {
 				step[i].inff = 0
 				if s.o[s.stage] != nil {
 					s.o[s.stage] <- Pulse{1, resp}
-					<- resp
+					<-resp
 				}
 			}
 		}
-	} else if cyc & Tenp != 0 {
+	} else if cyc&Tenp != 0 {
 		for i := 0; i < len(step); i++ {
 			step[i].kludge = false
 		}
@@ -567,10 +567,10 @@ func mppulse(p Pulse, resp chan int) {
 }
 
 func makemppulse() ClockFunc {
-  resp := make(chan int)
-  return func(p Pulse) {
-    mppulse(p, resp)
-  }
+	resp := make(chan int)
+	return func(p Pulse) {
+		mppulse(p, resp)
+	}
 }
 
 func mpunit() {
@@ -583,253 +583,253 @@ func mpunit2() {
 
 	for {
 		select {
-		case <- mpupdate:
-		case p =<- dec[0].di:
+		case <-mpupdate:
+		case p = <-dec[0].di:
 			incdec(0)
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- dec[1].di:
+		case p = <-dec[1].di:
 			incdec(1)
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- dec[2].di:
+		case p = <-dec[2].di:
 			incdec(2)
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- dec[3].di:
+		case p = <-dec[3].di:
 			incdec(3)
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- dec[4].di:
+		case p = <-dec[4].di:
 			incdec(4)
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- dec[5].di:
+		case p = <-dec[5].di:
 			incdec(5)
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- dec[6].di:
+		case p = <-dec[6].di:
 			incdec(6)
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- dec[7].di:
+		case p = <-dec[7].di:
 			incdec(7)
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- dec[8].di:
+		case p = <-dec[8].di:
 			incdec(8)
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- dec[9].di:
+		case p = <-dec[9].di:
 			incdec(9)
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- dec[10].di:
+		case p = <-dec[10].di:
 			incdec(10)
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- dec[11].di:
+		case p = <-dec[11].di:
 			incdec(11)
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- dec[12].di:
+		case p = <-dec[12].di:
 			incdec(12)
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- dec[13].di:
+		case p = <-dec[13].di:
 			incdec(13)
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- dec[14].di:
+		case p = <-dec[14].di:
 			incdec(14)
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- dec[15].di:
+		case p = <-dec[15].di:
 			incdec(15)
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- dec[16].di:
+		case p = <-dec[16].di:
 			incdec(16)
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- dec[17].di:
+		case p = <-dec[17].di:
 			incdec(17)
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- dec[18].di:
+		case p = <-dec[18].di:
 			incdec(18)
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- dec[19].di:
+		case p = <-dec[19].di:
 			incdec(19)
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- step[0].di:
+		case p = <-step[0].di:
 			incstep(0)
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- step[0].i:
+		case p = <-step[0].i:
 			step[0].inff = 1
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- step[0].cdi:
+		case p = <-step[0].cdi:
 			step[0].stage = 0
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- step[1].di:
+		case p = <-step[1].di:
 			incstep(1)
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- step[1].i:
+		case p = <-step[1].i:
 			step[1].inff = 1
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- step[1].cdi:
+		case p = <-step[1].cdi:
 			step[1].stage = 0
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- step[2].di:
+		case p = <-step[2].di:
 			incstep(2)
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- step[2].i:
+		case p = <-step[2].i:
 			step[2].inff = 1
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- step[2].cdi:
+		case p = <-step[2].cdi:
 			step[2].stage = 0
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- step[3].di:
+		case p = <-step[3].di:
 			incstep(3)
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- step[3].i:
+		case p = <-step[3].i:
 			step[3].inff = 1
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- step[3].cdi:
+		case p = <-step[3].cdi:
 			step[3].stage = 0
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- step[4].di:
+		case p = <-step[4].di:
 			incstep(4)
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- step[4].i:
+		case p = <-step[4].i:
 			step[4].inff = 1
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- step[4].cdi:
+		case p = <-step[4].cdi:
 			step[4].stage = 0
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- step[5].di:
+		case p = <-step[5].di:
 			incstep(5)
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- step[5].i:
+		case p = <-step[5].i:
 			step[5].inff = 1
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- step[5].cdi:
+		case p = <-step[5].cdi:
 			step[5].stage = 0
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- step[6].di:
+		case p = <-step[6].di:
 			incstep(6)
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- step[6].i:
+		case p = <-step[6].i:
 			step[6].inff = 1
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- step[6].cdi:
+		case p = <-step[6].cdi:
 			step[6].stage = 0
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- step[7].di:
+		case p = <-step[7].di:
 			incstep(7)
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- step[7].i:
+		case p = <-step[7].i:
 			step[7].inff = 1
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- step[7].cdi:
+		case p = <-step[7].cdi:
 			step[7].stage = 0
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- step[8].di:
+		case p = <-step[8].di:
 			incstep(8)
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- step[8].i:
+		case p = <-step[8].i:
 			step[8].inff = 1
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- step[8].cdi:
+		case p = <-step[8].cdi:
 			step[8].stage = 0
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- step[9].di:
+		case p = <-step[9].di:
 			incstep(9)
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- step[9].i:
+		case p = <-step[9].i:
 			step[9].inff = 1
 			if p.Resp != nil {
 				p.Resp <- 1
 			}
-		case p =<- step[9].cdi:
+		case p = <-step[9].cdi:
 			step[9].stage = 0
 			if p.Resp != nil {
 				p.Resp <- 1
@@ -837,4 +837,3 @@ func mpunit2() {
 		}
 	}
 }
-

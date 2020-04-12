@@ -12,7 +12,7 @@ var prtsw = [32]int{0, 1, 0, 1, 0, 0, 1, 0,
 var blank = "     "
 
 func prreset() {
-	for i := 0; i < 32; i++  {
+	for i := 0; i < 32; i++ {
 		prtsw[i] = 0
 	}
 	prtsw[1] = 1
@@ -30,7 +30,7 @@ func doprint() (s string) {
 
 	raw[0] = mpstat()
 	for i := 1; i < 9; i++ {
-		raw[i] = accstat(i+11)
+		raw[i] = accstat(i + 11)
 	}
 	p1 := raw[0][17:22]
 	sgn[0] = 'P'
@@ -56,7 +56,7 @@ func doprint() (s string) {
 			comb = 24
 		}
 		if prtsw[comb] == 0 || fld == 15 {
-			ed = 	(fld + 1) * 5
+			ed = (fld + 1) * 5
 			if sgn[fld] == 'P' {
 				p2 += p1[st:ed]
 			} else {
@@ -71,7 +71,7 @@ func doprint() (s string) {
 		if prtsw[fld+8] == 0 {
 			s += blank
 		} else {
-			s += p2[5*fld:5*(fld+1)]
+			s += p2[5*fld : 5*(fld+1)]
 		}
 	}
 	return
@@ -81,11 +81,12 @@ func sm2tenc(s string) string {
 	var nz int
 
 	l := len(s)
-	for nz = l - 1; nz >= 0 && s[nz] == '0'; nz-- { }
-	if nz < 0 {		// negative 0 is still 0
+	for nz = l - 1; nz >= 0 && s[nz] == '0'; nz-- {
+	}
+	if nz < 0 { // negative 0 is still 0
 		return s
-	} else if nz == 0 {	// special case for 10's comp and 11-punch
-		return string('9' + 1 - s[0] - 1 + 'J') + s[1:]
+	} else if nz == 0 { // special case for 10's comp and 11-punch
+		return string('9'+1-s[0]-1+'J') + s[1:]
 	} else {
 		sc := string('9' - s[0] - 1 + 'J')
 		if sc == "I" {
@@ -102,7 +103,7 @@ func sm2tenc(s string) string {
 
 func prctl(ch chan [2]string) {
 	for {
-		ctl :=<- ch
+		ctl := <-ch
 		n := strings.IndexRune(ctl[0], '-')
 		if n == -1 {
 			sw, _ := strconv.Atoi(ctl[0])
@@ -125,4 +126,3 @@ func prctl(ch chan [2]string) {
 		}
 	}
 }
-
