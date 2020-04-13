@@ -1,4 +1,4 @@
-package main
+package units
 
 import (
 	"fmt"
@@ -45,7 +45,7 @@ var divsr struct {
 	sv, su2, su3                                                               int
 }
 
-func divsrstat() string {
+func Divsrstat() string {
 	s := fmt.Sprintf("%d %d ", divsr.placering, divsr.progring)
 	for i := 0; i < 8; i++ {
 		if divsr.progff[i] {
@@ -54,17 +54,17 @@ func divsrstat() string {
 			s += "0"
 		}
 	}
-	s += " " + b2is(divsr.divff) + b2is(divsr.clrff) + b2is(divsr.coinff) + b2is(divsr.dpγ) +
-		b2is(divsr.nγ) + b2is(divsr.psrcff) + b2is(divsr.pringff) + b2is(divsr.denomff) +
-		b2is(divsr.numrplus) + b2is(divsr.numrmin) + b2is(divsr.qα) + b2is(divsr.sac) +
-		b2is(divsr.m2) + b2is(divsr.m1) + b2is(divsr.nac) + b2is(divsr.da) + b2is(divsr.nα) +
-		b2is(divsr.dα) + b2is(divsr.dγ) + b2is(divsr.npγ) + b2is(divsr.p2) + b2is(divsr.p1) +
-		b2is(divsr.sα) + b2is(divsr.ds) + b2is(divsr.nβ) + b2is(divsr.dβ) + b2is(divsr.ans1) +
-		b2is(divsr.ans2) + b2is(divsr.ans3) + b2is(divsr.ans4)
+	s += " " + ToBin(divsr.divff) + ToBin(divsr.clrff) + ToBin(divsr.coinff) + ToBin(divsr.dpγ) +
+		ToBin(divsr.nγ) + ToBin(divsr.psrcff) + ToBin(divsr.pringff) + ToBin(divsr.denomff) +
+		ToBin(divsr.numrplus) + ToBin(divsr.numrmin) + ToBin(divsr.qα) + ToBin(divsr.sac) +
+		ToBin(divsr.m2) + ToBin(divsr.m1) + ToBin(divsr.nac) + ToBin(divsr.da) + ToBin(divsr.nα) +
+		ToBin(divsr.dα) + ToBin(divsr.dγ) + ToBin(divsr.npγ) + ToBin(divsr.p2) + ToBin(divsr.p1) +
+		ToBin(divsr.sα) + ToBin(divsr.ds) + ToBin(divsr.nβ) + ToBin(divsr.dβ) + ToBin(divsr.ans1) +
+		ToBin(divsr.ans2) + ToBin(divsr.ans3) + ToBin(divsr.ans4)
 	return s
 }
 
-func divsrstat2() string {
+func Divsrstat2() string {
 	s := fmt.Sprintf("%d %d ", divsr.placering, divsr.progring)
 	for i := 0; i < 8; i++ {
 		if divsr.progff[i] {
@@ -163,7 +163,7 @@ func divsrstat2() string {
 	return s
 }
 
-func divreset() {
+func Divreset() {
 	for i := 0; i < 8; i++ {
 		divsr.progin[i] = nil
 		divsr.progout[i] = nil
@@ -230,7 +230,7 @@ func divintclear() {
 	divsr.dβ = false
 }
 
-func divsrplug(jack string, ch chan Pulse) {
+func Divsrplug(jack string, ch chan Pulse) {
 	var prog int
 	var ilk rune
 
@@ -250,7 +250,7 @@ func divsrplug(jack string, ch chan Pulse) {
 	divsr.divupdate <- 1
 }
 
-func divsrctl(ch chan [2]string) {
+func Divsrctl(ch chan [2]string) {
 	for {
 		ctl := <-ch
 		sw, _ := strconv.Atoi(ctl[0][2:])
@@ -392,7 +392,7 @@ func samesign() bool {
 }
 
 func overflow() bool {
-	s := accstat(2)[4:]
+	s := Accstat(2)[4:]
 	return s[0] == 'P' && divsr.numrmin || s[0] == 'M' && divsr.numrplus
 }
 
@@ -405,7 +405,7 @@ func doGP(resp chan int) {
 		}
 	} else if divsr.clrff {
 		divsr.progff[divsr.curprog] = false
-		handshake(1, divsr.progout[divsr.curprog], resp)
+		Handshake(1, divsr.progout[divsr.curprog], resp)
 		if divsr.ilocksw[divsr.curprog] == 1 {
 			divsr.ilockff = false
 		}
@@ -536,11 +536,11 @@ func doGP(resp chan int) {
 			divsr.progring++
 		}
 	case 1: // Gate D6
-		s := accstat(2)[4:]
+		s := Accstat(2)[4:]
 		if s[0] == 'M' {
 			divsr.numrplus, divsr.numrmin = divsr.numrmin, divsr.numrplus
 		}
-		s = accstat(4)[4:]
+		s = Accstat(4)[4:]
 		if s[0] == 'M' {
 			divsr.denomff = true
 		}
@@ -672,21 +672,21 @@ func divpulse(p Pulse, resp chan int) {
 		}
 	case p.Val&Onep != 0 && divsr.p1 || p.Val&Twop != 0 && divsr.p2:
 		if divsr.placering < 9 {
-			handshake(1<<uint(8-divsr.placering), divsr.answer, resp)
+			Handshake(1<<uint(8-divsr.placering), divsr.answer, resp)
 		}
 	case p.Val&Onep != 0 && divsr.m2 || p.Val&Twopp != 0 && divsr.m1:
-		handshake(0x7ff, divsr.answer, resp)
+		Handshake(0x7ff, divsr.answer, resp)
 	case p.Val&Onep != 0 && divsr.m1 || p.Val&Twopp != 0 && divsr.m2:
 		if divsr.placering < 9 {
-			handshake(0x7ff^(1<<uint(8-divsr.placering)), divsr.answer, resp)
+			Handshake(0x7ff^(1<<uint(8-divsr.placering)), divsr.answer, resp)
 		} else {
-			handshake(0x7ff, divsr.answer, resp)
+			Handshake(0x7ff, divsr.answer, resp)
 		}
 	case (p.Val&Fourp != 0 || p.Val&Twop != 0) && (divsr.m1 || divsr.m2):
-		handshake(0x7ff, divsr.answer, resp)
+		Handshake(0x7ff, divsr.answer, resp)
 	case p.Val&Onepp != 0:
 		if divsr.m1 || divsr.m2 {
-			handshake(1, divsr.answer, resp)
+			Handshake(1, divsr.answer, resp)
 		}
 		if divsr.psrcff == false && divsr.sα { // Gate L45
 			divsr.placering++
@@ -694,14 +694,14 @@ func divpulse(p Pulse, resp chan int) {
 	}
 }
 
-func makedivpulse() ClockFunc {
+func Makedivpulse() ClockFunc {
 	resp := make(chan int)
 	return func(p Pulse) {
 		divpulse(p, resp)
 	}
 }
 
-func divunit() {
+func Divunit() {
 	divsr.divupdate = make(chan int)
 	go divunit2()
 	divintclear()

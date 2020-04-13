@@ -1,4 +1,4 @@
-package main
+package units
 
 import (
 	"fmt"
@@ -21,15 +21,15 @@ var conspin [30]chan Pulse
 var consinff1, consinff2 [30]bool
 var conspout [30]chan Pulse
 
-func consstat() string {
+func Consstat() string {
 	s := ""
 	for _, f := range consinff2 {
-		s += b2is(f)
+		s += ToBin(f)
 	}
 	return s
 }
 
-func consreset() {
+func Consreset() {
 	for i := 0; i < 30; i++ {
 		consel[i] = 0
 		conspin[i] = nil
@@ -56,7 +56,7 @@ func consreset() {
 	consupdate <- 1
 }
 
-func consplug(jack string, ch chan Pulse) {
+func Consplug(jack string, ch chan Pulse) {
 	var prog int
 	var ilk rune
 
@@ -81,7 +81,7 @@ func pm2int(ch string) byte {
 	}
 }
 
-func consctl(ch chan [2]string) {
+func Consctl(ch chan [2]string) {
 	var n int
 
 	selector := map[string]int{"l": 0, "r": 1, "lr": 2}
@@ -322,7 +322,7 @@ func conspulse(p Pulse, resp chan int) {
 	}
 	if sending > -1 {
 		if cyc&Cpp != 0 {
-			handshake(1, conspout[sending], resp)
+			Handshake(1, conspout[sending], resp)
 			consinff2[sending] = false
 			sending = -1
 		} else if cyc&Ninep != 0 {
@@ -336,22 +336,22 @@ func conspulse(p Pulse, resp chan int) {
 				n |= 1 << 10
 			}
 			if n != 0 {
-				handshake(n, consout, resp)
+				Handshake(n, consout, resp)
 			}
 		} else if cyc&Onepp != 0 && pos1pp >= 0 && sign == 1 {
-			handshake(1<<uint(pos1pp), consout, resp)
+			Handshake(1<<uint(pos1pp), consout, resp)
 		}
 	}
 }
 
-func makeconspulse() ClockFunc {
+func Makeconspulse() ClockFunc {
 	resp := make(chan int)
 	return func(p Pulse) {
 		conspulse(p, resp)
 	}
 }
 
-func consunit() {
+func Consunit() {
 	consupdate = make(chan int)
 	go consunit2()
 }

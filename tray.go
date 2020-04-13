@@ -37,13 +37,6 @@ func trayreset() {
 	}
 }
 
-func handshake(val int, ch chan Pulse, resp chan int) {
-	if ch != nil {
-		ch <- Pulse{val, resp}
-		<-resp
-	}
-}
-
 func dotrunk(t *trunk) {
 	var x, p Pulse
 

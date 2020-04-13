@@ -1,4 +1,4 @@
-package main
+package units
 
 import (
 	"strconv"
@@ -11,7 +11,7 @@ var prtsw = [32]int{0, 1, 0, 1, 0, 0, 1, 0,
 
 var blank = "     "
 
-func prreset() {
+func Prreset() {
 	for i := 0; i < 32; i++ {
 		prtsw[i] = 0
 	}
@@ -28,9 +28,9 @@ func doprint() (s string) {
 	var raw [9]string
 	var sgn [16]byte
 
-	raw[0] = mpstat()
+	raw[0] = Mpstat()
 	for i := 1; i < 9; i++ {
-		raw[i] = accstat(i + 11)
+		raw[i] = Accstat(i + 11)
 	}
 	p1 := raw[0][17:22]
 	sgn[0] = 'P'
@@ -101,7 +101,7 @@ func sm2tenc(s string) string {
 	}
 }
 
-func prctl(ch chan [2]string) {
+func Prctl(ch chan [2]string) {
 	for {
 		ctl := <-ch
 		n := strings.IndexRune(ctl[0], '-')

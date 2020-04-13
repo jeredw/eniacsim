@@ -41,7 +41,7 @@ func dobp(b *bp) {
 		}
 		if p.Val != 0 {
 			fmt.Printf("triggered bp%d %s\n", b.n, b.what)
-			cycleStop <- 1
+			cycle.Io.Stop <- 1
 		}
 		if p.Resp != nil {
 			p.Resp <- 1

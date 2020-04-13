@@ -1,10 +1,9 @@
-package main
+package units
 
 import (
 	"fmt"
-	"strconv"
-
 	. "github.com/jeredw/eniacsim/lib"
+	"strconv"
 )
 
 /*
@@ -75,7 +74,7 @@ type accumulator struct {
 
 var units [20]accumulator
 
-func accstat(unit int) string {
+func Accstat(unit int) string {
 	var s string
 
 	// NB used by doprint()
@@ -90,16 +89,16 @@ func accstat(unit int) string {
 	}
 	s += " "
 	for i := 9; i >= 0; i-- {
-		s += b2is(units[unit].decff[i])
+		s += ToBin(units[unit].decff[i])
 	}
 	s += fmt.Sprintf(" %d ", units[unit].rep)
 	for _, f := range units[unit].inff1 {
-		s += b2is(f)
+		s += ToBin(f)
 	}
 	return s
 }
 
-func accreset(unit int) {
+func Accreset(unit int) {
 	u := &units[unit]
 	u.α = nil
 	u.β = nil
@@ -138,7 +137,7 @@ func accclear(acc int) {
 	units[acc].sign = false
 }
 
-func accset(acc int, value int64) {
+func Accset(acc int, value int64) {
 	units[acc].sign = value < 0
 	if value < 0 {
 		value = -value
@@ -150,7 +149,7 @@ func accset(acc int, value int64) {
 	}
 }
 
-func accinterconnect(p1 []string, p2 []string) {
+func Accinterconnect(p1 []string, p2 []string) {
 	unit1, _ := strconv.Atoi(p1[0][1:])
 	unit2 := -1
 	if len(p2) > 1 && p2[0][0] == 'a' {
@@ -196,7 +195,7 @@ func accinterconnect(p1 []string, p2 []string) {
 	}
 }
 
-func accplug(unit int, jack string, ch chan Pulse) {
+func Accplug(unit int, jack string, ch chan Pulse) {
 	jacks := [20]string{"1i", "2i", "3i", "4i", "5i", "5o", "6i", "6o", "7i", "7o",
 		"8i", "8o", "9i", "9o", "10i", "10o", "11i", "11o", "12i", "12o"}
 
@@ -220,7 +219,7 @@ func accplug(unit int, jack string, ch chan Pulse) {
 		foundjack := false
 		for i, j := range jacks {
 			if j == jack {
-				units[unit].ctlterm[i] = tee(units[unit].ctlterm[i], ch)
+				units[unit].ctlterm[i] = Tee(units[unit].ctlterm[i], ch)
 				foundjack = true
 				break
 			}
@@ -232,7 +231,7 @@ func accplug(unit int, jack string, ch chan Pulse) {
 	units[unit].change <- 1
 }
 
-func accctl(unit int, ch chan [2]string) {
+func Accctl(unit int, ch chan [2]string) {
 	units[unit].lbuddy = unit
 	units[unit].rbuddy = unit
 	for {
@@ -610,7 +609,7 @@ func accpulse(u *accumulator, unit int, resp chan int, p Pulse) {
 	}
 }
 
-func accunit(unit int) {
+func Accunit(unit int) {
 	u := &units[unit]
 	u.change = make(chan int)
 	u.sigfig = 10
@@ -619,7 +618,7 @@ func accunit(unit int) {
 	go accunit2(unit)
 }
 
-func makeaccpulse(unit int) ClockFunc {
+func Makeaccpulse(unit int) ClockFunc {
 	u := &units[unit]
 	resp := make(chan int)
 	return func(p Pulse) {

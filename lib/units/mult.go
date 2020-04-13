@@ -1,4 +1,4 @@
-package main
+package units
 
 import (
 	"fmt"
@@ -66,7 +66,7 @@ var table1 [10][10]pulseset = [10][10]pulseset{{},
 		{1, 0, 0, 1}, {0, 1, 1, 0}, {1, 0, 1, 0}, {0, 1, 0, 0}, {1, 0, 0, 0}},
 }
 
-func multstat() string {
+func Multstat() string {
 	s := fmt.Sprintf("%d ", stage)
 	for i, _ := range multff {
 		if multff[i] {
@@ -88,7 +88,7 @@ func multstat() string {
 	return s
 }
 
-func multreset() {
+func Multreset() {
 	for i := 0; i < 24; i++ {
 		multin[i] = nil
 		multout[i] = nil
@@ -131,7 +131,7 @@ func multreset() {
 func multclear() {
 }
 
-func multplug(jack string, ch chan Pulse) {
+func Multplug(jack string, ch chan Pulse) {
 	switch {
 	case jack == "Rα", jack == "Ra", jack == "rα", jack == "ra":
 		R[0] = ch
@@ -213,7 +213,7 @@ func recv2val(recv string) int {
 	return 5
 }
 
-func multctl(ch chan [2]string) {
+func Multctl(ch chan [2]string) {
 	products := [7]string{"A", "S", "AS", "0", "AC", "SC", "ASC"}
 	for {
 		ctl := <-ch
@@ -320,7 +320,7 @@ func multpulse(c Pulse, resp1, resp2, resp3, resp4 chan int) {
 		} else if stage == 12 {
 			reset1ff = true
 			reset3ff = true
-			handshake(1, F, resp1)
+			Handshake(1, F, resp1)
 			stage++
 		} else if stage == 13 {
 			which := -1
@@ -331,21 +331,21 @@ func multpulse(c Pulse, resp1, resp2, resp3, resp4 chan int) {
 				}
 			}
 			if which != -1 {
-				handshake(1, multout[which], resp1)
+				Handshake(1, multout[which], resp1)
 				multff[which] = false
 				switch prodsw[which] {
 				case 0:
-					handshake(1, A, resp1)
+					Handshake(1, A, resp1)
 				case 1:
-					handshake(1, S, resp1)
+					Handshake(1, S, resp1)
 				case 2:
-					handshake(1, AS, resp1)
+					Handshake(1, AS, resp1)
 				case 4:
-					handshake(1, AC, resp1)
+					Handshake(1, AC, resp1)
 				case 5:
-					handshake(1, SC, resp1)
+					Handshake(1, SC, resp1)
 				case 6:
-					handshake(1, ASC, resp1)
+					Handshake(1, ASC, resp1)
 				}
 			}
 			reset1ff = false
@@ -360,10 +360,10 @@ func multpulse(c Pulse, resp1, resp2, resp3, resp4 chan int) {
 			}
 			if stage == minplace+1 {
 				if ier[0] == 'M' {
-					handshake(1, DS, resp1)
+					Handshake(1, DS, resp1)
 				}
 				if icand[0] == 'M' {
-					handshake(1, RS, resp1)
+					Handshake(1, RS, resp1)
 				}
 				Multl = false
 				Multr = false
@@ -396,19 +396,19 @@ func multpulse(c Pulse, resp1, resp2, resp3, resp4 chan int) {
 			}
 		}
 		if sigfig == 0 && lhppII != nil {
-			handshake(1<<10, lhppII, resp1)
+			Handshake(1<<10, lhppII, resp1)
 		} else if sigfig > 0 && sigfig < 9 && lhppI != nil {
-			handshake(1<<uint(sigfig-1), lhppI, resp1)
+			Handshake(1<<uint(sigfig-1), lhppI, resp1)
 		}
 	case c.Val&Fourp != 0 && stage == 1:
 		if sigfig == 0 && lhppII != nil {
-			handshake(1<<10, lhppII, resp1)
+			Handshake(1<<10, lhppII, resp1)
 		} else if sigfig > 0 && sigfig < 9 && lhppI != nil {
-			handshake(1<<uint(sigfig-1), lhppI, resp1)
+			Handshake(1<<uint(sigfig-1), lhppI, resp1)
 		}
 	case c.Val&Onep != 0 && stage >= 2 && stage < 12:
-		ier = accstat(8)[4:]
-		icand = accstat(9)[4:]
+		ier = Accstat(8)[4:]
+		icand = Accstat(9)[4:]
 		lhpp := 0
 		rhpp := 0
 		for i := 0; i < 10; i++ {
@@ -472,7 +472,7 @@ func multpulse(c Pulse, resp1, resp2, resp3, resp4 chan int) {
 			}
 		}
 		if stage == minplace+1 && ier[0] == 'M' && icand[0] == 'M' {
-			handshake(1<<10, rhppI, resp1)
+			Handshake(1<<10, rhppI, resp1)
 		}
 	case c.Val&Rp != 0 && buffer61:
 		buffer61 = false
@@ -480,7 +480,7 @@ func multpulse(c Pulse, resp1, resp2, resp3, resp4 chan int) {
 	}
 }
 
-func makemultpulse() ClockFunc {
+func Makemultpulse() ClockFunc {
 	resp1 := make(chan int)
 	resp2 := make(chan int)
 	resp3 := make(chan int)
@@ -490,7 +490,7 @@ func makemultpulse() ClockFunc {
 	}
 }
 
-func multunit() {
+func Multunit() {
 	multupdate = make(chan int)
 	go multunit2()
 }

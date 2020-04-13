@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"github.com/jeredw/eniacsim/lib/units"
 	"io"
 	"os"
 	"os/exec"
@@ -11,8 +12,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/jeredw/eniacsim/lib/cycle"
 )
 
 type gstat struct {
@@ -127,11 +126,11 @@ func guicmd(sc *bufio.Scanner, gpipe io.Writer) {
 			drawfixed(gpipe)
 		} else if len(s) > 2 && s[:2] == "l " {
 			fmt.Fprintln(gpipe, "destroy .mlib")
-			proccmd(s)
+			doCommand(s)
 		} else if s == "update" {
 			guistate.upd <- 1
 		} else {
-			proccmd(s)
+			doCommand(s)
 		}
 	}
 }
@@ -620,7 +619,7 @@ func innergui() {
 		}
 		needupdate = false
 		// Initiating unit
-		s := initstat()
+		s := initiate.Stat()
 		if s != guistate.lastinit {
 			for i, f := range s[:6] {
 				nname = fmt.Sprintf(".initc%d", i+1)
@@ -651,18 +650,18 @@ func innergui() {
 		if lastcmode != cycle.Mode() && !*usecontrol {
 			lastcmode = cycle.Mode()
 			switch lastcmode {
-			case cycle.OnePulse:
+			case units.OnePulse:
 				fmt.Fprintln(gpipe, ".cmode configure -text \"1 Pulse\"")
-			case cycle.OneAdd:
+			case units.OneAdd:
 				fmt.Fprintln(gpipe, ".cmode configure -text \"1 Add\"")
-			case cycle.Continuous:
+			case units.Continuous:
 				fmt.Fprintln(gpipe, ".cmode configure -text \"Cont.\"")
 			}
 			needupdate = true
 		}
 		// Accumulators
 		for i := 1; i <= 20; i++ {
-			s = accstat(i - 1)[4:]
+			s = units.Accstat(i - 1)[4:]
 			if s != guistate.lastacc[i-1] {
 				p := strings.Split(s, " ")
 				if p[0][0] == 'P' {
@@ -697,7 +696,7 @@ func innergui() {
 			}
 		}
 		// Divider/Square Rooter
-		s = divsrstat()
+		s = units.Divsrstat()
 		if s != guistate.lastdiv {
 			p := strings.Split(s, " ")
 			plring, _ := strconv.Atoi(p[0])
@@ -746,7 +745,7 @@ func innergui() {
 			needupdate = true
 		}
 		// Multiplier
-		s = multstat()
+		s = units.Multstat()
 		if s != guistate.lastmult {
 			p := strings.Split(s, " ")
 			stage, _ := strconv.Atoi(p[0])
@@ -767,7 +766,7 @@ func innergui() {
 			needupdate = true
 		}
 		// Master programmer
-		s = mpstat()
+		s = units.Mpstat()
 		if s != guistate.lastmp {
 			for i := 0; i < 10; i++ {
 				d := int(s[i]) - int('0')
@@ -798,7 +797,7 @@ func innergui() {
 		}
 		// Function tables
 		for i := 0; i < 3; i++ {
-			s = ftstat(i)
+			s = units.Ftstat(i)
 			if s != guistate.lastft[i] {
 				p := strings.Split(s, " ")
 				for j, f := range p[0] {
@@ -824,7 +823,7 @@ func innergui() {
 			}
 		}
 		// Constant Transmitter
-		s = consstat()
+		s = units.Consstat()
 		if s != guistate.lastcons {
 			for i, f := range s {
 				row := i / 10
@@ -844,7 +843,7 @@ func innergui() {
 			needupdate = true
 		}
 	}
-	ppunch <- "exit"
+	initiate.Io.Ppunch <- "exit"
 	fmt.Fprintln(gpipe, "exit")
 	gpipe.Close()
 	cpipe.Close()
@@ -969,7 +968,7 @@ func prngui(gpipe io.Writer) {
 		fmt.Fprintf(gpipe, "place .outdeck -x %d -y %d\n", width-570, height-30)
 	}
 	for l := 0; ; l++ {
-		s := <-ppunch
+		s := <-initiate.Io.Ppunch
 		if s == "exit" {
 			return
 		}

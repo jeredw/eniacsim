@@ -1,4 +1,4 @@
-package main
+package units
 
 import (
 	"fmt"
@@ -33,7 +33,7 @@ type ft struct {
 
 var ftable [3]ft
 
-func ftstat(unit int) (s string) {
+func Ftstat(unit int) (s string) {
 	for i := 0; i < 11; i++ {
 		if ftable[unit].inff2[i] {
 			s += "1"
@@ -60,7 +60,7 @@ func ftstat(unit int) (s string) {
 	return
 }
 
-func ftreset(unit int) {
+func Ftreset(unit int) {
 	f := &ftable[unit]
 	for i := 0; i < 27; i++ {
 		f.jack[i] = nil
@@ -98,7 +98,7 @@ func ftreset(unit int) {
 	f.update <- 1
 }
 
-func ftplug(unit int, jack string, ch chan Pulse) {
+func Ftplug(unit int, jack string, ch chan Pulse) {
 	jacks := [22]string{"1i", "1o", "2i", "2o", "3i", "3o", "4i", "4o",
 		"5i", "5o", "6i", "6o", "7i", "7o", "8i", "8o", "9i", "9o",
 		"10i", "10o", "11i", "11o"}
@@ -124,7 +124,7 @@ func ftplug(unit int, jack string, ch chan Pulse) {
 	ftable[unit].update <- 1
 }
 
-func ftctl(unit int, ch chan [2]string) {
+func Ftctl(unit int, ch chan [2]string) {
 	var digit, row, val int
 	var bank, ilk rune
 
@@ -604,14 +604,14 @@ func ftpulse(f *ft, p Pulse) {
 	}
 }
 
-func makeftpulse(unit int) ClockFunc {
+func Makeftpulse(unit int) ClockFunc {
 	f := &ftable[unit]
 	return func(p Pulse) {
 		ftpulse(f, p)
 	}
 }
 
-func ftunit(unit int) {
+func Ftunit(unit int) {
 	f := &ftable[unit]
 	f.update = make(chan int)
 	go ftunit2(f)

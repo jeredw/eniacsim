@@ -1,4 +1,4 @@
-package main
+package units
 
 import (
 	"fmt"
@@ -27,7 +27,7 @@ var dec [20]struct {
 var assoc [8]int
 var mpupdate chan int
 
-func mpstat() string {
+func Mpstat() string {
 	var s string
 
 	for i := 0; i < 10; i++ {
@@ -48,7 +48,7 @@ func mpstat() string {
 	return s
 }
 
-func mpreset() {
+func Mpreset() {
 	for i := 0; i < 20; i++ {
 		dec[i].di = nil
 		for j := 0; j < 6; j++ {
@@ -83,7 +83,7 @@ func mpclear() {
 	}
 }
 
-func mpplug(jack string, ch chan Pulse) {
+func Mpplug(jack string, ch chan Pulse) {
 	var n int
 
 	if unicode.IsDigit(rune(jack[0])) {
@@ -113,7 +113,7 @@ func mpplug(jack string, ch chan Pulse) {
 	mpupdate <- 1
 }
 
-func mpctl(ch chan [2]string) {
+func Mpctl(ch chan [2]string) {
 	var d, s int
 
 	for {
@@ -566,14 +566,14 @@ func mppulse(p Pulse, resp chan int) {
 	}
 }
 
-func makemppulse() ClockFunc {
+func Makemppulse() ClockFunc {
 	resp := make(chan int)
 	return func(p Pulse) {
 		mppulse(p, resp)
 	}
 }
 
-func mpunit() {
+func Mpunit() {
 	mpupdate = make(chan int)
 	go mpunit2()
 }
