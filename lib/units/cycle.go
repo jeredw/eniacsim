@@ -123,15 +123,16 @@ func (u Cycle) Stat() string {
 // clock goroutines, but that incurred enormous context switch overhead;
 // keeping to one thread and function calls is 15-20x faster.
 //
-// All control inputs are applied at the start of the nearest pulse.
+// Simulator control changes are synchronized and applied at the start of the
+// nearest pulse.
 func (u *Cycle) Run() {
 	if u.Io.TestCycles > 0 {
 		u.mode = Test
 		<-u.Io.TestButton.Push // wait for determinism
 	}
 
-	// readControls polls input channels, updates the control struct and signals
-	// updates on the update channel.
+	// readControls polls simulator controls, updates the control struct and
+	// signals updates on the update channel.
 	update := make(chan int)
 	go u.readControls(update)
 

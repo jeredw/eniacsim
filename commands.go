@@ -103,14 +103,14 @@ func doDump(f []string) {
 	case 'm':
 		fmt.Println(units.Multstat())
 	case 'p':
-		fmt.Println(units.Mpstat())
+		fmt.Println(mp.Stat())
 	}
 }
 
 func doDumpAll() {
 	fmt.Println()
 	fmt.Println(initiate.Stat())
-	fmt.Println(units.Mpstat())
+	fmt.Println(mp.Stat())
 	acchdr := "      9876543210 9876543210 r 123456789012"
 	fmt.Printf("%s   %s\n", acchdr, acchdr)
 	for i := 0; i < 20; i += 2 {
@@ -251,7 +251,10 @@ func doPlugSide(side int, command string, f []string, p []string, ch chan Pulse)
 		}
 		units.Multplug(p[1], ch)
 	case p[0] == "p":
-		units.Mpplug(p[1], ch)
+		err := mp.Plug(p[1], ch)
+		if err != nil {
+			fmt.Printf("Programmer: %s\n", err)
+		}
 	case unicode.IsDigit(rune(p[0][0])):
 		hpos := strings.IndexByte(p[0], '-')
 		if hpos == -1 {
@@ -307,19 +310,19 @@ func doReset(f []string) {
 			units.Ftreset(unit)
 		}
 	case "i":
-		initiate.Io.Reset <- 1
+		initiate.Reset()
 	case "m":
 		units.Multreset()
 	case "p":
-		units.Mpreset()
+		mp.Reset()
 	}
 }
 
 func doResetAll() {
-	initiate.Io.Reset <- 1
+	initiate.Reset()
 	cycle.Io.Reset <- 1
 	debugreset()
-	units.Mpreset()
+	mp.Reset()
 	units.Ftreset(0)
 	units.Ftreset(1)
 	units.Ftreset(2)
@@ -382,8 +385,11 @@ func doSwitch(command string, f []string) {
 	case p[0] == "p":
 		if len(p) != 2 {
 			fmt.Println("Programmer switch syntax: s p.switch value")
-		} else {
-			mpsw <- [2]string{p[1], f[2]}
+			break
+		}
+		err := mp.Switch(p[1], f[2])
+		if err != nil {
+			fmt.Printf("Programmer: %s", err)
 		}
 	case p[0] == "pr":
 		if len(p) != 2 {

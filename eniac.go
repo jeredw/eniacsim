@@ -13,8 +13,9 @@ import (
 
 var cycle *units.Cycle
 var initiate *units.Initiate
+var mp *units.Mp
 
-var mpsw, conssw, multsw, divsw, prsw chan [2]string
+var conssw, multsw, divsw, prsw chan [2]string
 var accsw [20]chan [2]string
 var ftsw [3]chan [2]string
 var width, height int
@@ -45,25 +46,32 @@ func main() {
 
 	initiate = units.NewInitiate(units.InitiateConn{
 		InitButton: NewButton(),
-		Reset:      make(chan int),
 		Ppunch:     ppunch,
 	})
-	mpsw = make(chan [2]string)
+	mp = units.NewMp()
 	divsw = make(chan [2]string)
 	multsw = make(chan [2]string)
 	conssw = make(chan [2]string)
 	clockFuncs := []ClockFunc{
 		initiate.MakeClockFunc(),
-		units.Makemppulse(),
+		mp.MakeClockFunc(),
 		units.Makedivpulse(),
 		units.Makemultpulse(),
 		units.Makeconspulse(),
+	}
+	clearFuncs := []func(){
+		func() { mp.Clear() },
 	}
 	prsw = make(chan [2]string)
 	for i := 0; i < 20; i++ {
 		accsw[i] = make(chan [2]string)
 		clockFuncs = append(clockFuncs, units.Makeaccpulse(i))
+		clear := func(i int) func() { return func() { units.Accclear(i) } }(i)
+		clearFuncs = append(clearFuncs, clear)
 	}
+	clearFuncs = append(clearFuncs, units.Divclear)
+	clearFuncs = append(clearFuncs, units.Multclear)
+	initiate.Io.ClearUnits = clearFuncs
 	for i := 0; i < 3; i++ {
 		ftsw[i] = make(chan [2]string)
 		clockFuncs = append(clockFuncs, units.Makeftpulse(i))
@@ -81,15 +89,17 @@ func main() {
 	})
 	initiate.Io.AddCycle = func() int { return cycle.AddCycle() }
 	initiate.Io.Stepping = func() bool { return cycle.Stepping() }
+	initiate.Io.Printer = units.PrConn{
+		MpStat: func() string { return mp.Stat() },
+	}
 
 	go units.Consctl(conssw)
-	go units.Mpctl(mpsw)
 	go units.Divsrctl(divsw)
 	go units.Multctl(multsw)
 	go units.Prctl(prsw)
 
 	go initiate.Run()
-	go units.Mpunit()
+	go mp.Run()
 	go cycle.Run()
 	go units.Divunit()
 	go units.Multunit()

@@ -5,6 +5,10 @@ import (
 	"strings"
 )
 
+type PrConn struct {
+	MpStat func() string
+}
+
 var prtsw = [32]int{0, 1, 0, 1, 0, 0, 1, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 	1, 0, 1, 0, 1, 0, 1, 0}
@@ -24,11 +28,11 @@ func Prreset() {
 	prtsw[30] = 1
 }
 
-func doprint() (s string) {
+func doprint(io PrConn) (s string) {
 	var raw [9]string
 	var sgn [16]byte
 
-	raw[0] = Mpstat()
+	raw[0] = io.MpStat()
 	for i := 1; i < 9; i++ {
 		raw[i] = Accstat(i + 11)
 	}

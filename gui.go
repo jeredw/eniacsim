@@ -766,7 +766,7 @@ func innergui() {
 			needupdate = true
 		}
 		// Master programmer
-		s = units.Mpstat()
+		s = mp.Stat()
 		if s != guistate.lastmp {
 			for i := 0; i < 10; i++ {
 				d := int(s[i]) - int('0')

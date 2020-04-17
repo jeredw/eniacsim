@@ -23,16 +23,19 @@ type Initiate struct {
 	cardScanner *bufio.Scanner
 	punchWriter *bufio.Writer
 
-	update chan int
+	update           chan int
+	waitingForUpdate chan int
 
 	mu sync.Mutex
 }
 
 // InitiateConn defines connections needed for the unit
 type InitiateConn struct {
-	Reset      chan int
+	Printer PrConn
+
 	InitButton Button
 	Ppunch     chan string
+	ClearUnits []func()
 
 	AddCycle func() int  // Return the current add cycle
 	Stepping func() bool // Return true iff single stepping
@@ -40,8 +43,9 @@ type InitiateConn struct {
 
 func NewInitiate(io InitiateConn) *Initiate {
 	return &Initiate{
-		Io:     io,
-		update: make(chan int),
+		Io:               io,
+		update:           make(chan int),
+		waitingForUpdate: make(chan int),
 	}
 }
 
@@ -80,7 +84,9 @@ func (u *Initiate) Stat() string {
 	return s
 }
 
-func (u *Initiate) reset() {
+func (u *Initiate) Reset() {
+	u.update <- 1
+	<-u.waitingForUpdate
 	u.mu.Lock()
 	u.gate66 = 0
 	u.gate69 = 0
@@ -101,6 +107,8 @@ func (u *Initiate) reset() {
 
 func (u *Initiate) Plug(jackName string, ch chan Pulse) {
 	fullName := "i." + jackName
+	u.update <- 1
+	<-u.waitingForUpdate
 	u.mu.Lock()
 	switch jackName[0] {
 	case 'c', 'C':
@@ -148,6 +156,7 @@ func (u *Initiate) Plug(jackName string, ch chan Pulse) {
 
 badJack:
 	u.mu.Unlock()
+	u.update <- 1
 	fmt.Printf("Invalid initiate jack: %s\n", jackName)
 }
 
@@ -202,7 +211,7 @@ func (u *Initiate) clock(p Pulse, resp chan int) {
 		}
 		sincePrint := u.Io.AddCycle() - u.lastPrint
 		if u.printPhase1 && (stepping || sincePrint > MsToAddCycles(150)) {
-			s := doprint()
+			s := doprint(u.Io.Printer)
 			if u.punchWriter != nil {
 				u.punchWriter.WriteString(s)
 				u.punchWriter.WriteByte('\n')
@@ -238,20 +247,15 @@ func (u *Initiate) Run() {
 			case 4:
 				u.gate66 = 1
 			case 5:
-				mpclear()
-				for i := 0; i < 20; i++ {
-					accclear(i)
+				for _, f := range u.Io.ClearUnits {
+					f()
 				}
-				divclear()
-				multclear()
 			case 3:
 				u.rdff = true
 				u.rdilock = true
 			}
 			u.mu.Unlock()
 			u.Io.InitButton.Done <- 1
-		case <-u.Io.Reset:
-			u.reset()
 		}
 	}
 }
@@ -260,7 +264,8 @@ func (u *Initiate) readInputs() {
 	for {
 		select {
 		case <-u.update:
-			//
+			u.waitingForUpdate <- 1
+			<-u.update
 		case p := <-u.jack[12]:
 			u.mu.Lock()
 			u.rdilock = true

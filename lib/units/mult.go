@@ -128,7 +128,7 @@ func Multreset() {
 	multupdate <- 1
 }
 
-func multclear() {
+func Multclear() {
 }
 
 func Multplug(jack string, ch chan Pulse) {
@@ -381,10 +381,10 @@ func multpulse(c Pulse, resp1, resp2, resp3, resp4 chan int) {
 			}
 		}
 		if iercl[which] == 1 {
-			accclear(8)
+			Accclear(8)
 		}
 		if icandcl[which] == 1 {
-			accclear(9)
+			Accclear(9)
 		}
 	case c.Val&Onep != 0 && stage == 1:
 		Multl = true

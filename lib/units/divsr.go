@@ -188,11 +188,11 @@ func Divreset() {
 	divsr.ans4 = false
 	divsr.divadap = 0
 	divsr.sradap = 0
-	divclear()
+	Divclear()
 	divsr.divupdate <- 1
 }
 
-func divclear() {
+func Divclear() {
 	divintclear()
 	divsr.sv = 0
 	divsr.su2 = 0
@@ -447,10 +447,10 @@ func doGP(resp chan int) {
 			}
 		}
 		if divsr.numcl[divsr.curprog] == 1 {
-			accclear(2)
+			Accclear(2)
 		}
 		if divsr.dencl[divsr.curprog] == 1 {
-			accclear(4)
+			Accclear(4)
 		}
 		divintclear()
 		return

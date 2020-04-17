@@ -17,7 +17,7 @@ func MsToAddCycles(ms int) int {
 
 func SafePlug(jackName string, jack *chan Pulse, ch chan Pulse) {
 	if *jack != nil {
-		fmt.Printf("Duplicate connection on %s\n", jackName)
+		fmt.Printf("warning: multiple connections on %s\n", jackName)
 	}
 	*jack = ch
 }

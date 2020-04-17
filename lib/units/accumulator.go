@@ -122,11 +122,11 @@ func Accreset(unit int) {
 	u.whichrp = false
 	u.lbuddy = unit
 	u.rbuddy = unit
-	accclear(unit)
+	Accclear(unit)
 	u.change <- 1
 }
 
-func accclear(acc int) {
+func Accclear(acc int) {
 	for i := 0; i < 10; i++ {
 		units[acc].val[i] = 0
 		units[acc].decff[i] = false
@@ -596,7 +596,7 @@ func accpulse(u *accumulator, unit int, resp chan int, p Pulse) {
 		doccg(u, unit, resp)
 	case cyc&Scg != 0:
 		if u.sc == 1 {
-			accclear(unit)
+			Accclear(unit)
 		}
 	case cyc&Rp != 0:
 		dorp(u)
