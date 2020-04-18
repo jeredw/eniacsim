@@ -745,7 +745,7 @@ func innergui() {
 			needupdate = true
 		}
 		// Multiplier
-		s = units.Multstat()
+		s = multiplier.Stat()
 		if s != guistate.lastmult {
 			p := strings.Split(s, " ")
 			stage, _ := strconv.Atoi(p[0])

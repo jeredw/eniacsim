@@ -15,8 +15,9 @@ var cycle *units.Cycle
 var initiate *units.Initiate
 var mp *units.Mp
 var divsr *units.Divsr
+var multiplier *units.Multiplier
 
-var conssw, multsw, prsw chan [2]string
+var conssw, prsw chan [2]string
 var accsw [20]chan [2]string
 var ftsw [3]chan [2]string
 var width, height int
@@ -51,13 +52,13 @@ func main() {
 	})
 	mp = units.NewMp()
 	divsr = units.NewDivsr()
-	multsw = make(chan [2]string)
+	multiplier = units.NewMultiplier()
 	conssw = make(chan [2]string)
 	clockFuncs := []ClockFunc{
 		initiate.MakeClockFunc(),
 		mp.MakeClockFunc(),
 		divsr.MakeClockFunc(),
-		units.Makemultpulse(),
+		multiplier.MakeClockFunc(),
 		units.Makeconspulse(),
 	}
 	clearFuncs := []func(){
@@ -71,7 +72,6 @@ func main() {
 		clearFuncs = append(clearFuncs, clear)
 	}
 	clearFuncs = append(clearFuncs, func() { divsr.Clear() })
-	clearFuncs = append(clearFuncs, units.Multclear)
 	for i := 0; i < 3; i++ {
 		ftsw[i] = make(chan [2]string)
 		clockFuncs = append(clockFuncs, units.Makeftpulse(i))
@@ -97,16 +97,19 @@ func main() {
 	divsr.Io.Acc2Clear = func() { units.Accclear(2) }
 	divsr.Io.Acc4Sign = func() string { return units.Accsign(4) }
 	divsr.Io.Acc4Clear = func() { units.Accclear(4) }
+	multiplier.Io.Acc8Clear = func() { units.Accclear(8) }
+	multiplier.Io.Acc8Value = func() string { return units.Accvalue(8) }
+	multiplier.Io.Acc9Clear = func() { units.Accclear(9) }
+	multiplier.Io.Acc9Value = func() string { return units.Accvalue(9) }
 
 	go units.Consctl(conssw)
-	go units.Multctl(multsw)
 	go units.Prctl(prsw)
 
 	go initiate.Run()
 	go mp.Run()
 	go cycle.Run()
 	go divsr.Run()
-	go units.Multunit()
+	go multiplier.Run()
 	go units.Consunit()
 	for i := 0; i < 20; i++ {
 		go units.Accctl(i, accsw[i])
@@ -114,6 +117,8 @@ func main() {
 			Sv:  func() int { return divsr.Sv() },
 			Su2: func() int { return divsr.Su2() },
 			Su3: func() int { return divsr.Su3() },
+			Multl: func() bool { return multiplier.Multl() },
+			Multr: func() bool { return multiplier.Multr() },
 		})
 	}
 	for i := 0; i < 3; i++ {

@@ -101,7 +101,7 @@ func doDump(f []string) {
 	case 'i':
 		fmt.Println(initiate.Stat())
 	case 'm':
-		fmt.Println(units.Multstat())
+		fmt.Println(multiplier.Stat())
 	case 'p':
 		fmt.Println(mp.Stat())
 	}
@@ -119,7 +119,7 @@ func doDumpAll() {
 		fmt.Println(units.Accstat(i + 1))
 	}
 	fmt.Println(divsr.Stat2())
-	fmt.Println(units.Multstat())
+	fmt.Println(multiplier.Stat())
 	for i := 0; i < 3; i++ {
 		fmt.Println(units.Ftstat(i))
 	}
@@ -252,7 +252,10 @@ func doPlugSide(side int, command string, f []string, p []string, ch chan Pulse)
 			fmt.Println("Multiplier jumper syntax: m.terminal")
 			return
 		}
-		units.Multplug(p[1], ch)
+		err := multiplier.Plug(p[1], ch)
+		if err != nil {
+			fmt.Printf("Multiplier: %s\n", err)
+		}
 	case p[0] == "p":
 		err := mp.Plug(p[1], ch)
 		if err != nil {
@@ -315,7 +318,7 @@ func doReset(f []string) {
 	case "i":
 		initiate.Reset()
 	case "m":
-		units.Multreset()
+		multiplier.Reset()
 	case "p":
 		mp.Reset()
 	}
@@ -333,7 +336,7 @@ func doResetAll() {
 		units.Accreset(i)
 	}
 	divsr.Reset()
-	units.Multreset()
+	multiplier.Reset()
 	units.Consreset()
 	units.Prreset()
 	adreset()
@@ -385,8 +388,11 @@ func doSwitch(command string, f []string) {
 	case p[0] == "m":
 		if len(p) != 2 {
 			fmt.Println("Multiplier switch syntax: s m.switch value")
-		} else {
-			multsw <- [2]string{p[1], f[2]}
+			break
+		}
+		err := multiplier.Switch(p[1], f[2])
+		if err != nil {
+			fmt.Printf("Multiplier: %s\n", err)
 		}
 	case p[0] == "p":
 		if len(p) != 2 {

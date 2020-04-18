@@ -78,6 +78,8 @@ type AccumulatorConn struct {
 	Sv  func() int
 	Su2 func() int
 	Su3 func() int
+  Multl func() bool
+  Multr func() bool
 }
 
 var units [20]Accumulator
@@ -87,6 +89,19 @@ func Accsign(unit int) string {
 		return "M"
 	}
 	return "P"
+}
+
+func Accvalue(unit int) string {
+	var s string
+	if units[unit].sign {
+		s += "M "
+	} else {
+		s += "P "
+	}
+	for i := 9; i >= 0; i-- {
+		s += fmt.Sprintf("%d", units[unit].val[i])
+	}
+  return s
 }
 
 func Accstat(unit int) string {
@@ -365,12 +380,12 @@ func st1(unit int) int {
 		x = su1(unit)
 	} else if u.lbuddy == -1 {
 		x = su1(unit)
-		if Multl {
+		if u.Io.Multl() {
 			x |= stα
 		}
 	} else if u.lbuddy == -2 {
 		x = su1(unit)
-		if Multr {
+		if u.Io.Multr() {
 			x |= stα
 		}
 	} else if u.lbuddy == -3 {
