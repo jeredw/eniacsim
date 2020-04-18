@@ -36,6 +36,7 @@ type InitiateConn struct {
 	InitButton Button
 	Ppunch     chan string
 	ClearUnits []func()
+  ReadCard   func(string)
 
 	AddCycle func() int  // Return the current add cycle
 	Stepping func() bool // Return true iff single stepping
@@ -198,7 +199,7 @@ func (u *Initiate) clock(p Pulse, resp chan int) {
 			if u.cardScanner != nil {
 				if u.cardScanner.Scan() {
 					card := u.cardScanner.Text()
-					proccard(card)
+					u.Io.ReadCard(card)
 					u.lastCardRead = u.Io.AddCycle()
 					u.rdfinish = true
 				} else {

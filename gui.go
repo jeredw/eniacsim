@@ -823,7 +823,7 @@ func innergui() {
 			}
 		}
 		// Constant Transmitter
-		s = units.Consstat()
+		s = constant.Stat()
 		if s != guistate.lastcons {
 			for i, f := range s {
 				row := i / 10

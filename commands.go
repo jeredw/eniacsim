@@ -92,7 +92,7 @@ func doDump(f []string) {
 	case 'b':
 		fmt.Println(debugstat())
 	case 'c':
-		fmt.Println(units.Consstat())
+		fmt.Println(constant.Stat())
 	case 'd':
 		fmt.Println(divsr.Stat2())
 	case 'f':
@@ -123,7 +123,7 @@ func doDumpAll() {
 	for i := 0; i < 3; i++ {
 		fmt.Println(units.Ftstat(i))
 	}
-	fmt.Println(units.Consstat())
+	fmt.Println(constant.Stat())
 	fmt.Println()
 }
 
@@ -215,7 +215,10 @@ func doPlugSide(side int, command string, f []string, p []string, ch chan Pulse)
 			fmt.Println("Invalid constant jumper:", command)
 			return
 		}
-		units.Consplug(p[1], ch)
+		err := constant.Plug(p[1], ch)
+		if err != nil {
+			fmt.Printf("Constant: %s\n", err)
+		}
 	case p[0] == "d":
 		if len(p) != 2 {
 			fmt.Println("Divider jumper syntax: d.terminal")
@@ -305,7 +308,7 @@ func doReset(f []string) {
 	case "b":
 		debugreset()
 	case "c":
-		units.Consreset()
+		constant.Reset()
 	case "d":
 		divsr.Reset()
 	case "f":
@@ -337,7 +340,7 @@ func doResetAll() {
 	}
 	divsr.Reset()
 	multiplier.Reset()
-	units.Consreset()
+	constant.Reset()
 	units.Prreset()
 	adreset()
 	trayreset()
@@ -360,8 +363,11 @@ func doSwitch(command string, f []string) {
 	case p[0] == "c":
 		if len(p) != 2 {
 			fmt.Println("Constant switch syntax: s c.switch value")
-		} else {
-			conssw <- [2]string{p[1], f[2]}
+			break
+		}
+		err := constant.Switch(p[1], f[2])
+		if err != nil {
+			fmt.Printf("Constant: %s\n", err)
 		}
 	case p[0] == "cy":
 		if len(p) != 2 {

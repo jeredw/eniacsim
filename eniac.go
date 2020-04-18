@@ -16,8 +16,9 @@ var initiate *units.Initiate
 var mp *units.Mp
 var divsr *units.Divsr
 var multiplier *units.Multiplier
+var constant *units.Constant
 
-var conssw, prsw chan [2]string
+var prsw chan [2]string
 var accsw [20]chan [2]string
 var ftsw [3]chan [2]string
 var width, height int
@@ -53,13 +54,13 @@ func main() {
 	mp = units.NewMp()
 	divsr = units.NewDivsr()
 	multiplier = units.NewMultiplier()
-	conssw = make(chan [2]string)
+  constant = units.NewConstant()
 	clockFuncs := []ClockFunc{
 		initiate.MakeClockFunc(),
 		mp.MakeClockFunc(),
 		divsr.MakeClockFunc(),
 		multiplier.MakeClockFunc(),
-		units.Makeconspulse(),
+    constant.MakeClockFunc(),
 	}
 	clearFuncs := []func(){
 		func() { mp.Clear() },
@@ -90,6 +91,7 @@ func main() {
 	initiate.Io.ClearUnits = clearFuncs
 	initiate.Io.AddCycle = func() int { return cycle.AddCycle() }
 	initiate.Io.Stepping = func() bool { return cycle.Stepping() }
+  initiate.Io.ReadCard = func(s string) { constant.ReadCard(s) }
 	initiate.Io.Printer = units.PrConn{
 		MpStat: func() string { return mp.Stat() },
 	}
@@ -102,7 +104,6 @@ func main() {
 	multiplier.Io.Acc9Clear = func() { units.Accclear(9) }
 	multiplier.Io.Acc9Value = func() string { return units.Accvalue(9) }
 
-	go units.Consctl(conssw)
 	go units.Prctl(prsw)
 
 	go initiate.Run()
@@ -110,7 +111,7 @@ func main() {
 	go cycle.Run()
 	go divsr.Run()
 	go multiplier.Run()
-	go units.Consunit()
+	go constant.Run()
 	for i := 0; i < 20; i++ {
 		go units.Accctl(i, accsw[i])
 		go units.Accunit(i, units.AccumulatorConn{
