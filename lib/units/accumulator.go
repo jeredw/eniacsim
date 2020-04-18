@@ -53,7 +53,9 @@ const (
 	stSF10out  = pin17
 )
 
-type accumulator struct {
+type Accumulator struct {
+	Io AccumulatorConn
+
 	α, β, γ, δ, ε, A, S chan Pulse
 	ctlterm             [20]chan Pulse
 	inff1, inff2        [12]bool
@@ -72,7 +74,20 @@ type accumulator struct {
 	lbuddy, rbuddy      int
 }
 
-var units [20]accumulator
+type AccumulatorConn struct {
+	Sv  func() int
+	Su2 func() int
+	Su3 func() int
+}
+
+var units [20]Accumulator
+
+func Accsign(unit int) string {
+	if units[unit].sign {
+		return "M"
+	}
+	return "P"
+}
 
 func Accstat(unit int) string {
 	var s string
@@ -360,27 +375,30 @@ func st1(unit int) int {
 		}
 	} else if u.lbuddy == -3 {
 		x = su1(unit)
-		x |= divsr.sv
+		x |= u.Io.Sv()
 	} else if u.lbuddy == -4 {
 		x = su1(unit)
 		/* Wiring for PX-5-134 for quotient */
-		x |= divsr.su2 & stα
-		x |= (divsr.su2 & su2qA) << 2
-		x |= (divsr.su2 & su2qS) << 3
-		x |= (divsr.su2 & su2qCLR) << 3
+		su2 := u.Io.Su2()
+		x |= su2 & stα
+		x |= (su2 & su2qA) << 2
+		x |= (su2 & su2qS) << 3
+		x |= (su2 & su2qCLR) << 3
 	} else if u.lbuddy == -5 {
 		x = su1(unit)
 		/* Wiring for PX-5-135 for shift */
-		x |= (divsr.su2 & su2sα) >> 1
-		x |= (divsr.su2 & su2sA) << 3
-		x |= (divsr.su2 & su2sCLR) << 2
+		su2 := u.Io.Su2()
+		x |= (su2 & su2sα) >> 1
+		x |= (su2 & su2sA) << 3
+		x |= (su2 & su2sCLR) << 2
 	} else if u.lbuddy == -6 {
 		x = su1(unit)
 		/* Wiring for PX-5-136 for denominator */
-		x |= divsr.su3 & (stα | stβ | stγ)
-		x |= (divsr.su3 & su3A) << 2
-		x |= (divsr.su3 & su3S) << 3
-		x |= (divsr.su3 & su3CLR) << 3
+		su3 := u.Io.Su3()
+		x |= su3 & (stα | stβ | stγ)
+		x |= (su3 & su3A) << 2
+		x |= (su3 & su3S) << 3
+		x |= (su3 & su3CLR) << 3
 	} else {
 		x = st2(u.lbuddy) & 0x1c3ff
 	}
@@ -411,7 +429,7 @@ func accrecv(unit, dat int) {
 	}
 }
 
-func docpp(u *accumulator, resp chan int, cyc int) {
+func docpp(u *Accumulator, resp chan int, cyc int) {
 	for i := 0; i < 4; i++ {
 		if u.inff2[i] {
 			u.inff1[i] = false
@@ -473,7 +491,7 @@ func ripple(unit int) {
 	}
 }
 
-func doccg(u *accumulator, unit int, resp chan int) {
+func doccg(u *Accumulator, unit int, resp chan int) {
 	curprog := st1(unit)
 	u.whichrp = false
 	if curprog&0x1f != 0 {
@@ -488,7 +506,7 @@ func doccg(u *accumulator, unit int, resp chan int) {
 	}
 }
 
-func dorp(u *accumulator) {
+func dorp(u *Accumulator) {
 	if !u.whichrp {
 		/*
 		 * Ugly hack to avoid races.  Effectively this is
@@ -511,7 +529,7 @@ func dorp(u *accumulator) {
 	}
 }
 
-func dotenp(u *accumulator, unit int) {
+func dotenp(u *Accumulator, unit int) {
 	curprog := st1(unit)
 	if curprog&(stA|stAS|stS) != 0 {
 		for i := 0; i < 10; i++ {
@@ -524,7 +542,7 @@ func dotenp(u *accumulator, unit int) {
 	}
 }
 
-func doninep(u *accumulator, unit int, resp chan int) {
+func doninep(u *Accumulator, unit int, resp chan int) {
 	curprog := st1(unit)
 	if curprog&(stA|stAS) != 0 {
 		if u.A != nil {
@@ -562,7 +580,7 @@ func doninep(u *accumulator, unit int, resp chan int) {
 	}
 }
 
-func doonepp(u *accumulator, unit int, resp chan int) {
+func doonepp(u *Accumulator, unit int, resp chan int) {
 	curprog := st1(unit)
 	if curprog&stCORR != 0 {
 		/*
@@ -587,7 +605,7 @@ func doonepp(u *accumulator, unit int, resp chan int) {
 	}
 }
 
-func accpulse(u *accumulator, unit int, resp chan int, p Pulse) {
+func accpulse(u *Accumulator, unit int, resp chan int, p Pulse) {
 	cyc := p.Val
 	switch {
 	case cyc&Cpp != 0:
@@ -609,8 +627,9 @@ func accpulse(u *accumulator, unit int, resp chan int, p Pulse) {
 	}
 }
 
-func Accunit(unit int) {
+func Accunit(unit int, io AccumulatorConn) {
 	u := &units[unit]
+	u.Io = io
 	u.change = make(chan int)
 	u.sigfig = 10
 	u.lbuddy = unit

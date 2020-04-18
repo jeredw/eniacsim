@@ -3,6 +3,7 @@ package units
 import (
 	"fmt"
 	"strconv"
+	"sync"
 
 	. "github.com/jeredw/eniacsim/lib"
 )
@@ -30,9 +31,10 @@ const (
 	su3CLR = 1 << 5
 )
 
-// Lots of state vars and I don't want to worry about name collisions
-var divsr struct {
-	divupdate                                                                  chan int
+// Divsr simulates the ENIAC divider/square rooter unit.
+type Divsr struct {
+	Io DivsrConn
+
 	progin, progout, ilock                                                     [8]chan Pulse
 	answer                                                                     chan Pulse
 	numarg, numcl, denarg, dencl, roundoff, places, ilocksw, anssw             [8]int
@@ -43,620 +45,748 @@ var divsr struct {
 	ans1, ans2, ans3, ans4                                                     bool
 	curprog, divadap, sradap                                                   int
 	sv, su2, su3                                                               int
+
+	rewiring           chan int
+	waitingForRewiring chan int
+
+	mu sync.Mutex
 }
 
-func Divsrstat() string {
-	s := fmt.Sprintf("%d %d ", divsr.placering, divsr.progring)
-	for i := 0; i < 8; i++ {
-		if divsr.progff[i] {
+// Connections to dedicated accumulators.
+type DivsrConn struct {
+	Acc2Sign  func() string
+	Acc2Clear func()
+	Acc4Sign  func() string
+	Acc4Clear func()
+}
+
+func NewDivsr() *Divsr {
+	return &Divsr{
+		rewiring:           make(chan int),
+		waitingForRewiring: make(chan int),
+	}
+}
+
+func (u *Divsr) Sv() int {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	return u.sv
+}
+
+func (u *Divsr) Su2() int {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	return u.su2
+}
+
+func (u *Divsr) Su3() int {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	return u.su3
+}
+
+func (u *Divsr) Stat() string {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	s := fmt.Sprintf("%d %d ", u.placering, u.progring)
+	for i := range u.progff {
+		if u.progff[i] {
 			s += "1"
 		} else {
 			s += "0"
 		}
 	}
-	s += " " + ToBin(divsr.divff) + ToBin(divsr.clrff) + ToBin(divsr.coinff) + ToBin(divsr.dpγ) +
-		ToBin(divsr.nγ) + ToBin(divsr.psrcff) + ToBin(divsr.pringff) + ToBin(divsr.denomff) +
-		ToBin(divsr.numrplus) + ToBin(divsr.numrmin) + ToBin(divsr.qα) + ToBin(divsr.sac) +
-		ToBin(divsr.m2) + ToBin(divsr.m1) + ToBin(divsr.nac) + ToBin(divsr.da) + ToBin(divsr.nα) +
-		ToBin(divsr.dα) + ToBin(divsr.dγ) + ToBin(divsr.npγ) + ToBin(divsr.p2) + ToBin(divsr.p1) +
-		ToBin(divsr.sα) + ToBin(divsr.ds) + ToBin(divsr.nβ) + ToBin(divsr.dβ) + ToBin(divsr.ans1) +
-		ToBin(divsr.ans2) + ToBin(divsr.ans3) + ToBin(divsr.ans4)
+	s += " " + ToBin(u.divff) + ToBin(u.clrff) + ToBin(u.coinff) + ToBin(u.dpγ) +
+		ToBin(u.nγ) + ToBin(u.psrcff) + ToBin(u.pringff) + ToBin(u.denomff) +
+		ToBin(u.numrplus) + ToBin(u.numrmin) + ToBin(u.qα) + ToBin(u.sac) +
+		ToBin(u.m2) + ToBin(u.m1) + ToBin(u.nac) + ToBin(u.da) + ToBin(u.nα) +
+		ToBin(u.dα) + ToBin(u.dγ) + ToBin(u.npγ) + ToBin(u.p2) + ToBin(u.p1) +
+		ToBin(u.sα) + ToBin(u.ds) + ToBin(u.nβ) + ToBin(u.dβ) + ToBin(u.ans1) +
+		ToBin(u.ans2) + ToBin(u.ans3) + ToBin(u.ans4)
 	return s
 }
 
-func Divsrstat2() string {
-	s := fmt.Sprintf("%d %d ", divsr.placering, divsr.progring)
-	for i := 0; i < 8; i++ {
-		if divsr.progff[i] {
+func (u *Divsr) Stat2() string {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	s := fmt.Sprintf("%d %d ", u.placering, u.progring)
+	for i := range u.progff {
+		if u.progff[i] {
 			s += "1"
 		} else {
 			s += "0"
 		}
 	}
-	if divsr.divff {
+	if u.divff {
 		s += " divff"
 	}
-	if divsr.clrff {
+	if u.clrff {
 		s += " clrff"
 	}
-	if divsr.coinff {
+	if u.coinff {
 		s += " coinff"
 	}
-	if divsr.dpγ {
+	if u.dpγ {
 		s += " dpg"
 	}
-	if divsr.nγ {
+	if u.nγ {
 		s += " ng"
 	}
-	if divsr.psrcff {
+	if u.psrcff {
 		s += " psrcff"
 	}
-	if divsr.denomff {
+	if u.denomff {
 		s += " denomff"
 	}
-	if divsr.numrplus {
+	if u.numrplus {
 		s += " n+"
 	}
-	if divsr.numrmin {
+	if u.numrmin {
 		s += " n-"
 	}
-	if divsr.qα {
+	if u.qα {
 		s += " qa"
 	}
-	if divsr.sac {
+	if u.sac {
 		s += " SAC"
 	}
-	if divsr.m2 {
+	if u.m2 {
 		s += " -2"
 	}
-	if divsr.m1 {
+	if u.m1 {
 		s += " -1"
 	}
-	if divsr.nac {
+	if u.nac {
 		s += " NAC"
 	}
-	if divsr.da {
+	if u.da {
 		s += " dA"
 	}
-	if divsr.nα {
+	if u.nα {
 		s += " na"
 	}
-	if divsr.dα {
+	if u.dα {
 		s += " da"
 	}
-	if divsr.dγ {
+	if u.dγ {
 		s += " dg"
 	}
-	if divsr.npγ {
+	if u.npγ {
 		s += " npg"
 	}
-	if divsr.p2 {
+	if u.p2 {
 		s += " +2"
 	}
-	if divsr.p1 {
+	if u.p1 {
 		s += " +1"
 	}
-	if divsr.sα {
+	if u.sα {
 		s += " sa"
 	}
-	if divsr.ds {
+	if u.ds {
 		s += " dS"
 	}
-	if divsr.nβ {
+	if u.nβ {
 		s += " nb"
 	}
-	if divsr.dβ {
+	if u.dβ {
 		s += " db"
 	}
-	if divsr.ans1 {
+	if u.ans1 {
 		s += " A1"
 	}
-	if divsr.ans2 {
+	if u.ans2 {
 		s += " A2"
 	}
-	if divsr.ans3 {
+	if u.ans3 {
 		s += " A3"
 	}
-	if divsr.ans4 {
+	if u.ans4 {
 		s += " A4"
 	}
 	return s
 }
 
-func Divreset() {
+func (u *Divsr) Reset() {
+	u.mu.Lock()
+	u.rewiring <- 1
+	<-u.waitingForRewiring
 	for i := 0; i < 8; i++ {
-		divsr.progin[i] = nil
-		divsr.progout[i] = nil
-		divsr.ilock[i] = nil
-		divsr.numarg[i] = 0
-		divsr.numcl[i] = 0
-		divsr.denarg[i] = 0
-		divsr.dencl[i] = 0
-		divsr.roundoff[i] = 0
-		divsr.places[i] = 0
-		divsr.ilocksw[i] = 0
-		divsr.anssw[i] = 0
-		divsr.preff[i] = false
-		divsr.progff[i] = false
+		u.progin[i] = nil
+		u.progout[i] = nil
+		u.ilock[i] = nil
+		u.numarg[i] = 0
+		u.numcl[i] = 0
+		u.denarg[i] = 0
+		u.dencl[i] = 0
+		u.roundoff[i] = 0
+		u.places[i] = 0
+		u.ilocksw[i] = 0
+		u.anssw[i] = 0
+		u.preff[i] = false
+		u.progff[i] = false
 	}
-	divsr.answer = nil
-	divsr.divff = false
-	divsr.ilockff = false
-	divsr.ans1 = false
-	divsr.ans2 = false
-	divsr.ans3 = false
-	divsr.ans4 = false
-	divsr.divadap = 0
-	divsr.sradap = 0
-	Divclear()
-	divsr.divupdate <- 1
+	u.answer = nil
+	u.divff = false
+	u.ilockff = false
+	u.ans1 = false
+	u.ans2 = false
+	u.ans3 = false
+	u.ans4 = false
+	u.divadap = 0
+	u.sradap = 0
+	u.mu.Unlock()
+	u.Clear()
+	u.rewiring <- 1
 }
 
-func Divclear() {
-	divintclear()
-	divsr.sv = 0
-	divsr.su2 = 0
-	divsr.su3 = 0
+func (u *Divsr) Clear() {
+	u.intclear()
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	u.sv = 0
+	u.su2 = 0
+	u.su3 = 0
 }
 
-func divintclear() {
-	divsr.progring = 0
-	divsr.placering = 0
-	divsr.numrplus = true
-	divsr.numrmin = false
-	divsr.denomff = false
-	divsr.psrcff = false
-	divsr.pringff = false
-	divsr.curprog = -1
-	divsr.coinff = false
-	divsr.clrff = false
-	divsr.dpγ = false
-	divsr.nγ = false
-	divsr.qα = false
-	divsr.sac = false
-	divsr.m2 = false
-	divsr.m1 = false
-	divsr.nac = false
-	divsr.da = false
-	divsr.nα = false
-	divsr.dα = false
-	divsr.dγ = false
-	divsr.npγ = false
-	divsr.p2 = false
-	divsr.p1 = false
-	divsr.sα = false
-	divsr.ds = false
-	divsr.nβ = false
-	divsr.dβ = false
+func (u *Divsr) intclear() {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	u.progring = 0
+	u.placering = 0
+	u.numrplus = true
+	u.numrmin = false
+	u.denomff = false
+	u.psrcff = false
+	u.pringff = false
+	u.curprog = -1
+	u.coinff = false
+	u.clrff = false
+	u.dpγ = false
+	u.nγ = false
+	u.qα = false
+	u.sac = false
+	u.m2 = false
+	u.m1 = false
+	u.nac = false
+	u.da = false
+	u.nα = false
+	u.dα = false
+	u.dγ = false
+	u.npγ = false
+	u.p2 = false
+	u.p1 = false
+	u.sα = false
+	u.ds = false
+	u.nβ = false
+	u.dβ = false
 }
 
-func Divsrplug(jack string, ch chan Pulse) {
-	var prog int
-	var ilk rune
+func (u *Divsr) Plug(jack string, ch chan Pulse) error {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	u.rewiring <- 1
+	<-u.waitingForRewiring
 
+	name := "d." + jack
 	if jack == "ans" || jack == "ANS" {
-		divsr.answer = ch
+		SafePlug(name, &u.answer, ch)
 	} else {
+		var prog int
+		var ilk rune
 		fmt.Sscanf(jack, "%d%c", &prog, &ilk)
+		if !(prog >= 1 && prog <= 8) {
+			return fmt.Errorf("invalid jack %s", jack)
+		}
 		switch ilk {
 		case 'i':
-			divsr.progin[prog-1] = ch
+			SafePlug(name, &u.progin[prog-1], ch)
 		case 'o':
-			divsr.progout[prog-1] = ch
+			SafePlug(name, &u.progout[prog-1], ch)
 		case 'l':
-			divsr.ilock[prog-1] = ch
-		}
-	}
-	divsr.divupdate <- 1
-}
-
-func Divsrctl(ch chan [2]string) {
-	for {
-		ctl := <-ch
-		sw, _ := strconv.Atoi(ctl[0][2:])
-		switch ctl[0][:2] {
-		case "da":
-			divsr.divadap = int(ctl[1][0] - 'A')
-		case "ra":
-			divsr.sradap = int(ctl[1][0] - 'A')
-		case "nr":
-			switch ctl[1] {
-			case "α", "a", "alpha":
-				divsr.numarg[sw-1] = 0
-			case "β", "b", "beta":
-				divsr.numarg[sw-1] = 1
-			case "0":
-				divsr.numarg[sw-1] = 2
-			}
-		case "nc":
-			if ctl[1] == "C" || ctl[1] == "c" {
-				divsr.numcl[sw-1] = 1
-			} else {
-				divsr.numcl[sw-1] = 0
-			}
-		case "dr":
-			switch ctl[1] {
-			case "α", "a", "alpha":
-				divsr.denarg[sw-1] = 0
-			case "β", "b", "beta":
-				divsr.denarg[sw-1] = 1
-			case "0":
-				divsr.denarg[sw-1] = 2
-			}
-		case "dc":
-			if ctl[1] == "C" || ctl[1] == "c" {
-				divsr.dencl[sw-1] = 1
-			} else {
-				divsr.dencl[sw-1] = 0
-			}
-		case "pl":
-			offset := 5
-			pl, _ := strconv.Atoi(ctl[1][1:])
-			if ctl[1][0] == 'D' {
-				offset = 0
-			}
-			if pl == 4 {
-				divsr.places[sw-1] = 0 + offset
-			} else {
-				divsr.places[sw-1] = pl - 6 + offset
-			}
-		case "ro":
-			if ctl[1] == "RO" || ctl[1] == "ro" {
-				divsr.roundoff[sw-1] = 1
-			} else {
-				divsr.roundoff[sw-1] = 0
-			}
-		case "an":
-			if ctl[1] == "OFF" || ctl[1] == "off" {
-				divsr.anssw[sw-1] = 4
-			} else {
-				val, _ := strconv.Atoi(ctl[1])
-				divsr.anssw[sw-1] = val - 1
-			}
-		case "il":
-			if ctl[1] == "I" || ctl[1] == "i" {
-				divsr.ilocksw[sw-1] = 1
-			} else {
-				divsr.ilocksw[sw-1] = 0
-			}
+			SafePlug(name, &u.ilock[prog-1], ch)
 		default:
-			fmt.Printf("Invalid divider switch %s\n", ctl[0])
+			return fmt.Errorf("invalid jack %s", jack)
 		}
 	}
+	u.rewiring <- 1
+	return nil
 }
 
-func divargs(prog int) {
-	divsr.preff[prog] = true
-	if divsr.places[prog] < 5 {
-		divsr.divff = true
-	} else {
-		divsr.divff = false
+func (u *Divsr) Switch(name, value string) error {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	if name == "da" {
+		if len(value) < 1 {
+			return fmt.Errorf("invalid switch %s", name)
+		}
+		adapter := int(value[0] - 'A')
+		if !(adapter >= 0 && adapter <= 2) {
+			return fmt.Errorf("invalid switch %s", name)
+		}
+		u.divadap = adapter
+		return nil
 	}
-	switch divsr.numarg[prog] {
-	case 0:
-		divsr.nα = true
-		divsr.sv |= svα
-	case 1:
-		divsr.nβ = true
-		divsr.sv |= svβ
+	if name == "ra" {
+		if len(value) < 1 {
+			return fmt.Errorf("invalid switch %s", name)
+		}
+		adapter := int(value[0] - 'A')
+		if !(adapter >= 0 && adapter <= 2) {
+			return fmt.Errorf("invalid switch %s", name)
+		}
+		u.sradap = adapter
+		return nil
 	}
-	switch divsr.denarg[prog] {
-	case 0:
-		divsr.dα = true
-		divsr.su3 |= su3α
-	case 1:
-		divsr.dβ = true
-		divsr.su3 |= su3β
+	if len(name) < 3 {
+		return fmt.Errorf("invalid switch %s", name)
 	}
-}
-
-func doP() {
-	divsr.nγ = true
-	divsr.sv |= svγ
-	if samesign() {
-		divsr.ds = true
-		divsr.su3 |= su3S
-	} else {
-		divsr.da = true
-		divsr.su3 |= su3A
+	sw, _ := strconv.Atoi(name[2:])
+	if !(sw >= 1 && sw <= 8) {
+		return fmt.Errorf("invalid switch %s", name)
 	}
-}
-
-func doS() {
-	divsr.sα = true
-	divsr.su2 |= su2sα
-	divsr.nac = true
-	divsr.sv |= svA | svCLR
-	if !divsr.divff {
-		if samesign() {
-			divsr.m1 = true
+	switch name[:2] {
+	case "nr":
+		switch value {
+		case "α", "a", "alpha":
+			u.numarg[sw-1] = 0
+		case "β", "b", "beta":
+			u.numarg[sw-1] = 1
+		case "0":
+			u.numarg[sw-1] = 2
+		default:
+			return fmt.Errorf("invalid %s setting %s", name, value)
+		}
+	case "nc":
+		switch value {
+		case "C", "c":
+			u.numcl[sw-1] = 1
+		case "0":
+			u.numcl[sw-1] = 0
+		default:
+			return fmt.Errorf("invalid %s setting %s", name, value)
+		}
+	case "dr":
+		switch value {
+		case "α", "a", "alpha":
+			u.denarg[sw-1] = 0
+		case "β", "b", "beta":
+			u.denarg[sw-1] = 1
+		case "0":
+			u.denarg[sw-1] = 2
+		default:
+			return fmt.Errorf("invalid %s setting %s", name, value)
+		}
+	case "dc":
+		switch value {
+		case "C", "c":
+			u.dencl[sw-1] = 1
+		case "0":
+			u.dencl[sw-1] = 0
+		default:
+			return fmt.Errorf("invalid %s setting %s", name, value)
+		}
+	case "pl":
+		switch value {
+		case "D4", "d4":
+			u.places[sw-1] = 0
+		case "D7", "d7":
+			u.places[sw-1] = 1
+		case "D8", "d8":
+			u.places[sw-1] = 2
+		case "D9", "d9":
+			u.places[sw-1] = 3
+		case "D10", "d10":
+			u.places[sw-1] = 4
+		case "S4", "s4", "R4", "r4":
+			u.places[sw-1] = 5
+		case "S7", "s7", "R7", "r7":
+			u.places[sw-1] = 6
+		case "S8", "s8", "R8", "r8":
+			u.places[sw-1] = 7
+		case "S9", "s9", "R9", "r9":
+			u.places[sw-1] = 8
+		case "S10", "s10", "R10", "r10":
+			u.places[sw-1] = 9
+		default:
+			return fmt.Errorf("invalid %s setting %s", name, value)
+		}
+	case "ro":
+		switch value {
+		case "RO", "ro":
+			u.roundoff[sw-1] = 1
+		case "NRO", "nro":
+			u.roundoff[sw-1] = 0
+		default:
+			return fmt.Errorf("invalid switch %s", name)
+		}
+	case "an":
+		if value == "OFF" || value == "off" {
+			u.anssw[sw-1] = 4
 		} else {
-			divsr.p1 = true
+			anssw, _ := strconv.Atoi(value)
+			if !(anssw >= 1 && anssw <= 4) {
+				return fmt.Errorf("invalid switch %s", name)
+			}
+			u.anssw[sw-1] = anssw - 1
 		}
-		divsr.dpγ = true
-		divsr.su3 |= su3γ
+	case "il":
+		switch value {
+		case "i", "I":
+			u.ilocksw[sw-1] = 1
+		case "ni", "NI":
+			u.ilocksw[sw-1] = 0
+		default:
+			return fmt.Errorf("invalid switch %s", name)
+		}
+	default:
+		return fmt.Errorf("invalid switch %s", name)
 	}
-	p := divsr.places[divsr.curprog] % 5
+	return nil
+}
+
+func (u *Divsr) divargs(prog int) {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	u.preff[prog] = true
+	if u.places[prog] < 5 {
+		u.divff = true
+	} else {
+		u.divff = false
+	}
+	switch u.numarg[prog] {
+	case 0:
+		u.nα = true
+		u.sv |= svα
+	case 1:
+		u.nβ = true
+		u.sv |= svβ
+	}
+	switch u.denarg[prog] {
+	case 0:
+		u.dα = true
+		u.su3 |= su3α
+	case 1:
+		u.dβ = true
+		u.su3 |= su3β
+	}
+}
+
+func (u *Divsr) doP() {
+	u.nγ = true
+	u.sv |= svγ
+	if u.samesign() {
+		u.ds = true
+		u.su3 |= su3S
+	} else {
+		u.da = true
+		u.su3 |= su3A
+	}
+}
+
+func (u *Divsr) doS() {
+	u.sα = true
+	u.su2 |= su2sα
+	u.nac = true
+	u.sv |= svA | svCLR
+	if !u.divff {
+		if u.samesign() {
+			u.m1 = true
+		} else {
+			u.p1 = true
+		}
+		u.dpγ = true
+		u.su3 |= su3γ
+	}
+	p := u.places[u.curprog] % 5
 	if p == 0 {
 		p = 4
 	} else {
 		p += 6
 	}
-	if divsr.placering == p-2 { // Gate E6
-		divsr.psrcff = true
+	if u.placering == p-2 { // Gate E6
+		u.psrcff = true
 	}
 }
 
-func samesign() bool {
-	return divsr.denomff && divsr.numrmin || !divsr.denomff && divsr.numrplus
+func (u *Divsr) samesign() bool {
+	return u.denomff && u.numrmin || !u.denomff && u.numrplus
 }
 
-func overflow() bool {
-	s := Accstat(2)[4:]
-	return s[0] == 'P' && divsr.numrmin || s[0] == 'M' && divsr.numrplus
+func (u *Divsr) overflow() bool {
+	s := u.Io.Acc2Sign()
+	return s[0] == 'P' && u.numrmin || s[0] == 'M' && u.numrplus
 }
 
-func doGP(resp chan int) {
-	if divsr.coinff { // Gate E50
-		if divsr.ilocksw[divsr.curprog] == 0 || divsr.ilockff {
-			divsr.coinff = false
-			divsr.clrff = true
+func (u *Divsr) interlock() {
+	u.mu.Lock()
+	u.ilockff = true
+	u.mu.Unlock()
+}
+
+func (u *Divsr) doGP(resp chan int) {
+	if u.coinff { // Gate E50
+		if u.ilocksw[u.curprog] == 0 || u.ilockff {
+			u.coinff = false
+			u.clrff = true
 			return
 		}
-	} else if divsr.clrff {
-		divsr.progff[divsr.curprog] = false
-		Handshake(1, divsr.progout[divsr.curprog], resp)
-		if divsr.ilocksw[divsr.curprog] == 1 {
-			divsr.ilockff = false
+	} else if u.clrff {
+		u.progff[u.curprog] = false
+		Handshake(1, u.progout[u.curprog], resp)
+		if u.ilocksw[u.curprog] == 1 {
+			u.ilockff = false
 		}
 		/*
 		 * Implement the PX-4-114 adapters
 		 */
-		switch divsr.anssw[divsr.curprog] {
+		switch u.anssw[u.curprog] {
 		case 0:
-			divsr.ans1 = true
-			divsr.su2 |= su2qA
-			if divsr.divadap == 2 {
-				divsr.su2 |= su2qCLR
+			u.ans1 = true
+			u.su2 |= su2qA
+			if u.divadap == 2 {
+				u.su2 |= su2qCLR
 			}
 		case 1:
-			divsr.ans2 = true
-			switch divsr.divadap {
+			u.ans2 = true
+			switch u.divadap {
 			case 0:
-				divsr.su2 |= su2qA | su2qCLR
+				u.su2 |= su2qA | su2qCLR
 			case 1:
-				divsr.su2 |= su2qS
+				u.su2 |= su2qS
 			case 2:
-				divsr.su2 |= su2qS | su2qCLR
+				u.su2 |= su2qS | su2qCLR
 			}
 		case 2:
-			divsr.ans3 = true
-			divsr.su3 |= su3A
-			if divsr.sradap == 2 {
-				divsr.su3 |= su3CLR
+			u.ans3 = true
+			u.su3 |= su3A
+			if u.sradap == 2 {
+				u.su3 |= su3CLR
 			}
 		case 3:
-			divsr.ans4 = true
-			switch divsr.sradap {
+			u.ans4 = true
+			switch u.sradap {
 			case 0:
-				divsr.su3 |= su3A | su3CLR
+				u.su3 |= su3A | su3CLR
 			case 1:
-				divsr.su3 |= su3S
+				u.su3 |= su3S
 			case 2:
-				divsr.su3 |= su3S | su3CLR
+				u.su3 |= su3S | su3CLR
 			}
 		}
-		if divsr.numcl[divsr.curprog] == 1 {
-			Accclear(2)
+		if u.numcl[u.curprog] == 1 {
+			u.Io.Acc2Clear()
 		}
-		if divsr.dencl[divsr.curprog] == 1 {
-			Accclear(4)
+		if u.dencl[u.curprog] == 1 {
+			u.Io.Acc4Clear()
 		}
-		divintclear()
+		u.intclear()
 		return
 	}
-	if divsr.qα {
-		divsr.p1 = false
-		divsr.m1 = false
-		if overflow() { // Gates D9, D11, D12
-			doS()
+	if u.qα {
+		u.p1 = false
+		u.m1 = false
+		if u.overflow() { // Gates D9, D11, D12
+			u.doS()
 		} else {
-			doP()
+			u.doP()
 		}
-		divsr.qα = false
-		divsr.su2 &^= su2qα
-	} else if divsr.nγ { //  Gates L10, G11, H11
-		divsr.nγ = false
-		divsr.sv &^= svγ
-		if divsr.divff {
-			divsr.qα = true
-			divsr.su2 |= su2qα
-			if divsr.ds {
-				divsr.ds = false
-				divsr.su3 &^= su3S
-				divsr.p1 = true
-			} else if divsr.da {
-				divsr.da = false
-				divsr.su3 &^= su3A
-				divsr.m1 = true
+		u.qα = false
+		u.su2 &^= su2qα
+	} else if u.nγ { //  Gates L10, G11, H11
+		u.nγ = false
+		u.sv &^= svγ
+		if u.divff {
+			u.qα = true
+			u.su2 |= su2qα
+			if u.ds {
+				u.ds = false
+				u.su3 &^= su3S
+				u.p1 = true
+			} else if u.da {
+				u.da = false
+				u.su3 &^= su3A
+				u.m1 = true
 			}
 		} else {
-			divsr.dγ = true
-			divsr.su3 |= su3γ
-			if divsr.ds {
-				divsr.ds = false
-				divsr.su3 &^= su3S
-				divsr.p2 = true
-			} else if divsr.da {
-				divsr.da = false
-				divsr.su3 &^= su3A
-				divsr.m2 = true
+			u.dγ = true
+			u.su3 |= su3γ
+			if u.ds {
+				u.ds = false
+				u.su3 &^= su3S
+				u.p2 = true
+			} else if u.da {
+				u.da = false
+				u.su3 &^= su3A
+				u.m2 = true
 			}
 		}
-	} else if divsr.npγ { // Gate C9
-		divsr.npγ = false
-		divsr.sv &^= svγ
-		divsr.sac = false
-		divsr.su2 &^= su2sA | su2sCLR
-		divsr.m1 = false
-		divsr.p1 = false
-		divsr.dpγ = false
-		divsr.su3 &^= su3γ
-		doP()
-	} else if divsr.sα { // Gates K7, L1
-		divsr.sα = false
-		divsr.su2 &^= su2sα
-		divsr.nac = false
-		divsr.sv &^= svA | svCLR
-		divsr.sac = true
-		divsr.su2 |= su2sA | su2sCLR
-		divsr.npγ = true
-		divsr.sv |= svγ
-		divsr.numrplus, divsr.numrmin = divsr.numrmin, divsr.numrplus
-	} else if divsr.dγ {
-		divsr.dγ = false
-		divsr.su3 &^= su3γ
-		divsr.p2 = false
-		divsr.m2 = false
-		if overflow() {
-			doS()
+	} else if u.npγ { // Gate C9
+		u.npγ = false
+		u.sv &^= svγ
+		u.sac = false
+		u.su2 &^= su2sA | su2sCLR
+		u.m1 = false
+		u.p1 = false
+		u.dpγ = false
+		u.su3 &^= su3γ
+		u.doP()
+	} else if u.sα { // Gates K7, L1
+		u.sα = false
+		u.su2 &^= su2sα
+		u.nac = false
+		u.sv &^= svA | svCLR
+		u.sac = true
+		u.su2 |= su2sA | su2sCLR
+		u.npγ = true
+		u.sv |= svγ
+		u.numrplus, u.numrmin = u.numrmin, u.numrplus
+	} else if u.dγ {
+		u.dγ = false
+		u.su3 &^= su3γ
+		u.p2 = false
+		u.m2 = false
+		if u.overflow() {
+			u.doS()
 		} else {
-			doP()
+			u.doP()
 		}
 	}
-	switch divsr.progring {
+	switch u.progring {
 	case 0:
-		divsr.nα = false
-		divsr.nβ = false
-		divsr.sv &^= svα | svβ
-		divsr.dα = false
-		divsr.dβ = false
-		divsr.su3 &^= su3α | su3β
-		if !divsr.pringff {
-			divsr.progring++
+		u.nα = false
+		u.nβ = false
+		u.sv &^= svα | svβ
+		u.dα = false
+		u.dβ = false
+		u.su3 &^= su3α | su3β
+		if !u.pringff {
+			u.progring++
 		}
 	case 1: // Gate D6
-		s := Accstat(2)[4:]
+		s := u.Io.Acc2Sign()
 		if s[0] == 'M' {
-			divsr.numrplus, divsr.numrmin = divsr.numrmin, divsr.numrplus
+			u.numrplus, u.numrmin = u.numrmin, u.numrplus
 		}
-		s = Accstat(4)[4:]
+		s = u.Io.Acc4Sign()
 		if s[0] == 'M' {
-			divsr.denomff = true
+			u.denomff = true
 		}
-		if !divsr.pringff {
-			divsr.progring++
+		if !u.pringff {
+			u.progring++
 		}
 	case 2: // Gate A7, B7, B8
-		if divsr.divff {
-			doP()
-			divsr.pringff = true
-			divsr.progring = 0
+		if u.divff {
+			u.doP()
+			u.pringff = true
+			u.progring = 0
 		} else {
-			divsr.p1 = true
-			divsr.dγ = true
-			divsr.su3 |= su3γ
-			divsr.progring++
+			u.p1 = true
+			u.dγ = true
+			u.su3 |= su3γ
+			u.progring++
 		}
 	case 3:
-		divsr.p1 = false
-		divsr.dγ = false
-		divsr.su3 &^= su3γ
-		doP()
-		divsr.pringff = true
-		divsr.progring = 0
+		u.p1 = false
+		u.dγ = false
+		u.su3 &^= su3γ
+		u.doP()
+		u.pringff = true
+		u.progring = 0
 	}
 }
 
-func doIIIP() {
-	if divsr.npγ { // Gate C9
-		divsr.npγ = false
-		divsr.sv &^= svγ
-		divsr.sac = false
-		divsr.su2 &^= su2sA | su2sCLR
-		divsr.m1 = false
-		divsr.p1 = false
-		divsr.dpγ = false
-		divsr.su3 &^= su3γ
-	} else if divsr.sα {
-		divsr.sα = false
-		divsr.su2 &^= su2sα
-		divsr.nac = false
-		divsr.sv &^= svA | svCLR
-		divsr.sac = true
-		divsr.su2 |= su2sA | su2sCLR
-		divsr.npγ = true
-		divsr.sv |= svγ
-		if divsr.psrcff {
-			divsr.dpγ = false
-			divsr.su3 &^= su3γ
-			divsr.m1 = false
-			divsr.p1 = false
+func (u *Divsr) doIIIP() {
+	if u.npγ { // Gate C9
+		u.npγ = false
+		u.sv &^= svγ
+		u.sac = false
+		u.su2 &^= su2sA | su2sCLR
+		u.m1 = false
+		u.p1 = false
+		u.dpγ = false
+		u.su3 &^= su3γ
+	} else if u.sα {
+		u.sα = false
+		u.su2 &^= su2sα
+		u.nac = false
+		u.sv &^= svA | svCLR
+		u.sac = true
+		u.su2 |= su2sA | su2sCLR
+		u.npγ = true
+		u.sv |= svγ
+		if u.psrcff {
+			u.dpγ = false
+			u.su3 &^= su3γ
+			u.m1 = false
+			u.p1 = false
 		}
-		divsr.numrplus, divsr.numrmin = divsr.numrmin, divsr.numrplus
-	} else if divsr.qα {
-		divsr.qα = false
-		divsr.su2 &^= su2qα
-		divsr.m1 = false
-		divsr.p1 = false
-	} else if divsr.dγ {
-		divsr.dγ = false
-		divsr.su3 &^= su3γ
-		divsr.m2 = false
-		divsr.p2 = false
+		u.numrplus, u.numrmin = u.numrmin, u.numrplus
+	} else if u.qα {
+		u.qα = false
+		u.su2 &^= su2qα
+		u.m1 = false
+		u.p1 = false
+	} else if u.dγ {
+		u.dγ = false
+		u.su3 &^= su3γ
+		u.m2 = false
+		u.p2 = false
 	}
-	switch divsr.progring {
+	switch u.progring {
 	case 1:
-		doP()
+		u.doP()
 	case 6: // Gate D4
-		divsr.nγ = false
-		divsr.sv &^= svγ
-		divsr.da = false
-		divsr.ds = false
-		divsr.su3 &^= su3A | su3S
+		u.nγ = false
+		u.sv &^= svγ
+		u.da = false
+		u.ds = false
+		u.su3 &^= su3A | su3S
 	case 7: // Gate J13
-		if !overflow() && divsr.roundoff[divsr.curprog] == 1 { // Gate K12
-			if divsr.divff {
-				divsr.qα = true
-				divsr.su2 |= su2qα
-				if samesign() {
-					divsr.p1 = true
+		if !u.overflow() && u.roundoff[u.curprog] == 1 { // Gate K12
+			if u.divff {
+				u.qα = true
+				u.su2 |= su2qα
+				if u.samesign() {
+					u.p1 = true
 				} else {
-					divsr.m1 = true
+					u.m1 = true
 				}
 			} else {
-				divsr.dγ = true
-				divsr.su3 |= su3γ
-				if samesign() {
-					divsr.p2 = true
+				u.dγ = true
+				u.su3 |= su3γ
+				if u.samesign() {
+					u.p2 = true
 				} else {
-					divsr.m2 = true
+					u.m2 = true
 				}
 			}
 		}
 	case 8: // Gate E3. L50
-		divsr.psrcff = false
-		divsr.coinff = true
+		u.psrcff = false
+		u.coinff = true
 	}
-	divsr.progring++
+	u.progring++
 }
 
-func divpulse(p Pulse, resp chan int) {
+func (u *Divsr) clock(p Pulse, resp chan int) {
+	u.mu.Lock()
+	defer u.mu.Unlock()
 	switch {
 	case p.Val&Cpp != 0:
-		if divsr.progring == 0 {
-			divsr.ans1 = false
-			divsr.ans2 = false
-			divsr.ans3 = false
-			divsr.ans4 = false
-			divsr.su2 &^= su2qA | su2qS | su2qCLR
-			divsr.su3 &^= su3A | su3S | su3CLR
+		if u.progring == 0 {
+			u.ans1 = false
+			u.ans2 = false
+			u.ans3 = false
+			u.ans4 = false
+			u.su2 &^= su2qA | su2qS | su2qCLR
+			u.su3 &^= su3A | su3S | su3CLR
 		}
-		if divsr.curprog >= 0 {
-			if divsr.psrcff == false { // Gate F4
-				doGP(resp)
+		if u.curprog >= 0 {
+			if u.psrcff == false { // Gate F4
+				u.doGP(resp)
 			} else { // Gate F5
-				doIIIP()
+				u.doIIIP()
 			}
 		}
 	case p.Val&Rp != 0:
@@ -664,88 +794,89 @@ func divpulse(p Pulse, resp chan int) {
 		 * Ugly hack to avoid races
 		 */
 		for i := 0; i < 8; i++ {
-			if divsr.preff[i] {
-				divsr.preff[i] = false
-				divsr.progff[i] = true
-				divsr.curprog = i
+			if u.preff[i] {
+				u.preff[i] = false
+				u.progff[i] = true
+				u.curprog = i
 			}
 		}
-	case p.Val&Onep != 0 && divsr.p1 || p.Val&Twop != 0 && divsr.p2:
-		if divsr.placering < 9 {
-			Handshake(1<<uint(8-divsr.placering), divsr.answer, resp)
+	case p.Val&Onep != 0 && u.p1 || p.Val&Twop != 0 && u.p2:
+		if u.placering < 9 {
+			Handshake(1<<uint(8-u.placering), u.answer, resp)
 		}
-	case p.Val&Onep != 0 && divsr.m2 || p.Val&Twopp != 0 && divsr.m1:
-		Handshake(0x7ff, divsr.answer, resp)
-	case p.Val&Onep != 0 && divsr.m1 || p.Val&Twopp != 0 && divsr.m2:
-		if divsr.placering < 9 {
-			Handshake(0x7ff^(1<<uint(8-divsr.placering)), divsr.answer, resp)
+	case p.Val&Onep != 0 && u.m2 || p.Val&Twopp != 0 && u.m1:
+		Handshake(0x7ff, u.answer, resp)
+	case p.Val&Onep != 0 && u.m1 || p.Val&Twopp != 0 && u.m2:
+		if u.placering < 9 {
+			Handshake(0x7ff^(1<<uint(8-u.placering)), u.answer, resp)
 		} else {
-			Handshake(0x7ff, divsr.answer, resp)
+			Handshake(0x7ff, u.answer, resp)
 		}
-	case (p.Val&Fourp != 0 || p.Val&Twop != 0) && (divsr.m1 || divsr.m2):
-		Handshake(0x7ff, divsr.answer, resp)
+	case (p.Val&Fourp != 0 || p.Val&Twop != 0) && (u.m1 || u.m2):
+		Handshake(0x7ff, u.answer, resp)
 	case p.Val&Onepp != 0:
-		if divsr.m1 || divsr.m2 {
-			Handshake(1, divsr.answer, resp)
+		if u.m1 || u.m2 {
+			Handshake(1, u.answer, resp)
 		}
-		if divsr.psrcff == false && divsr.sα { // Gate L45
-			divsr.placering++
+		if u.psrcff == false && u.sα { // Gate L45
+			u.placering++
 		}
 	}
 }
 
-func Makedivpulse() ClockFunc {
+func (u *Divsr) MakeClockFunc() ClockFunc {
 	resp := make(chan int)
 	return func(p Pulse) {
-		divpulse(p, resp)
+		u.clock(p, resp)
 	}
 }
 
-func Divunit() {
-	divsr.divupdate = make(chan int)
-	go divunit2()
-	divintclear()
+func (u *Divsr) Run() {
+	u.intclear()
+	go u.readInputs()
 }
 
-func divunit2() {
+func (u *Divsr) readInputs() {
 	var p Pulse
 
 	for {
 		p.Resp = nil
 		select {
-		case <-divsr.divupdate:
-		case p = <-divsr.progin[0]:
-			divargs(0)
-		case p = <-divsr.progin[1]:
-			divargs(1)
-		case p = <-divsr.progin[2]:
-			divargs(2)
-		case p = <-divsr.progin[3]:
-			divargs(3)
-		case p = <-divsr.progin[4]:
-			divargs(4)
-		case p = <-divsr.progin[5]:
-			divargs(5)
-		case p = <-divsr.progin[6]:
-			divargs(6)
-		case p = <-divsr.progin[7]:
-			divargs(7)
-		case p = <-divsr.ilock[0]:
-			divsr.ilockff = true
-		case p = <-divsr.ilock[1]:
-			divsr.ilockff = true
-		case p = <-divsr.ilock[2]:
-			divsr.ilockff = true
-		case p = <-divsr.ilock[3]:
-			divsr.ilockff = true
-		case p = <-divsr.ilock[4]:
-			divsr.ilockff = true
-		case p = <-divsr.ilock[5]:
-			divsr.ilockff = true
-		case p = <-divsr.ilock[6]:
-			divsr.ilockff = true
-		case p = <-divsr.ilock[7]:
-			divsr.ilockff = true
+		case <-u.rewiring:
+			u.waitingForRewiring <- 1
+			<-u.rewiring
+		case p = <-u.progin[0]:
+			u.divargs(0)
+		case p = <-u.progin[1]:
+			u.divargs(1)
+		case p = <-u.progin[2]:
+			u.divargs(2)
+		case p = <-u.progin[3]:
+			u.divargs(3)
+		case p = <-u.progin[4]:
+			u.divargs(4)
+		case p = <-u.progin[5]:
+			u.divargs(5)
+		case p = <-u.progin[6]:
+			u.divargs(6)
+		case p = <-u.progin[7]:
+			u.divargs(7)
+		case p = <-u.ilock[0]:
+			u.interlock()
+		case p = <-u.ilock[1]:
+			u.interlock()
+		case p = <-u.ilock[2]:
+			u.interlock()
+		case p = <-u.ilock[3]:
+			u.interlock()
+		case p = <-u.ilock[4]:
+			u.interlock()
+		case p = <-u.ilock[5]:
+			u.interlock()
+		case p = <-u.ilock[6]:
+			u.interlock()
+		case p = <-u.ilock[7]:
+			u.interlock()
 		}
 		if p.Resp != nil {
 			p.Resp <- 1

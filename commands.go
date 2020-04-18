@@ -94,7 +94,7 @@ func doDump(f []string) {
 	case 'c':
 		fmt.Println(units.Consstat())
 	case 'd':
-		fmt.Println(units.Divsrstat2())
+		fmt.Println(divsr.Stat2())
 	case 'f':
 		unit, _ := strconv.Atoi(f[1][1:])
 		fmt.Println(units.Ftstat(unit - 1))
@@ -118,7 +118,7 @@ func doDumpAll() {
 		fmt.Print("   ")
 		fmt.Println(units.Accstat(i + 1))
 	}
-	fmt.Println(units.Divsrstat2())
+	fmt.Println(divsr.Stat2())
 	fmt.Println(units.Multstat())
 	for i := 0; i < 3; i++ {
 		fmt.Println(units.Ftstat(i))
@@ -221,7 +221,10 @@ func doPlugSide(side int, command string, f []string, p []string, ch chan Pulse)
 			fmt.Println("Divider jumper syntax: d.terminal")
 			return
 		}
-		units.Divsrplug(p[1], ch)
+		err := divsr.Plug(p[1], ch)
+		if err != nil {
+			fmt.Printf("Divider: %s\n", err)
+		}
 	case p[0] == "debug":
 		if side == 1 {
 			if len(p) != 2 {
@@ -301,7 +304,7 @@ func doReset(f []string) {
 	case "c":
 		units.Consreset()
 	case "d":
-		units.Divreset()
+		divsr.Reset()
 	case "f":
 		if len(p) != 2 {
 			fmt.Println("Function table reset syntax: r f.unit")
@@ -329,7 +332,7 @@ func doResetAll() {
 	for i := 0; i < 20; i++ {
 		units.Accreset(i)
 	}
-	units.Divreset()
+	divsr.Reset()
 	units.Multreset()
 	units.Consreset()
 	units.Prreset()
@@ -366,8 +369,11 @@ func doSwitch(command string, f []string) {
 	case p[0] == "d" || p[0] == "ds":
 		if len(p) != 2 {
 			fmt.Println("Divider switch syntax: s d.switch value")
-		} else {
-			divsw <- [2]string{p[1], f[2]}
+			break
+		}
+		err := divsr.Switch(p[1], f[2])
+		if err != nil {
+			fmt.Printf("Divider: %s\n", err)
 		}
 	case p[0][0] == 'f':
 		if len(p) != 2 {
@@ -389,7 +395,7 @@ func doSwitch(command string, f []string) {
 		}
 		err := mp.Switch(p[1], f[2])
 		if err != nil {
-			fmt.Printf("Programmer: %s", err)
+			fmt.Printf("Programmer: %s\n", err)
 		}
 	case p[0] == "pr":
 		if len(p) != 2 {

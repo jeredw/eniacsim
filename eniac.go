@@ -14,8 +14,9 @@ import (
 var cycle *units.Cycle
 var initiate *units.Initiate
 var mp *units.Mp
+var divsr *units.Divsr
 
-var conssw, multsw, divsw, prsw chan [2]string
+var conssw, multsw, prsw chan [2]string
 var accsw [20]chan [2]string
 var ftsw [3]chan [2]string
 var width, height int
@@ -49,13 +50,13 @@ func main() {
 		Ppunch:     ppunch,
 	})
 	mp = units.NewMp()
-	divsw = make(chan [2]string)
+	divsr = units.NewDivsr()
 	multsw = make(chan [2]string)
 	conssw = make(chan [2]string)
 	clockFuncs := []ClockFunc{
 		initiate.MakeClockFunc(),
 		mp.MakeClockFunc(),
-		units.Makedivpulse(),
+		divsr.MakeClockFunc(),
 		units.Makemultpulse(),
 		units.Makeconspulse(),
 	}
@@ -69,9 +70,8 @@ func main() {
 		clear := func(i int) func() { return func() { units.Accclear(i) } }(i)
 		clearFuncs = append(clearFuncs, clear)
 	}
-	clearFuncs = append(clearFuncs, units.Divclear)
+	clearFuncs = append(clearFuncs, func() { divsr.Clear() })
 	clearFuncs = append(clearFuncs, units.Multclear)
-	initiate.Io.ClearUnits = clearFuncs
 	for i := 0; i < 3; i++ {
 		ftsw[i] = make(chan [2]string)
 		clockFuncs = append(clockFuncs, units.Makeftpulse(i))
@@ -87,26 +87,34 @@ func main() {
 		TestButton:  NewButton(),
 		TestCycles:  *testCycles,
 	})
+	initiate.Io.ClearUnits = clearFuncs
 	initiate.Io.AddCycle = func() int { return cycle.AddCycle() }
 	initiate.Io.Stepping = func() bool { return cycle.Stepping() }
 	initiate.Io.Printer = units.PrConn{
 		MpStat: func() string { return mp.Stat() },
 	}
+	divsr.Io.Acc2Sign = func() string { return units.Accsign(2) }
+	divsr.Io.Acc2Clear = func() { units.Accclear(2) }
+	divsr.Io.Acc4Sign = func() string { return units.Accsign(4) }
+	divsr.Io.Acc4Clear = func() { units.Accclear(4) }
 
 	go units.Consctl(conssw)
-	go units.Divsrctl(divsw)
 	go units.Multctl(multsw)
 	go units.Prctl(prsw)
 
 	go initiate.Run()
 	go mp.Run()
 	go cycle.Run()
-	go units.Divunit()
+	go divsr.Run()
 	go units.Multunit()
 	go units.Consunit()
 	for i := 0; i < 20; i++ {
 		go units.Accctl(i, accsw[i])
-		go units.Accunit(i)
+		go units.Accunit(i, units.AccumulatorConn{
+			Sv:  func() int { return divsr.Sv() },
+			Su2: func() int { return divsr.Su2() },
+			Su3: func() int { return divsr.Su3() },
+		})
 	}
 	for i := 0; i < 3; i++ {
 		go units.Ftctl(i, ftsw[i])

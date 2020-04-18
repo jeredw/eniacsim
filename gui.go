@@ -696,7 +696,7 @@ func innergui() {
 			}
 		}
 		// Divider/Square Rooter
-		s = units.Divsrstat()
+		s = divsr.Stat()
 		if s != guistate.lastdiv {
 			p := strings.Split(s, " ")
 			plring, _ := strconv.Atoi(p[0])
