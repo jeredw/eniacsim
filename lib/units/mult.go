@@ -10,22 +10,22 @@ import (
 
 // Simulates ENIAC multiplier unit.
 type Multiplier struct {
-	Io	MultiplierConn
+	Io MultiplierConn
 
-	multin, multout [24]chan Pulse
-	R, D [5]chan Pulse
-	A, S, AS, AC, SC, ASC, RS, DS, F chan Pulse
-	lhppI, lhppII, rhppI, rhppII chan Pulse
-	stage int
-	multff [24]bool
+	multin, multout                                       [24]chan Pulse
+	R, D                                                  [5]chan Pulse
+	A, S, AS, AC, SC, ASC, RS, DS, F                      chan Pulse
+	lhppI, lhppII, rhppI, rhppII                          chan Pulse
+	stage                                                 int
+	multff                                                [24]bool
 	iersw, iercl, icandsw, icandcl, sigsw, placsw, prodsw [24]int
-	reset1ff, reset3ff bool
-	multl, multr bool
-	buffer61, f44 bool
-	ier, icand string
-	sigfig int
+	reset1ff, reset3ff                                    bool
+	multl, multr                                          bool
+	buffer61, f44                                         bool
+	ier, icand                                            string
+	sigfig                                                int
 
-	rewiring chan int
+	rewiring           chan int
 	waitingForRewiring chan int
 
 	mu sync.Mutex
@@ -33,10 +33,10 @@ type Multiplier struct {
 
 // Connections to other units.
 type MultiplierConn struct {
-	Acc8Clear	func()
-	Acc9Clear	func()
-	Acc8Value	func() string
-	Acc9Value	func() string
+	Acc8Clear func()
+	Acc9Clear func()
+	Acc8Value func() string
+	Acc9Value func() string
 }
 
 type pulseset struct {
@@ -86,7 +86,7 @@ var table1 [10][10]pulseset = [10][10]pulseset{{},
 
 func NewMultiplier() *Multiplier {
 	return &Multiplier{
-		rewiring: make(chan int),
+		rewiring:           make(chan int),
 		waitingForRewiring: make(chan int),
 	}
 }
@@ -381,8 +381,8 @@ func (u *Multiplier) shiftprod(lhpp, rhpp int, resp1, resp2, resp3, resp4 chan i
 }
 
 func (u *Multiplier) clock(c Pulse, resp1, resp2, resp3, resp4 chan int) {
-//	u.mu.Lock()
-//	defer u.mu.Unlock()
+	//	u.mu.Lock()
+	//	defer u.mu.Unlock()
 	switch {
 	case c.Val&Cpp != 0:
 		if u.f44 {

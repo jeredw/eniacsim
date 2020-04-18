@@ -54,13 +54,13 @@ func main() {
 	mp = units.NewMp()
 	divsr = units.NewDivsr()
 	multiplier = units.NewMultiplier()
-  constant = units.NewConstant()
+	constant = units.NewConstant()
 	clockFuncs := []ClockFunc{
 		initiate.MakeClockFunc(),
 		mp.MakeClockFunc(),
 		divsr.MakeClockFunc(),
 		multiplier.MakeClockFunc(),
-    constant.MakeClockFunc(),
+		constant.MakeClockFunc(),
 	}
 	clearFuncs := []func(){
 		func() { mp.Clear() },
@@ -91,7 +91,7 @@ func main() {
 	initiate.Io.ClearUnits = clearFuncs
 	initiate.Io.AddCycle = func() int { return cycle.AddCycle() }
 	initiate.Io.Stepping = func() bool { return cycle.Stepping() }
-  initiate.Io.ReadCard = func(s string) { constant.ReadCard(s) }
+	initiate.Io.ReadCard = func(s string) { constant.ReadCard(s) }
 	initiate.Io.Printer = units.PrConn{
 		MpStat: func() string { return mp.Stat() },
 	}
@@ -115,9 +115,9 @@ func main() {
 	for i := 0; i < 20; i++ {
 		go units.Accctl(i, accsw[i])
 		go units.Accunit(i, units.AccumulatorConn{
-			Sv:  func() int { return divsr.Sv() },
-			Su2: func() int { return divsr.Su2() },
-			Su3: func() int { return divsr.Su3() },
+			Sv:    func() int { return divsr.Sv() },
+			Su2:   func() int { return divsr.Su2() },
+			Su3:   func() int { return divsr.Su3() },
 			Multl: func() bool { return multiplier.Multl() },
 			Multr: func() bool { return multiplier.Multr() },
 		})

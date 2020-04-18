@@ -36,7 +36,7 @@ type InitiateConn struct {
 	InitButton Button
 	Ppunch     chan string
 	ClearUnits []func()
-  ReadCard   func(string)
+	ReadCard   func(string)
 
 	AddCycle func() int  // Return the current add cycle
 	Stepping func() bool // Return true iff single stepping

@@ -75,11 +75,11 @@ type Accumulator struct {
 }
 
 type AccumulatorConn struct {
-	Sv  func() int
-	Su2 func() int
-	Su3 func() int
-  Multl func() bool
-  Multr func() bool
+	Sv    func() int
+	Su2   func() int
+	Su3   func() int
+	Multl func() bool
+	Multr func() bool
 }
 
 var units [20]Accumulator
@@ -101,7 +101,7 @@ func Accvalue(unit int) string {
 	for i := 9; i >= 0; i-- {
 		s += fmt.Sprintf("%d", units[unit].val[i])
 	}
-  return s
+	return s
 }
 
 func Accstat(unit int) string {

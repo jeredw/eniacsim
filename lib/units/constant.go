@@ -11,24 +11,24 @@ import (
 
 // Simulates ENIAC constant transmitter unit.
 type Constant struct {
-	sel [30]int
-	card [8][10]byte
-	signcard [8][2]byte
-	j [10]byte
-	signj [2]byte
-	k [10]byte
-	signk [2]byte
-	out chan Pulse
-	pin [30]chan Pulse
+	sel          [30]int
+	card         [8][10]byte
+	signcard     [8][2]byte
+	j            [10]byte
+	signj        [2]byte
+	k            [10]byte
+	signk        [2]byte
+	out          chan Pulse
+	pin          [30]chan Pulse
 	inff1, inff2 [30]bool
-	pout [30]chan Pulse
+	pout         [30]chan Pulse
 
-	val []byte
-	sign byte
-	pos1pp int
+	val     []byte
+	sign    byte
+	pos1pp  int
 	whichrp bool
 
-	rewiring chan int
+	rewiring           chan int
 	waitingForRewiring chan int
 
 	mu sync.Mutex
@@ -36,7 +36,7 @@ type Constant struct {
 
 func NewConstant() *Constant {
 	return &Constant{
-		rewiring: make(chan int),
+		rewiring:           make(chan int),
 		waitingForRewiring: make(chan int),
 	}
 }
@@ -379,8 +379,8 @@ var digitcons = []int{0, Onep, Twop, (Onep | Twop), Fourp, (Onep | Fourp),
 	(Onep | Twop | Twopp | Fourp)}
 
 func (u *Constant) clock(p Pulse, resp chan int) {
-//	u.mu.Lock()
-//	defer u.mu.Unlock()
+	//	u.mu.Lock()
+	//	defer u.mu.Unlock()
 	sending := -1
 	for i := 0; i < 30; i++ {
 		if u.inff2[i] {
