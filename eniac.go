@@ -17,6 +17,7 @@ var mp *units.Mp
 var divsr *units.Divsr
 var multiplier *units.Multiplier
 var constant *units.Constant
+var printer *units.Printer
 
 var prsw chan [2]string
 var accsw [20]chan [2]string
@@ -55,6 +56,7 @@ func main() {
 	divsr = units.NewDivsr()
 	multiplier = units.NewMultiplier()
 	constant = units.NewConstant()
+	printer = units.NewPrinter()
 	clockFuncs := []ClockFunc{
 		initiate.MakeClockFunc(),
 		mp.MakeClockFunc(),
@@ -88,13 +90,19 @@ func main() {
 		TestButton:  NewButton(),
 		TestCycles:  *testCycles,
 	})
+	printer.Io.MpPrinterDecades = func() string { return mp.PrinterDecades() }
+	for i := 0; i < 20; i++ {
+		printer.Io.AccValue[i] = func(i int) func() string {
+			return func() string {
+				return units.Accvalue(i)
+			}
+		}(i)
+	}
 	initiate.Io.ClearUnits = clearFuncs
 	initiate.Io.AddCycle = func() int { return cycle.AddCycle() }
 	initiate.Io.Stepping = func() bool { return cycle.Stepping() }
 	initiate.Io.ReadCard = func(s string) { constant.ReadCard(s) }
-	initiate.Io.Printer = units.PrConn{
-		MpStat: func() string { return mp.Stat() },
-	}
+	initiate.Io.Print = func() string { return printer.Print() }
 	divsr.Io.Acc2Sign = func() string { return units.Accsign(2) }
 	divsr.Io.Acc2Clear = func() { units.Accclear(2) }
 	divsr.Io.Acc4Sign = func() string { return units.Accsign(4) }
@@ -103,8 +111,6 @@ func main() {
 	multiplier.Io.Acc8Value = func() string { return units.Accvalue(8) }
 	multiplier.Io.Acc9Clear = func() { units.Accclear(9) }
 	multiplier.Io.Acc9Value = func() string { return units.Accvalue(9) }
-
-	go units.Prctl(prsw)
 
 	go initiate.Run()
 	go mp.Run()

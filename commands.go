@@ -341,7 +341,7 @@ func doResetAll() {
 	divsr.Reset()
 	multiplier.Reset()
 	constant.Reset()
-	units.Prreset()
+	printer.Reset()
 	adreset()
 	trayreset()
 }
@@ -412,8 +412,11 @@ func doSwitch(command string, f []string) {
 	case p[0] == "pr":
 		if len(p) != 2 {
 			fmt.Println("Printer switch syntax: s pr.switch value")
-		} else {
-			prsw <- [2]string{p[1], f[2]}
+			break
+		}
+		err := printer.Switch(p[1], f[2])
+		if err != nil {
+			fmt.Printf("Printer: %s\n", err)
 		}
 	default:
 		fmt.Printf("unknown unit for switch: %s\n", p[0])

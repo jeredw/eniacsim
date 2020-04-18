@@ -70,6 +70,15 @@ func NewMp() *Mp {
 	}
 }
 
+func (u *Mp) PrinterDecades() string {
+	s := ""
+	// Printer is wired to decades #14-18 which are at indices 2-6
+	for i := 2; i <= 6; i++ {
+		s += fmt.Sprintf("%d", u.decade[i].val)
+	}
+	return s
+}
+
 func (u *Mp) Stat() string {
 	u.mu.Lock()
 	defer u.mu.Unlock()

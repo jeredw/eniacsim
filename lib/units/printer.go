@@ -1,132 +1,192 @@
 package units
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 )
 
-type PrConn struct {
-	MpStat func() string
+// Simulates the ENIAC printer.
+type Printer struct {
+	Io PrinterConn
+
+	printing [16]bool // Should the field print
+	coupling [16]bool // Treat the field as part of the next one
+
+	mu sync.Mutex
 }
 
-var prtsw = [32]int{0, 1, 0, 1, 0, 0, 1, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	1, 0, 1, 0, 1, 0, 1, 0}
-
-var blank = "     "
-
-func Prreset() {
-	for i := 0; i < 32; i++ {
-		prtsw[i] = 0
-	}
-	prtsw[1] = 1
-	prtsw[3] = 1
-	prtsw[6] = 1
-	prtsw[24] = 1
-	prtsw[26] = 1
-	prtsw[28] = 1
-	prtsw[30] = 1
+// Connections to printer.
+type PrinterConn struct {
+	MpPrinterDecades func() string
+	AccValue         [20]func() string
 }
 
-func doprint(io PrConn) (s string) {
-	var raw [9]string
-	var sgn [16]byte
+// Reset values for coupling switches - by default group digits from the same
+// origin unit.
+var couplingDefaults = [16]bool{
+	false, true, false, true, false, false, true, false,
+	true, false, true, false, true, false, true, false,
+}
 
-	raw[0] = io.MpStat()
-	for i := 1; i < 9; i++ {
-		raw[i] = Accstat(i + 11)
+func NewPrinter() *Printer {
+	return &Printer{
+		coupling: couplingDefaults,
 	}
-	p1 := raw[0][17:22]
-	sgn[0] = 'P'
-	p1 += raw[1][6:16]
-	sgn[1] = raw[1][4]
-	sgn[2] = raw[1][4]
-	p1 += raw[2][6:16]
-	sgn[3] = raw[2][4]
-	sgn[4] = raw[2][4]
-	p1 += raw[3][11:16]
-	sgn[5] = raw[3][4]
-	for i := 4; i < 9; i++ {
-		p1 += raw[i][6:16]
-		sgn[2*(i-4)+6] = raw[i][4]
-		sgn[2*(i-4)+7] = raw[i][4]
+}
+
+func (u *Printer) Reset() {
+	for i := range u.printing {
+		u.printing[i] = false
 	}
-	p2 := ""
-	st := 0
-	ed := 0
-	comb := 0
-	for fld := 0; fld < 16; fld++ {
-		if comb == 8 {
-			comb = 24
+	for i := range u.coupling {
+		u.coupling[i] = couplingDefaults[i]
+	}
+}
+
+// Print an 80-column punched card from groups of 5-digit fields.
+//
+// Groups are converted from signed magnitude to signed tens' complement for 80
+// col/12 row IBM cards.  Negative values are indicated by an 11 punch in any
+// column associated with a group.
+//     ______________________________________________
+//    /&-0123456789ABCDEFGHIJKLMNOPQR/STUVWXYZ
+//12|  x           xxxxxxxxx
+//11|   x                   xxxxxxxxx
+// 0|    x                           xxxxxxxxx
+// 1|     x        x        x        x
+// 2|      x        x        x        x
+// 3|       x        x        x        x
+// 4|        x        x        x        x
+// 5|         x        x        x        x
+// 6|          x        x        x        x
+// 7|           x        x        x        x
+// 8|            x        x        x        x
+// 9|             x        x        x        x
+//  |________________________________________________
+func (u *Printer) Print() string {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+
+	mpd := u.Io.MpPrinterDecades()
+	a13 := u.Io.AccValue[13-1]()
+	a14 := u.Io.AccValue[14-1]()
+	a15 := u.Io.AccValue[15-1]()
+	a16 := u.Io.AccValue[16-1]()
+	a17 := u.Io.AccValue[17-1]()
+	a18 := u.Io.AccValue[18-1]()
+	a19 := u.Io.AccValue[19-1]()
+	a20 := u.Io.AccValue[20-1]()
+
+	// digits will contain 80 digits (5 MP decades, a13, a14, a15[lo], a16-a20)
+	// and signs will contain 16 signs for the corresponding 5-digit fields.
+	digits := strings.Join([]string{
+		mpd, a13[2:12], a14[2:12], a15[7:12], a16[2:12],
+		a17[2:12], a18[2:12], a19[2:12], a20[2:12],
+	}, "")
+	signs := []byte{
+		'P', a13[0], a13[0], a14[0], a14[0], a15[0], a16[0], a16[0],
+		a17[0], a17[0], a18[0], a18[0], a19[0], a19[0], a20[0], a20[0],
+	}
+
+	// Group digit fields and convert to IBM card format.
+	ibmDigits := ""
+	groupStart := 0
+	groupEnd := 0
+	for i := 0; i < 16; i++ {
+		if !u.coupling[i] || i == 15 {
+			groupEnd = (i + 1) * 5
+			ibmDigits += toIBMCard(signs[i], digits[groupStart:groupEnd])
+			groupStart = groupEnd
 		}
-		if prtsw[comb] == 0 || fld == 15 {
-			ed = (fld + 1) * 5
-			if sgn[fld] == 'P' {
-				p2 += p1[st:ed]
-			} else {
-				p2 += sm2tenc(p1[st:ed])
-			}
-			st = ed
-		}
-		comb++
 	}
-	s = ""
-	for fld := 0; fld < 16; fld++ {
-		if prtsw[fld+8] == 0 {
-			s += blank
+	card := ""
+	for i := 0; i < 16; i++ {
+		if !u.printing[i] {
+			card += "     "
 		} else {
-			s += p2[5*fld : 5*(fld+1)]
+			card += ibmDigits[5*i : 5*(i+1)]
 		}
 	}
-	return
+	return card
 }
 
-func sm2tenc(s string) string {
-	var nz int
-
-	l := len(s)
-	for nz = l - 1; nz >= 0 && s[nz] == '0'; nz-- {
+func toIBMCard(sign byte, digits string) string {
+	if sign == 'P' {
+		return digits
 	}
-	if nz < 0 { // negative 0 is still 0
-		return s
-	} else if nz == 0 { // special case for 10's comp and 11-punch
-		return string('9'+1-s[0]-1+'J') + s[1:]
+
+	// The number is negative, so convert it to tens' complement with an 11-punch
+	// in the leftmost digit (see the diagram for Print).  In ASCII, a digit with
+	// an 11-punch is 'J' + (1 through 9).
+	var nz int // rightmost nonzero digit
+	for nz = len(digits) - 1; nz >= 0 && digits[nz] == '0'; nz-- {
+	}
+	if nz < 0 {
+		// negative 0 is still 0
+		return digits
+	} else if nz == 0 {
+		// special case for 10's comp and 11-punch
+		// -[123456789]000000... -> [RQPONMLKJ]000000...
+		return string('J'+'9'-digits[0]) + digits[1:]
 	} else {
-		sc := string('9' - s[0] - 1 + 'J')
+		sc := string('J' + '9' - digits[0] - 1)
 		if sc == "I" {
+			// 0 + 11-punch is an illegal encoding, so just use "-" which is 11-punch
+			// on its own.
 			sc = "-"
 		}
+		// 10^k - n = ((10^k-1) - n) + 1
 		for i := 1; i < nz; i++ {
-			sc += string('9' - s[i] + '0')
+			sc += string('0' + '9' - digits[i])
 		}
-		sc += string('9' + 1 - s[nz] + '0')
-		sc += s[nz+1:]
+		sc += string('0' + '9' - digits[nz] + 1)
+		sc += digits[nz+1:]
 		return sc
 	}
 }
 
-func Prctl(ch chan [2]string) {
-	for {
-		ctl := <-ch
-		n := strings.IndexRune(ctl[0], '-')
-		if n == -1 {
-			sw, _ := strconv.Atoi(ctl[0])
-			if ctl[1][0] == 'p' || ctl[1][0] == 'P' {
-				prtsw[sw+7] = 1
-			} else {
-				prtsw[sw+7] = 0
-			}
-		} else {
-			sw, _ := strconv.Atoi(ctl[0][:n])
-			offset := 0
-			if sw >= 9 {
-				offset = 16
-			}
-			if ctl[1] == "c" || ctl[1] == "C" {
-				prtsw[sw-1+offset] = 1
-			} else {
-				prtsw[sw-1+offset] = 0
-			}
+func (u *Printer) Switch(name, value string) error {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	if !strings.ContainsRune(name, '-') {
+		field, _ := strconv.Atoi(name)
+		if !(field >= 1 && field <= 16) {
+			return fmt.Errorf("invalid switch %s", name)
+		}
+		switch value {
+		case "p", "P":
+			u.printing[field-1] = true
+		case "0":
+			u.printing[field-1] = false
+		default:
+			return fmt.Errorf("invalid switch %s setting %s", name, value)
+		}
+	} else {
+		f := strings.Split(name, "-")
+		if len(f) != 2 {
+			return fmt.Errorf("invalid switch %s", name)
+		}
+		field1, _ := strconv.Atoi(f[0])
+		field2, _ := strconv.Atoi(f[1])
+		if !(field1 >= 1 && field1 <= 16) {
+			return fmt.Errorf("invalid switch %s", name)
+		}
+		if field1 == 16 && field2 == 1 {
+			return fmt.Errorf("16-1 switch is not implemented", name)
+		}
+		if field2 != field1+1 {
+			return fmt.Errorf("invalid switch %s", name)
+		}
+		switch value {
+		case "c", "C":
+			u.coupling[field1-1] = true
+		case "0":
+			u.coupling[field1-1] = false
+		default:
+			return fmt.Errorf("invalid switch %s setting %s", name, value)
 		}
 	}
+	return nil
 }

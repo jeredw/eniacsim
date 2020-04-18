@@ -31,12 +31,11 @@ type Initiate struct {
 
 // InitiateConn defines connections needed for the unit
 type InitiateConn struct {
-	Printer PrConn
-
 	InitButton Button
 	Ppunch     chan string
 	ClearUnits []func()
 	ReadCard   func(string)
+	Print      func() string
 
 	AddCycle func() int  // Return the current add cycle
 	Stepping func() bool // Return true iff single stepping
@@ -212,7 +211,7 @@ func (u *Initiate) clock(p Pulse, resp chan int) {
 		}
 		sincePrint := u.Io.AddCycle() - u.lastPrint
 		if u.printPhase1 && (stepping || sincePrint > MsToAddCycles(150)) {
-			s := doprint(u.Io.Printer)
+			s := u.Io.Print()
 			if u.punchWriter != nil {
 				u.punchWriter.WriteString(s)
 				u.punchWriter.WriteByte('\n')
