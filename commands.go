@@ -297,26 +297,9 @@ func doPlugSide(side int, command string, f []string, p []string, ch chan Pulse)
 			fmt.Printf("Programmer: %s\n", err)
 		}
 	case unicode.IsDigit(rune(p[0][0])):
-		hpos := strings.IndexByte(p[0], '-')
-		if hpos == -1 {
-			tray, _ := strconv.Atoi(p[0])
-			if tray < 1 {
-				fmt.Println("Invalid data trunk", p[0])
-				return
-			}
-			if side == 1 {
-				trunkxmit(0, tray-1, ch)
-			} else {
-				trunkrecv(0, tray-1, ch)
-			}
-		} else {
-			tray, _ := strconv.Atoi(p[0][:hpos])
-			line, _ := strconv.Atoi(p[0][hpos+1:])
-			if side == 1 {
-				trunkxmit(1, (tray-1)*11+line-1, ch)
-			} else {
-				trunkrecv(1, (tray-1)*11+line-1, ch)
-			}
+		err := trays.Plug(p[0], ch, output)
+		if err != nil {
+			fmt.Printf("Trays: %s\n", err)
 		}
 	default:
 		fmt.Println("Invalid jack spec: ", p)
@@ -350,14 +333,14 @@ func doReset(f []string) {
 	case "f":
 		if len(p) != 2 {
 			fmt.Println("Function table reset syntax: r f.unit")
-		} else {
-			unit, _ := strconv.Atoi(p[1])
-			if !(unit >= 1 && unit <= 3) {
-				fmt.Println("Invalid function table")
-				return
-			}
-			ft[unit-1].Reset()
+			return
 		}
+		unit, _ := strconv.Atoi(p[1])
+		if !(unit >= 1 && unit <= 3) {
+			fmt.Println("Invalid function table")
+			return
+		}
+		ft[unit-1].Reset()
 	case "i":
 		initiate.Reset()
 	case "m":
@@ -383,7 +366,7 @@ func doResetAll() {
 	constant.Reset()
 	printer.Reset()
 	adreset()
-	trayreset()
+	trays.Reset()
 }
 
 func doSwitch(command string, f []string) {
@@ -396,12 +379,12 @@ func doSwitch(command string, f []string) {
 	case p[0][0] == 'a':
 		if len(p) != 2 {
 			fmt.Println("Invalid accumulator switch:", command)
-			break
+			return
 		}
 		unit, _ := strconv.Atoi(p[0][1:])
 		if !(unit >= 1 && unit <= 20) {
 			fmt.Println("Invalid accumulator %s", p[0][1:])
-			break
+			return
 		}
 		err := accumulator[unit-1].Switch(p[1], f[2])
 		if err != nil {
@@ -410,7 +393,7 @@ func doSwitch(command string, f []string) {
 	case p[0] == "c":
 		if len(p) != 2 {
 			fmt.Println("Constant switch syntax: s c.switch value")
-			break
+			return
 		}
 		err := constant.Switch(p[1], f[2])
 		if err != nil {
@@ -419,13 +402,13 @@ func doSwitch(command string, f []string) {
 	case p[0] == "cy":
 		if len(p) != 2 {
 			fmt.Println("Cycling switch syntax: s cy.switch value")
-		} else {
-			cycle.Io.Switches <- [2]string{p[1], f[2]}
+			return
 		}
+		cycle.Io.Switches <- [2]string{p[1], f[2]}
 	case p[0] == "d" || p[0] == "ds":
 		if len(p) != 2 {
 			fmt.Println("Divider switch syntax: s d.switch value")
-			break
+			return
 		}
 		err := divsr.Switch(p[1], f[2])
 		if err != nil {
@@ -434,12 +417,12 @@ func doSwitch(command string, f []string) {
 	case p[0][0] == 'f':
 		if len(p) != 2 {
 			fmt.Println("Function table switch syntax: s funit.switch value", command)
-			break
+			return
 		}
 		unit, _ := strconv.Atoi(p[0][1:])
 		if !(unit >= 1 && unit <= 3) {
 			fmt.Println("Invalid function table")
-			break
+			return
 		}
 		err := ft[unit-1].Switch(p[1], f[2])
 		if err != nil {
@@ -448,7 +431,7 @@ func doSwitch(command string, f []string) {
 	case p[0] == "m":
 		if len(p) != 2 {
 			fmt.Println("Multiplier switch syntax: s m.switch value")
-			break
+			return
 		}
 		err := multiplier.Switch(p[1], f[2])
 		if err != nil {
@@ -466,7 +449,7 @@ func doSwitch(command string, f []string) {
 	case p[0] == "pr":
 		if len(p) != 2 {
 			fmt.Println("Printer switch syntax: s pr.switch value")
-			break
+			return
 		}
 		err := printer.Switch(p[1], f[2])
 		if err != nil {

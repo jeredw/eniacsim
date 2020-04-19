@@ -21,6 +21,7 @@ var printer *units.Printer
 var ft [3]*units.Ft
 var accumulator [20]*units.Accumulator
 var debugger *Debugger
+var trays *Trays
 
 var width, height int
 var demomode, tkkludge, usecontrol *bool
@@ -48,6 +49,7 @@ func main() {
 		go ctlstation()
 	}
 
+	trays = NewTrays()
 	debugger = NewDebugger()
 	cycle = units.NewCycle(units.CycleConn{
 		CycleButton: NewButton(),
