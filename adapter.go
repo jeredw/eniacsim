@@ -1,80 +1,118 @@
 package main
 
 import (
+	"fmt"
 	. "github.com/jeredw/eniacsim/lib"
+	"strconv"
 )
 
-var dpin [40]chan Pulse
-var dpout [40][11]chan Pulse
-var shiftin [40]chan Pulse
-var shiftout [40]chan Pulse
-var delin [40]chan Pulse
-var delout [40]chan Pulse
-var sdin [40]chan Pulse
-var sdout [40]chan Pulse
+type Adapters struct {
+	dp    [40]digitProgram
+	shift [40]shifter
+	del   [40]deleter
+	sd    [40]specialDigit
+}
 
-func adreset() {
+func NewAdapters() *Adapters {
+	return &Adapters{}
+}
+
+func (a *Adapters) Reset() {
 	for i := 0; i < 40; i++ {
-		dpin[i] = nil
+		a.dp[i].in = nil
 		for j := 0; j < 11; j++ {
-			dpout[i][j] = nil
+			a.dp[i].out[j] = nil
 		}
-		shiftin[i] = nil
-		shiftout[i] = nil
-		delin[i] = nil
-		delout[i] = nil
-		sdin[i] = nil
-		sdout[i] = nil
+		a.shift[i].in = nil
+		a.shift[i].out = nil
+		a.del[i].in = nil
+		a.del[i].out = nil
+		a.sd[i].in = nil
+		a.sd[i].out = nil
 	}
 }
 
-func adplug(ilk string, inout, which, param int, ch chan Pulse) {
+func (a *Adapters) Plug(ilk, id, param string, ch chan Pulse, output bool) error {
+	i, _ := strconv.Atoi(id)
+	if !(i >= 1 && i <= 40) {
+		return fmt.Errorf("invalid id %s", id)
+	}
+
 	switch ilk {
 	case "dp":
-		if inout == 0 {
-			dpin[which] = ch
-			go digitprog(dpin[which], which)
+		if output {
+			// ch is a digit channel such as a data trunk
+			a.dp[i].in = ch
+			go a.dp[i].run()
 		} else {
-			dpout[which][param-1] = ch
+			// ch is a control channel such as a program trunk
+			digit, _ := strconv.Atoi(param)
+			if !(digit >= 1 && digit <= 11) {
+				return fmt.Errorf("invalid digit %s", param)
+			}
+			a.dp[i].out[digit-1] = ch
 		}
 	case "s":
-		if inout == 0 {
-			shiftin[which] = ch
+		if output {
+			a.shift[i].in = ch
 		} else {
-			shiftout[which] = ch
+			a.shift[i].out = ch
 		}
-		if shiftin[which] != nil && shiftout[which] != nil {
-			go shifter(shiftin[which], shiftout[which], param)
+		amount, _ := strconv.Atoi(param)
+		if !(amount >= -10 && amount <= 10) {
+			return fmt.Errorf("invalid shift amount %s", param)
+		}
+		a.shift[i].amount = amount
+		if a.shift[i].in != nil && a.shift[i].out != nil {
+			go a.shift[i].run()
 		}
 	case "d":
-		if inout == 0 {
-			delin[which] = ch
+		if output {
+			a.del[i].in = ch
 		} else {
-			delout[which] = ch
+			a.del[i].out = ch
 		}
-		if delin[which] != nil && delout[which] != nil {
-			go deleter(delin[which], delout[which], param)
+		digit, _ := strconv.Atoi(param)
+		if !(digit >= -10 && digit <= 10) {
+			return fmt.Errorf("invalid digit %s", param)
+		}
+		a.del[i].digit = digit
+		if a.del[i].in != nil && a.del[i].out != nil {
+			go a.del[i].run()
 		}
 	case "sd":
-		if inout == 0 {
-			sdin[which] = ch
+		if output {
+			a.sd[i].in = ch
 		} else {
-			sdout[which] = ch
+			a.sd[i].out = ch
 		}
-		if sdin[which] != nil && sdout[which] != nil {
-			go specdig(sdin[which], sdout[which], uint(param))
+		digit, _ := strconv.Atoi(param)
+		if !(digit >= -10 && digit <= 10) {
+			return fmt.Errorf("invalid digit %s", param)
 		}
+		a.sd[i].digit = uint(digit)
+		if a.sd[i].in != nil && a.sd[i].out != nil {
+			go a.sd[i].run()
+		}
+	default:
+		return fmt.Errorf("invalid type %s", ilk)
 	}
+	return nil
 }
 
-func digitprog(in chan Pulse, which int) {
+type digitProgram struct {
+	in  chan Pulse
+	out [11]chan Pulse
+}
+
+// Emit program pulses when one or more digit positions activate.
+func (a *digitProgram) run() {
 	resp := make(chan int)
 	for {
-		d := <-in
+		d := <-a.in
 		for i := uint(0); i < 11; i++ {
-			if d.Val&(1<<i) != 0 && dpout[which][i] != nil {
-				dpout[which][i] <- Pulse{1, resp}
-				<-resp
+			if d.Val&(1<<i) != 0 {
+				Handshake(1, a.out[i], resp)
 			}
 		}
 		if d.Resp != nil {
@@ -83,55 +121,80 @@ func digitprog(in chan Pulse, which int) {
 	}
 }
 
-func shifter(in, out chan Pulse, shift int) {
+type shifter struct {
+	in     chan Pulse
+	out    chan Pulse
+	amount int
+}
+
+func (a *shifter) run() {
 	for {
-		d := <-in
-		if shift >= 0 {
-			d.Val = (d.Val & (1 << 10)) | ((d.Val << uint(shift)) & ((1 << 10) - 1))
-		} else {
-			x := d.Val >> uint(-shift)
-			if d.Val&(1<<10) != 0 {
-				d.Val = x | (((1 << 11) - 1) & ^((1 << uint(11+shift)) - 1))
-			} else {
-				d.Val = x
-			}
-		}
+		d := <-a.in
+		d.Val = shift(d.Val, a.amount)
 		if d.Val != 0 {
-			out <- d
+			a.out <- d
 		} else if d.Resp != nil {
 			d.Resp <- 1
 		}
 	}
 }
 
-func deleter(in, out chan Pulse, which int) {
+func shift(value int, amount int) int {
+	if amount >= 0 {
+		// Shift left by `shift` digits preserving sign
+		return (value & 0b1_00000_00000) | ((value << uint(amount)) & 0b0_11111_11111)
+	}
+	// Shift right by `shift` digits filling new leftmost digits with sign.
+	x := value >> uint(-amount)
+	if value&0b1_00000_00000 != 0 {
+		// 11+amount: sign has already filled top digit
+		return x | (0b1_11111_11111 & ^((1 << uint(11+amount)) - 1))
+	}
+	return x
+}
+
+type deleter struct {
+	in    chan Pulse
+	out   chan Pulse
+	digit int
+}
+
+func (a *deleter) run() {
 	for {
-		d := <-in
-		if which >= 0 {
-			d.Val &= ^((1 << uint(10-which)) - 1)
+		d := <-a.in
+		if a.digit >= 0 {
+			// Keep leftmost `digit` digits (leaving sign alone)
+			d.Val &= ^((1 << uint(10-a.digit)) - 1)
 		} else {
-			d.Val &= (1 << uint(10+which)) - 1
+			// Zero leftmost `digit` digits (as well as sign)
+			d.Val &= (1 << uint(10+a.digit)) - 1
 		}
 		if d.Val != 0 {
-			out <- d
+			a.out <- d
 		} else if d.Resp != nil {
 			d.Resp <- 1
 		}
 	}
 }
 
-func specdig(in, out chan Pulse, which uint) {
+type specialDigit struct {
+	in    chan Pulse
+	out   chan Pulse
+	digit uint
+}
+
+func (a *specialDigit) run() {
 	for {
-		d := <-in
-		x := d.Val >> which
+		d := <-a.in
+		x := d.Val >> a.digit
 		mask := 0x07fc
 		if d.Val&(1<<10) != 0 {
 			d.Val = x | mask
 		} else {
 			d.Val = x & ^mask
 		}
-		if d.Val != 0 && out != nil {
-			out <- d
+		if d.Val != 0 && a.out != nil {
+			a.out <- d
 		} else if d.Resp != nil {
 			d.Resp <- 1
 		}

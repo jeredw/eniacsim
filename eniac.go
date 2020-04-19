@@ -22,6 +22,7 @@ var ft [3]*units.Ft
 var accumulator [20]*units.Accumulator
 var debugger *Debugger
 var trays *Trays
+var adapters *Adapters
 
 var width, height int
 var demomode, tkkludge, usecontrol *bool
@@ -50,6 +51,7 @@ func main() {
 	}
 
 	trays = NewTrays()
+	adapters = NewAdapters()
 	debugger = NewDebugger()
 	cycle = units.NewCycle(units.CycleConn{
 		CycleButton: NewButton(),

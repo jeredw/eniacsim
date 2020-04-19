@@ -89,7 +89,7 @@ func doDump(f []string) {
 	case 'a':
 		unit, _ := strconv.Atoi(f[1][1:])
 		if !(unit >= 1 && unit <= 20) {
-			fmt.Println("Invalid accumulator %s", f[1][1:])
+			fmt.Printf("Invalid accumulator %s\n", f[1][1:])
 			return
 		}
 		fmt.Println(accumulator[unit-1].Stat())
@@ -102,7 +102,7 @@ func doDump(f []string) {
 	case 'f':
 		unit, _ := strconv.Atoi(f[1][1:])
 		if !(unit >= 1 && unit <= 3) {
-			fmt.Println("Invalid function table %s", f[1][1:])
+			fmt.Printf("Invalid function table %s\n", f[1][1:])
 			return
 		}
 		fmt.Println(ft[unit-1].Stat())
@@ -210,12 +210,13 @@ func doPlugSide(side int, command string, f []string, p []string, ch chan Pulse)
 	switch {
 	case p[0] == "ad":
 		if len(p) != 4 {
-			fmt.Println("Adapter jumper syntax: ad.ilk.unit.param")
+			fmt.Println("Adapter jumper syntax: ad.<type>.<id>.param")
 			return
 		}
-		unit, _ := strconv.Atoi(p[2])
-		param, _ := strconv.Atoi(p[3])
-		adplug(p[1], 1-side, unit-1, param, ch)
+		err := adapters.Plug(p[1], p[2], p[3], ch, output)
+		if err != nil {
+			fmt.Printf("Adapter: %s\n", err)
+		}
 	case p[0][0] == 'a':
 		if len(p) != 2 {
 			fmt.Println("Accumulator jumper syntax: aunit.terminal")
@@ -266,7 +267,7 @@ func doPlugSide(side int, command string, f []string, p []string, ch chan Pulse)
 		}
 		unit, _ := strconv.Atoi(p[0][1:])
 		if !(unit >= 1 && unit <= 3) {
-			fmt.Println("Invalid function table %s", p[0][1:])
+			fmt.Printf("Invalid function table %s\n", p[0][1:])
 			return
 		}
 		err := ft[unit-1].Plug(p[1], ch, output)
@@ -365,7 +366,7 @@ func doResetAll() {
 	multiplier.Reset()
 	constant.Reset()
 	printer.Reset()
-	adreset()
+	adapters.Reset()
 	trays.Reset()
 }
 
@@ -383,7 +384,7 @@ func doSwitch(command string, f []string) {
 		}
 		unit, _ := strconv.Atoi(p[0][1:])
 		if !(unit >= 1 && unit <= 20) {
-			fmt.Println("Invalid accumulator %s", p[0][1:])
+			fmt.Printf("Invalid accumulator %s\n", p[0][1:])
 			return
 		}
 		err := accumulator[unit-1].Switch(p[1], f[2])
@@ -467,12 +468,12 @@ func doSet(f []string) {
 	}
 	unit, _ := strconv.Atoi(f[1][1:])
 	if !(unit >= 1 && unit <= 20) {
-		fmt.Println("Invalid accumulator %s", f[1][1:])
+		fmt.Printf("Invalid accumulator %s\n", f[1][1:])
 		return
 	}
 	value, err := strconv.ParseInt(f[2], 10, 64)
 	if err != nil {
-		fmt.Println("Invalid accumulator value %s", err)
+		fmt.Printf("Invalid accumulator value %s\n", err)
 		return
 	}
 	accumulator[unit-1].Set(value)
