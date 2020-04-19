@@ -4,13 +4,15 @@ import (
 	"fmt"
 	. "github.com/jeredw/eniacsim/lib"
 	"strconv"
+	"strings"
 )
 
 type Adapters struct {
-	dp    [40]digitProgram
-	shift [40]shifter
-	del   [40]deleter
-	sd    [40]specialDigit
+	dp      [40]digitProgram
+	shift   [40]shifter
+	del     [40]deleter
+	sd      [40]specialDigit
+	permute [40]permuter
 }
 
 func NewAdapters() *Adapters {
@@ -93,6 +95,26 @@ func (a *Adapters) Plug(ilk, id, param string, ch chan Pulse, output bool) error
 		a.sd[i].digit = uint(digit)
 		if a.sd[i].in != nil && a.sd[i].out != nil {
 			go a.sd[i].run()
+		}
+	case "permute":
+		if output {
+			a.permute[i].in = ch
+		} else {
+			a.permute[i].out = ch
+		}
+		order := strings.Split(param, ",")
+		if len(order) != 11 {
+			return fmt.Errorf("ad.permute usage: ad.permute.1.11,10,9,8,7,6,5,4,3,2,1")
+		}
+		for j := range order {
+			pos, _ := strconv.Atoi(order[j])
+			if !(pos >= 0 && pos <= 11) {
+				return fmt.Errorf("invalid digit field in permutation")
+			}
+			a.permute[i].order[j] = pos
+		}
+		if a.permute[i].in != nil && a.permute[i].out != nil {
+			go a.permute[i].run()
 		}
 	default:
 		return fmt.Errorf("invalid type %s", ilk)
@@ -193,6 +215,34 @@ func (a *specialDigit) run() {
 		} else {
 			d.Val = x & ^mask
 		}
+		if d.Val != 0 && a.out != nil {
+			a.out <- d
+		} else if d.Resp != nil {
+			d.Resp <- 1
+		}
+	}
+}
+
+// Permute adapters permute and optionally duplicate or delete digits.
+// ad.permute.1.11,10,9,8,7,6,5,4,3,2,1  identity
+// ad.permute.1.0,10,9,8,7,6,5,4,3,2,1   delete sign
+type permuter struct {
+	in    chan Pulse
+	out   chan Pulse
+	order [11]int
+}
+
+func (a *permuter) run() {
+	for {
+		d := <-a.in
+		permuted := 0
+		for i := 0; i < 11; i++ {
+			digit := a.order[i]
+			if digit != 0 && d.Val&(1<<(digit-1)) != 0 {
+				permuted |= 1 << (10 - i)
+			}
+		}
+		d.Val = permuted
 		if d.Val != 0 && a.out != nil {
 			a.out <- d
 		} else if d.Resp != nil {
