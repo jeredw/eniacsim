@@ -19,8 +19,8 @@ var multiplier *units.Multiplier
 var constant *units.Constant
 var printer *units.Printer
 var ft [3]*units.Ft
+var accumulator [20]*units.Accumulator
 
-var accsw [20]chan [2]string
 var width, height int
 var demomode, tkkludge, usecontrol *bool
 
@@ -65,7 +65,10 @@ func main() {
 	constant = units.NewConstant()
 	printer = units.NewPrinter()
 	for i := 0; i < 3; i++ {
-		ft[i] = units.NewFt()
+		ft[i] = units.NewFt(i)
+	}
+	for i := 0; i < 20; i++ {
+		accumulator[i] = units.NewAccumulator(i)
 	}
 
 	clockFuncs := []ClockFunc{
@@ -75,19 +78,23 @@ func main() {
 		multiplier.MakeClockFunc(),
 		constant.MakeClockFunc(),
 	}
+	for i := 0; i < 20; i++ {
+		clockFuncs = append(clockFuncs, accumulator[i].MakeClockFunc())
+	}
+	for i := 0; i < 3; i++ {
+		clockFuncs = append(clockFuncs, ft[i].MakeClockFunc())
+	}
 	clearFuncs := []func(){
 		func() { mp.Clear() },
 	}
 	for i := 0; i < 20; i++ {
-		accsw[i] = make(chan [2]string)
-		clockFuncs = append(clockFuncs, units.Makeaccpulse(i))
-		clear := func(i int) func() { return func() { units.Accclear(i) } }(i)
-		clearFuncs = append(clearFuncs, clear)
+		clearFuncs = append(clearFuncs, func(i int) func() {
+			return func() {
+				accumulator[i].Clear()
+			}
+		}(i))
 	}
 	clearFuncs = append(clearFuncs, func() { divsr.Clear() })
-	for i := 0; i < 3; i++ {
-		clockFuncs = append(clockFuncs, ft[i].MakeClockFunc())
-	}
 
 	cycle.Io.Units = clockFuncs
 	cycle.Io.Clear = func() bool { return initiate.ShouldClear() }
@@ -96,21 +103,26 @@ func main() {
 	initiate.Io.Stepping = func() bool { return cycle.Stepping() }
 	initiate.Io.ReadCard = func(s string) { constant.ReadCard(s) }
 	initiate.Io.Print = func() string { return printer.Print() }
-	divsr.Io.Acc2Sign = func() string { return units.Accsign(2) }
-	divsr.Io.Acc2Clear = func() { units.Accclear(2) }
-	divsr.Io.Acc4Sign = func() string { return units.Accsign(4) }
-	divsr.Io.Acc4Clear = func() { units.Accclear(4) }
-	multiplier.Io.Acc8Clear = func() { units.Accclear(8) }
-	multiplier.Io.Acc8Value = func() string { return units.Accvalue(8) }
-	multiplier.Io.Acc9Clear = func() { units.Accclear(9) }
-	multiplier.Io.Acc9Value = func() string { return units.Accvalue(9) }
+	divsr.Io.A2Sign = func() string { return accumulator[2].Sign() }
+	divsr.Io.A2Clear = func() { accumulator[2].Clear() }
+	divsr.Io.A4Sign = func() string { return accumulator[4].Sign() }
+	divsr.Io.A4Clear = func() { accumulator[4].Clear() }
+	multiplier.Io.A8Clear = func() { accumulator[8].Clear() }
+	multiplier.Io.A8Value = func() string { return accumulator[8].Value() }
+	multiplier.Io.A9Clear = func() { accumulator[9].Clear() }
+	multiplier.Io.A9Value = func() string { return accumulator[9].Value() }
 	printer.Io.MpPrinterDecades = func() string { return mp.PrinterDecades() }
 	for i := 0; i < 20; i++ {
 		printer.Io.AccValue[i] = func(i int) func() string {
 			return func() string {
-				return units.Accvalue(i)
+				return accumulator[i].Value()
 			}
 		}(i)
+		accumulator[i].Io.Sv = func() int { return divsr.Sv() }
+		accumulator[i].Io.Su2 = func() int { return divsr.Su2() }
+		accumulator[i].Io.Su3 = func() int { return divsr.Su3() }
+		accumulator[i].Io.Multl = func() bool { return multiplier.Multl() }
+		accumulator[i].Io.Multr = func() bool { return multiplier.Multr() }
 	}
 
 	go initiate.Run()
@@ -120,14 +132,7 @@ func main() {
 	go multiplier.Run()
 	go constant.Run()
 	for i := 0; i < 20; i++ {
-		go units.Accctl(i, accsw[i])
-		go units.Accunit(i, units.AccumulatorConn{
-			Sv:    func() int { return divsr.Sv() },
-			Su2:   func() int { return divsr.Su2() },
-			Su3:   func() int { return divsr.Su3() },
-			Multl: func() bool { return multiplier.Multl() },
-			Multr: func() bool { return multiplier.Multr() },
-		})
+		go accumulator[i].Run()
 	}
 	for i := 0; i < 3; i++ {
 		go ft[i].Run()

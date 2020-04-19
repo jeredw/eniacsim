@@ -103,7 +103,7 @@ s a9.rp5 1
 s a9.cc5 C
 p 3-10 a10.5i
 s a10.op5 ε
-s a10.rp5 15
+s a10.rp5 1
 s a10.cc5 C
 
 # Initialization

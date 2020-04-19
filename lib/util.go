@@ -15,9 +15,9 @@ func MsToAddCycles(ms int) int {
 	return ms * 5000 / 1000
 }
 
-func SafePlug(jackName string, jack *chan Pulse, ch chan Pulse) {
-	if *jack != nil {
-		fmt.Printf("warning: multiple connections on %s\n", jackName)
+func SafePlug(jackName string, jack *chan Pulse, ch chan Pulse, output bool) {
+	if *jack != nil && output {
+		fmt.Printf("warning: multiple connections on output %s\n", jackName)
 	}
 	*jack = ch
 }

@@ -80,7 +80,7 @@ func (u *Constant) Reset() {
 	u.out = nil
 }
 
-func (u *Constant) Plug(jack string, ch chan Pulse) error {
+func (u *Constant) Plug(jack string, ch chan Pulse, output bool) error {
 	u.rewiring <- 1
 	<-u.waitingForRewiring
 	defer func() { u.rewiring <- 1 }()
@@ -88,7 +88,7 @@ func (u *Constant) Plug(jack string, ch chan Pulse) error {
 	defer u.mu.Unlock()
 	name := "c." + jack
 	if jack == "o" {
-		SafePlug(name, &u.out, ch)
+		SafePlug(name, &u.out, ch, output)
 	} else {
 		var prog int
 		var ilk rune
@@ -98,9 +98,9 @@ func (u *Constant) Plug(jack string, ch chan Pulse) error {
 		}
 		switch ilk {
 		case 'i':
-			SafePlug(name, &u.pin[prog-1], ch)
+			SafePlug(name, &u.pin[prog-1], ch, output)
 		case 'o':
-			SafePlug(name, &u.pout[prog-1], ch)
+			SafePlug(name, &u.pout[prog-1], ch, output)
 		default:
 			return fmt.Errorf("invalid jack %s", name)
 		}

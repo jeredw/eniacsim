@@ -661,7 +661,7 @@ func innergui() {
 		}
 		// Accumulators
 		for i := 1; i <= 20; i++ {
-			s = units.Accstat(i - 1)[4:]
+			s = accumulator[i-1].Stat()
 			if s != guistate.lastacc[i-1] {
 				p := strings.Split(s, " ")
 				if p[0][0] == 'P' {

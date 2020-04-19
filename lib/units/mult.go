@@ -33,10 +33,10 @@ type Multiplier struct {
 
 // Connections to other units.
 type MultiplierConn struct {
-	Acc8Clear func()
-	Acc9Clear func()
-	Acc8Value func() string
-	Acc9Value func() string
+	A8Clear func()
+	A9Clear func()
+	A8Value func() string
+	A9Value func() string
 }
 
 type pulseset struct {
@@ -171,63 +171,63 @@ func (u *Multiplier) Reset() {
 	u.rewiring <- 1
 }
 
-func (u *Multiplier) Plug(jack string, ch chan Pulse) error {
+func (u *Multiplier) Plug(jack string, ch chan Pulse, output bool) error {
 	if len(jack) == 0 {
 		return fmt.Errorf("invalid jack")
 	}
-	u.mu.Lock()
-	defer u.mu.Unlock()
 	u.rewiring <- 1
 	<-u.waitingForRewiring
 	defer func() { u.rewiring <- 1 }()
+	u.mu.Lock()
+	defer u.mu.Unlock()
 	name := "m." + jack
 	switch jack {
 	case "Rα", "Ra", "rα", "ra":
-		SafePlug(name, &u.R[0], ch)
+		SafePlug(name, &u.R[0], ch, output)
 	case "Rβ", "Rb", "rβ", "rb":
-		SafePlug(name, &u.R[1], ch)
+		SafePlug(name, &u.R[1], ch, output)
 	case "Rγ", "Rg", "rγ", "rg":
-		SafePlug(name, &u.R[2], ch)
+		SafePlug(name, &u.R[2], ch, output)
 	case "Rδ", "Rd", "rδ", "rd":
-		SafePlug(name, &u.R[3], ch)
+		SafePlug(name, &u.R[3], ch, output)
 	case "Rε", "Re", "rε", "re":
-		SafePlug(name, &u.R[4], ch)
+		SafePlug(name, &u.R[4], ch, output)
 	case "Dα", "Da", "dα", "da":
-		SafePlug(name, &u.D[0], ch)
+		SafePlug(name, &u.D[0], ch, output)
 	case "Dβ", "Db", "dβ", "db":
-		SafePlug(name, &u.D[1], ch)
+		SafePlug(name, &u.D[1], ch, output)
 	case "Dγ", "Dg", "dγ", "dg":
-		SafePlug(name, &u.D[2], ch)
+		SafePlug(name, &u.D[2], ch, output)
 	case "Dδ", "Dd", "dδ", "dd":
-		SafePlug(name, &u.D[3], ch)
+		SafePlug(name, &u.D[3], ch, output)
 	case "Dε", "De", "dε", "de":
-		SafePlug(name, &u.D[4], ch)
+		SafePlug(name, &u.D[4], ch, output)
 	case "A", "a":
-		SafePlug(name, &u.A, ch)
+		SafePlug(name, &u.A, ch, output)
 	case "S", "s":
-		SafePlug(name, &u.S, ch)
+		SafePlug(name, &u.S, ch, output)
 	case "AS", "as":
-		SafePlug(name, &u.AS, ch)
+		SafePlug(name, &u.AS, ch, output)
 	case "AC", "ac":
-		SafePlug(name, &u.AC, ch)
+		SafePlug(name, &u.AC, ch, output)
 	case "SC", "sc":
-		SafePlug(name, &u.SC, ch)
+		SafePlug(name, &u.SC, ch, output)
 	case "ASC", "asc":
-		SafePlug(name, &u.ASC, ch)
+		SafePlug(name, &u.ASC, ch, output)
 	case "RS", "rs":
-		SafePlug(name, &u.RS, ch)
+		SafePlug(name, &u.RS, ch, output)
 	case "DS", "ds":
-		SafePlug(name, &u.DS, ch)
+		SafePlug(name, &u.DS, ch, output)
 	case "F", "f":
-		SafePlug(name, &u.F, ch)
+		SafePlug(name, &u.F, ch, output)
 	case "LHPPI", "lhppi", "lhppI":
-		SafePlug(name, &u.lhppI, ch)
+		SafePlug(name, &u.lhppI, ch, output)
 	case "LHPPII", "lhppii", "lhppII":
-		SafePlug(name, &u.lhppII, ch)
+		SafePlug(name, &u.lhppII, ch, output)
 	case "RHPPI", "rhppi", "rhppI":
-		SafePlug(name, &u.rhppI, ch)
+		SafePlug(name, &u.rhppI, ch, output)
 	case "RHPPII", "rhppii", "rhppII":
-		SafePlug(name, &u.rhppII, ch)
+		SafePlug(name, &u.rhppII, ch, output)
 	default:
 		prog, err := strconv.Atoi(jack[:len(jack)-1])
 		if err != nil {
@@ -238,9 +238,9 @@ func (u *Multiplier) Plug(jack string, ch chan Pulse) error {
 		}
 		switch jack[len(jack)-1] {
 		case 'i':
-			SafePlug(name, &u.multin[prog-1], ch)
+			SafePlug(name, &u.multin[prog-1], ch, output)
 		case 'o':
-			SafePlug(name, &u.multout[prog-1], ch)
+			SafePlug(name, &u.multout[prog-1], ch, output)
 		default:
 			return fmt.Errorf("invalid jack %s", jack)
 		}
@@ -452,10 +452,10 @@ func (u *Multiplier) clock(c Pulse, resp1, resp2, resp3, resp4 chan int) {
 			}
 		}
 		if u.iercl[which] == 1 {
-			u.Io.Acc8Clear()
+			u.Io.A8Clear()
 		}
 		if u.icandcl[which] == 1 {
-			u.Io.Acc9Clear()
+			u.Io.A9Clear()
 		}
 	case c.Val&Onep != 0 && u.stage == 1:
 		u.multl = true
@@ -478,8 +478,8 @@ func (u *Multiplier) clock(c Pulse, resp1, resp2, resp3, resp4 chan int) {
 			Handshake(1<<uint(u.sigfig-1), u.lhppI, resp1)
 		}
 	case c.Val&Onep != 0 && u.stage >= 2 && u.stage < 12:
-		u.ier = u.Io.Acc8Value()
-		u.icand = u.Io.Acc9Value()
+		u.ier = u.Io.A8Value()
+		u.icand = u.Io.A9Value()
 		lhpp := 0
 		rhpp := 0
 		for i := 0; i < 10; i++ {

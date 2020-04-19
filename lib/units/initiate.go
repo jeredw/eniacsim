@@ -23,8 +23,8 @@ type Initiate struct {
 	cardScanner *bufio.Scanner
 	punchWriter *bufio.Writer
 
-	update           chan int
-	waitingForUpdate chan int
+	rewiring           chan int
+	waitingForRewiring chan int
 
 	mu sync.Mutex
 }
@@ -43,9 +43,9 @@ type InitiateConn struct {
 
 func NewInitiate(io InitiateConn) *Initiate {
 	return &Initiate{
-		Io:               io,
-		update:           make(chan int),
-		waitingForUpdate: make(chan int),
+		Io:                 io,
+		rewiring:           make(chan int),
+		waitingForRewiring: make(chan int),
 	}
 }
 
@@ -85,8 +85,8 @@ func (u *Initiate) Stat() string {
 }
 
 func (u *Initiate) Reset() {
-	u.update <- 1
-	<-u.waitingForUpdate
+	u.rewiring <- 1
+	<-u.waitingForRewiring
 	u.mu.Lock()
 	u.gate66 = 0
 	u.gate69 = 0
@@ -102,62 +102,69 @@ func (u *Initiate) Reset() {
 		u.clrff[i] = false
 	}
 	u.mu.Unlock()
-	u.update <- 1
+	u.rewiring <- 1
 }
 
-func (u *Initiate) Plug(jackName string, ch chan Pulse) {
-	fullName := "i." + jackName
-	u.update <- 1
-	<-u.waitingForUpdate
+func (u *Initiate) Plug(jack string, ch chan Pulse, output bool) error {
+	u.rewiring <- 1
+	<-u.waitingForRewiring
+	defer func() { u.rewiring <- 1 }()
 	u.mu.Lock()
-	switch jackName[0] {
+	defer u.mu.Unlock()
+
+	name := "i." + jack
+	if len(jack) == 0 {
+		return fmt.Errorf("invalid jack")
+	}
+	switch jack[0] {
 	case 'c', 'C':
-		set, _ := strconv.Atoi(jackName[2:])
-		if set >= 1 && set <= 6 {
-			switch jackName[1] {
-			case 'i':
-				SafePlug(fullName, &u.jack[2*(set-1)], ch)
-			case 'o':
-				SafePlug(fullName, &u.jack[2*(set-1)+1], ch)
-			default:
-				goto badJack
-			}
-		} else {
-			goto badJack
+		if len(jack) < 3 {
+			return fmt.Errorf("invalid jack %s", jack)
+		}
+		set, _ := strconv.Atoi(jack[2:])
+		if !(set >= 1 && set <= 6) {
+			return fmt.Errorf("invalid jack %s", jack)
+		}
+		switch jack[1] {
+		case 'i':
+			SafePlug(name, &u.jack[2*(set-1)], ch, output)
+		case 'o':
+			SafePlug(name, &u.jack[2*(set-1)+1], ch, output)
+		default:
+			return fmt.Errorf("invalid jack %s", jack)
 		}
 	case 'i', 'I':
-		SafePlug(fullName, &u.jack[17], ch)
+		SafePlug(name, &u.jack[17], ch, output)
 	case 'p', 'P':
-		switch jackName[1] {
+		if len(jack) < 2 {
+			return fmt.Errorf("invalid jack %s", jack)
+		}
+		switch jack[1] {
 		case 'i':
-			SafePlug(fullName, &u.jack[15], ch)
+			SafePlug(name, &u.jack[15], ch, output)
 		case 'o':
-			SafePlug(fullName, &u.jack[16], ch)
+			SafePlug(name, &u.jack[16], ch, output)
 		default:
-			goto badJack
+			return fmt.Errorf("invalid jack %s", jack)
 		}
 	case 'r', 'R':
-		switch jackName[1] {
+		if len(jack) < 2 {
+			return fmt.Errorf("invalid jack %s", jack)
+		}
+		switch jack[1] {
 		case 'l':
-			SafePlug(fullName, &u.jack[12], ch)
+			SafePlug(name, &u.jack[12], ch, output)
 		case 'i':
-			SafePlug(fullName, &u.jack[13], ch)
+			SafePlug(name, &u.jack[13], ch, output)
 		case 'o':
-			SafePlug(fullName, &u.jack[14], ch)
+			SafePlug(name, &u.jack[14], ch, output)
 		default:
-			goto badJack
+			return fmt.Errorf("invalid jack %s", jack)
 		}
 	default:
-		goto badJack
+		return fmt.Errorf("invalid jack %s", jack)
 	}
-	u.mu.Unlock()
-	u.update <- 1
-	return
-
-badJack:
-	u.mu.Unlock()
-	u.update <- 1
-	fmt.Printf("Invalid initiate jack: %s\n", jackName)
+	return nil
 }
 
 func (u *Initiate) MakeClockFunc() ClockFunc {
@@ -261,26 +268,22 @@ func (u *Initiate) Run() {
 }
 
 func (u *Initiate) readInputs() {
+	var p Pulse
 	for {
+		p.Resp = nil
 		select {
-		case <-u.update:
-			u.waitingForUpdate <- 1
-			<-u.update
-		case p := <-u.jack[12]:
+		case <-u.rewiring:
+			u.waitingForRewiring <- 1
+			<-u.rewiring
+		case p = <-u.jack[12]:
 			u.mu.Lock()
 			u.rdilock = true
 			u.mu.Unlock()
-			if p.Resp != nil {
-				p.Resp <- 1
-			}
-		case p := <-u.jack[13]:
+		case p = <-u.jack[13]:
 			u.mu.Lock()
 			u.rdff = true
 			u.mu.Unlock()
-			if p.Resp != nil {
-				p.Resp <- 1
-			}
-		case p := <-u.jack[15]:
+		case p = <-u.jack[15]:
 			u.mu.Lock()
 			if !u.printPhase1 {
 				u.prff = true
@@ -290,51 +293,33 @@ func (u *Initiate) readInputs() {
 				}
 			}
 			u.mu.Unlock()
-			if p.Resp != nil {
-				p.Resp <- 1
-			}
-		case p := <-u.jack[0]:
+		case p = <-u.jack[0]:
 			u.mu.Lock()
 			u.clrff[0] = true
 			u.mu.Unlock()
-			if p.Resp != nil {
-				p.Resp <- 1
-			}
-		case p := <-u.jack[2]:
+		case p = <-u.jack[2]:
 			u.mu.Lock()
 			u.clrff[1] = true
 			u.mu.Unlock()
-			if p.Resp != nil {
-				p.Resp <- 1
-			}
-		case p := <-u.jack[4]:
+		case p = <-u.jack[4]:
 			u.mu.Lock()
 			u.clrff[2] = true
 			u.mu.Unlock()
-			if p.Resp != nil {
-				p.Resp <- 1
-			}
-		case p := <-u.jack[6]:
+		case p = <-u.jack[6]:
 			u.mu.Lock()
 			u.clrff[3] = true
 			u.mu.Unlock()
-			if p.Resp != nil {
-				p.Resp <- 1
-			}
-		case p := <-u.jack[8]:
+		case p = <-u.jack[8]:
 			u.mu.Lock()
 			u.clrff[4] = true
 			u.mu.Unlock()
-			if p.Resp != nil {
-				p.Resp <- 1
-			}
-		case p := <-u.jack[10]:
+		case p = <-u.jack[10]:
 			u.mu.Lock()
 			u.clrff[5] = true
 			u.mu.Unlock()
-			if p.Resp != nil {
-				p.Resp <- 1
-			}
+		}
+		if p.Resp != nil {
+			p.Resp <- 1
 		}
 	}
 }

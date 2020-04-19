@@ -54,10 +54,10 @@ type Divsr struct {
 
 // Connections to dedicated accumulators.
 type DivsrConn struct {
-	Acc2Sign  func() string
-	Acc2Clear func()
-	Acc4Sign  func() string
-	Acc4Clear func()
+	A2Sign  func() string
+	A2Clear func()
+	A4Sign  func() string
+	A4Clear func()
 }
 
 func NewDivsr() *Divsr {
@@ -282,15 +282,16 @@ func (u *Divsr) intclear() {
 	u.dβ = false
 }
 
-func (u *Divsr) Plug(jack string, ch chan Pulse) error {
-	u.mu.Lock()
-	defer u.mu.Unlock()
+func (u *Divsr) Plug(jack string, ch chan Pulse, output bool) error {
 	u.rewiring <- 1
 	<-u.waitingForRewiring
+	defer func() { u.rewiring <- 1 }()
+	u.mu.Lock()
+	defer u.mu.Unlock()
 
 	name := "d." + jack
 	if jack == "ans" || jack == "ANS" {
-		SafePlug(name, &u.answer, ch)
+		SafePlug(name, &u.answer, ch, output)
 	} else {
 		var prog int
 		var ilk rune
@@ -300,16 +301,15 @@ func (u *Divsr) Plug(jack string, ch chan Pulse) error {
 		}
 		switch ilk {
 		case 'i':
-			SafePlug(name, &u.progin[prog-1], ch)
+			SafePlug(name, &u.progin[prog-1], ch, output)
 		case 'o':
-			SafePlug(name, &u.progout[prog-1], ch)
+			SafePlug(name, &u.progout[prog-1], ch, output)
 		case 'l':
-			SafePlug(name, &u.ilock[prog-1], ch)
+			SafePlug(name, &u.ilock[prog-1], ch, output)
 		default:
 			return fmt.Errorf("invalid jack %s", jack)
 		}
 	}
-	u.rewiring <- 1
 	return nil
 }
 
@@ -514,7 +514,7 @@ func (u *Divsr) samesign() bool {
 }
 
 func (u *Divsr) overflow() bool {
-	s := u.Io.Acc2Sign()
+	s := u.Io.A2Sign()
 	return s[0] == 'P' && u.numrmin || s[0] == 'M' && u.numrplus
 }
 
@@ -575,10 +575,10 @@ func (u *Divsr) doGP(resp chan int) {
 			}
 		}
 		if u.numcl[u.curprog] == 1 {
-			u.Io.Acc2Clear()
+			u.Io.A2Clear()
 		}
 		if u.dencl[u.curprog] == 1 {
-			u.Io.Acc4Clear()
+			u.Io.A4Clear()
 		}
 		u.intclear()
 		return
@@ -664,11 +664,11 @@ func (u *Divsr) doGP(resp chan int) {
 			u.progring++
 		}
 	case 1: // Gate D6
-		s := u.Io.Acc2Sign()
+		s := u.Io.A2Sign()
 		if s[0] == 'M' {
 			u.numrplus, u.numrmin = u.numrmin, u.numrplus
 		}
-		s = u.Io.Acc4Sign()
+		s = u.Io.A4Sign()
 		if s[0] == 'M' {
 			u.denomff = true
 		}

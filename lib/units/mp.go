@@ -144,7 +144,7 @@ func (u *Mp) Clear() {
 }
 
 // Plug connects channel ch to the specified jack.
-func (u *Mp) Plug(jack string, ch chan Pulse) error {
+func (u *Mp) Plug(jack string, ch chan Pulse, output bool) error {
 	if len(jack) == 0 {
 		return fmt.Errorf("invalid jack")
 	}
@@ -160,7 +160,7 @@ func (u *Mp) Plug(jack string, ch chan Pulse) error {
 		if !(n >= 1 && n <= 20) {
 			return fmt.Errorf("invalid decade %s", jack)
 		}
-		SafePlug(name, &u.decade[20-n].di, ch)
+		SafePlug(name, &u.decade[20-n].di, ch, output)
 	} else {
 		s := stepperNameToIndex(jack[0])
 		if s == -1 {
@@ -171,11 +171,11 @@ func (u *Mp) Plug(jack string, ch chan Pulse) error {
 		}
 		switch jack[1:] {
 		case "di":
-			SafePlug(name, &u.stepper[s].di, ch)
+			SafePlug(name, &u.stepper[s].di, ch, output)
 		case "i":
-			SafePlug(name, &u.stepper[s].i, ch)
+			SafePlug(name, &u.stepper[s].i, ch, output)
 		case "cdi":
-			SafePlug(name, &u.stepper[s].cdi, ch)
+			SafePlug(name, &u.stepper[s].cdi, ch, output)
 		default:
 			if len(jack) < 3 {
 				return fmt.Errorf("invalid jack %s", jack)
@@ -185,7 +185,7 @@ func (u *Mp) Plug(jack string, ch chan Pulse) error {
 				return fmt.Errorf("invalid output %s", jack)
 			}
 			u.outputMu.Lock()
-			SafePlug(name, &u.stepper[s].o[n-1], ch)
+			SafePlug(name, &u.stepper[s].o[n-1], ch, output)
 			u.outputMu.Unlock()
 		}
 	}

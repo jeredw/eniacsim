@@ -12,6 +12,8 @@ import (
 type Ft struct {
 	jack [27]chan Pulse
 
+	unit int
+
 	inff1, inff2 [11]bool
 	opsw         [11]int
 	rptsw        [11]int
@@ -39,8 +41,9 @@ type Ft struct {
 	mu sync.Mutex
 }
 
-func NewFt() *Ft {
+func NewFt(unit int) *Ft {
 	return &Ft{
+		unit:               unit,
 		rewiring:           make(chan int),
 		waitingForRewiring: make(chan int),
 		resp:               make(chan int),
@@ -118,25 +121,25 @@ func (u *Ft) Reset() {
 	u.px4119 = false
 }
 
-func (u *Ft) Plug(jack string, ch chan Pulse) error {
+func (u *Ft) Plug(jack string, ch chan Pulse, output bool) error {
 	u.rewiring <- 1
 	<-u.waitingForRewiring
 	defer func() { u.rewiring <- 1 }()
 	u.mu.Lock()
 	defer u.mu.Unlock()
 
-	name := "ft." + jack
+	name := "ft" + strconv.Itoa(u.unit+1) + "." + jack
 	switch jack {
 	case "arg", "ARG":
-		SafePlug(name, &u.jack[0], ch)
+		SafePlug(name, &u.jack[0], ch, output)
 	case "A":
-		SafePlug(name, &u.jack[1], ch)
+		SafePlug(name, &u.jack[1], ch, output)
 	case "B":
-		SafePlug(name, &u.jack[2], ch)
+		SafePlug(name, &u.jack[2], ch, output)
 	case "NC":
-		SafePlug(name, &u.jack[3], ch)
+		SafePlug(name, &u.jack[3], ch, output)
 	case "C":
-		SafePlug(name, &u.jack[4], ch)
+		SafePlug(name, &u.jack[4], ch, output)
 	default:
 		jacks := [22]string{
 			"1i", "1o", "2i", "2o", "3i", "3o", "4i", "4o",
@@ -145,7 +148,7 @@ func (u *Ft) Plug(jack string, ch chan Pulse) error {
 		}
 		for i, j := range jacks {
 			if j == jack {
-				SafePlug(name, &u.jack[i+5], ch)
+				SafePlug(name, &u.jack[i+5], ch, output)
 				return nil
 			}
 		}

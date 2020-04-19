@@ -2,8 +2,10 @@ package units
 
 import (
 	"fmt"
-	. "github.com/jeredw/eniacsim/lib"
 	"strconv"
+	"sync"
+
+	. "github.com/jeredw/eniacsim/lib"
 )
 
 /*
@@ -53,9 +55,11 @@ const (
 	stSF10out  = pin17
 )
 
+// Simulates an ENIAC accumulator unit.
 type Accumulator struct {
 	Io AccumulatorConn
 
+	unit                int
 	α, β, γ, δ, ε, A, S chan Pulse
 	ctlterm             [20]chan Pulse
 	inff1, inff2        [12]bool
@@ -70,10 +74,17 @@ type Accumulator struct {
 	h50                 bool
 	rep                 int
 	whichrp             bool
-	change              chan int
 	lbuddy, rbuddy      int
+	plbuddy, prbuddy    *Accumulator
+
+	rewiring           chan int
+	waitingForRewiring chan int
+	resp               chan int
+
+	mu sync.Mutex
 }
 
+// Connections to other units.
 type AccumulatorConn struct {
 	Sv    func() int
 	Su2   func() int
@@ -82,54 +93,69 @@ type AccumulatorConn struct {
 	Multr func() bool
 }
 
-var units [20]Accumulator
+func NewAccumulator(unit int) *Accumulator {
+	return &Accumulator{
+		unit:               unit,
+		rewiring:           make(chan int),
+		waitingForRewiring: make(chan int),
+		resp:               make(chan int),
+		sigfig:             10,
+		lbuddy:             unit,
+		rbuddy:             unit,
+	}
+}
 
-func Accsign(unit int) string {
-	if units[unit].sign {
+func (u *Accumulator) Sign() string {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	if u.sign {
 		return "M"
 	}
 	return "P"
 }
 
-func Accvalue(unit int) string {
+func (u *Accumulator) Value() string {
+	u.mu.Lock()
+	defer u.mu.Unlock()
 	var s string
-	if units[unit].sign {
+	if u.sign {
 		s += "M "
 	} else {
 		s += "P "
 	}
 	for i := 9; i >= 0; i-- {
-		s += fmt.Sprintf("%d", units[unit].val[i])
+		s += fmt.Sprintf("%d", u.val[i])
 	}
 	return s
 }
 
-func Accstat(unit int) string {
+func (u *Accumulator) Stat() string {
+	u.mu.Lock()
+	defer u.mu.Unlock()
 	var s string
-
-	// NB used by doprint()
-	s = fmt.Sprintf("a%-2d ", unit+1)
-	if units[unit].sign {
+	if u.sign {
 		s += "M "
 	} else {
 		s += "P "
 	}
 	for i := 9; i >= 0; i-- {
-		s += fmt.Sprintf("%d", units[unit].val[i])
+		s += fmt.Sprintf("%d", u.val[i])
 	}
 	s += " "
 	for i := 9; i >= 0; i-- {
-		s += ToBin(units[unit].decff[i])
+		s += ToBin(u.decff[i])
 	}
-	s += fmt.Sprintf(" %d ", units[unit].rep)
-	for _, f := range units[unit].inff1 {
+	s += fmt.Sprintf(" %d ", u.rep)
+	for _, f := range u.inff1 {
 		s += ToBin(f)
 	}
 	return s
 }
 
-func Accreset(unit int) {
-	u := &units[unit]
+func (u *Accumulator) Reset() {
+	u.rewiring <- 1
+	<-u.waitingForRewiring
+	u.mu.Lock()
 	u.α = nil
 	u.β = nil
 	u.γ = nil
@@ -150,36 +176,43 @@ func Accreset(unit int) {
 	u.h50 = false
 	u.rep = 0
 	u.whichrp = false
-	u.lbuddy = unit
-	u.rbuddy = unit
-	Accclear(unit)
-	u.change <- 1
+	u.lbuddy = u.unit
+	u.rbuddy = u.unit
+	u.mu.Unlock()
+	u.rewiring <- 1
+	u.Clear()
 }
 
-func Accclear(acc int) {
+func (u *Accumulator) Clear() {
+	u.mu.Lock()
+	defer u.mu.Unlock()
 	for i := 0; i < 10; i++ {
-		units[acc].val[i] = 0
-		units[acc].decff[i] = false
+		u.val[i] = 0
+		u.decff[i] = false
 	}
-	if units[acc].sigfig < 10 {
-		units[acc].val[9-units[acc].sigfig] = 5
+	if u.sigfig < 10 {
+		u.val[9-u.sigfig] = 5
 	}
-	units[acc].sign = false
+	u.sign = false
 }
 
-func Accset(acc int, value int64) {
-	units[acc].sign = value < 0
+func (u *Accumulator) Set(value int64) {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	u.sign = value < 0
 	if value < 0 {
 		value = -value
 	}
 	for i := 0; i < 10; i++ {
-		units[acc].val[i] = byte(value % 10)
-		units[acc].decff[i] = false
+		u.val[i] = byte(value % 10)
+		u.decff[i] = false
 		value /= 10
 	}
 }
 
-func Accinterconnect(p1 []string, p2 []string) {
+// Interconnect connects accumulators with other units statically.
+// FIXME This seems to be totally unused/untested.
+func Interconnect(units [20]*Accumulator, p1 []string, p2 []string) error {
 	unit1, _ := strconv.Atoi(p1[0][1:])
 	unit2 := -1
 	if len(p2) > 1 && p2[0][0] == 'a' {
@@ -220,126 +253,142 @@ func Accinterconnect(p1 []string, p2 []string) {
 		}
 	}
 	if unit2 != -1 && unit1 != unit2 {
-		units[unit1-1].change <- 1
-		units[unit2-1].change <- 1
+		//		units[unit1-1].change <- 1
+		//		units[unit2-1].change <- 1
 	}
+	return nil
 }
 
-func Accplug(unit int, jack string, ch chan Pulse) {
-	jacks := [20]string{"1i", "2i", "3i", "4i", "5i", "5o", "6i", "6o", "7i", "7o",
-		"8i", "8o", "9i", "9o", "10i", "10o", "11i", "11o", "12i", "12o"}
-
+func (u *Accumulator) Plug(jack string, ch chan Pulse, output bool) error {
+	u.rewiring <- 1
+	<-u.waitingForRewiring
+	defer func() { u.rewiring <- 1 }()
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	name := "a" + strconv.Itoa(u.unit+1) + "." + jack
 	switch {
 	case jack == "α", jack == "a", jack == "alpha":
-		units[unit].α = ch
+		SafePlug(name, &u.α, ch, output)
 	case jack == "β", jack == "b", jack == "beta":
-		units[unit].β = ch
+		SafePlug(name, &u.β, ch, output)
 	case jack == "γ", jack == "g", jack == "gamma":
-		units[unit].γ = ch
+		SafePlug(name, &u.γ, ch, output)
 	case jack == "δ", jack == "d", jack == "delta":
-		units[unit].δ = ch
+		SafePlug(name, &u.δ, ch, output)
 	case jack == "ε", jack == "e", jack == "epsilon":
-		units[unit].ε = ch
+		SafePlug(name, &u.ε, ch, output)
 	case jack == "A":
-		units[unit].A = ch
+		SafePlug(name, &u.A, ch, output)
 	case jack == "S":
-		units[unit].S = ch
+		SafePlug(name, &u.S, ch, output)
 	case jack[0] == 'I':
 	default:
-		foundjack := false
+		jacks := [20]string{
+			"1i", "2i", "3i", "4i", "5i", "5o", "6i", "6o", "7i", "7o",
+			"8i", "8o", "9i", "9o", "10i", "10o", "11i", "11o", "12i", "12o",
+		}
 		for i, j := range jacks {
 			if j == jack {
-				units[unit].ctlterm[i] = Tee(units[unit].ctlterm[i], ch)
-				foundjack = true
-				break
+				u.ctlterm[i] = Tee(u.ctlterm[i], ch)
+				return nil
 			}
 		}
-		if !foundjack {
-			fmt.Println("Invalid jack:", jack, "on accumulator", unit+1)
-		}
+		return fmt.Errorf("invalid jack: %s", jack)
 	}
-	units[unit].change <- 1
+	return nil
 }
 
-func Accctl(unit int, ch chan [2]string) {
-	units[unit].lbuddy = unit
-	units[unit].rbuddy = unit
-	for {
-		ctl := <-ch
-		prog, _ := strconv.Atoi(ctl[0][2:])
-		prog--
-		switch ctl[0][:2] {
-		case "op":
-			switch ctl[1] {
-			case "α", "a", "alpha":
-				units[unit].opsw[prog] = 0
-			case "β", "b", "beta":
-				units[unit].opsw[prog] = 1
-			case "γ", "g", "gamma":
-				units[unit].opsw[prog] = 2
-			case "δ", "d", "delta":
-				units[unit].opsw[prog] = 3
-			case "ε", "e", "epsilon":
-				units[unit].opsw[prog] = 4
-			case "0":
-				units[unit].opsw[prog] = 5
-			case "A":
-				units[unit].opsw[prog] = 6
-			case "AS":
-				units[unit].opsw[prog] = 7
-			case "S":
-				units[unit].opsw[prog] = 8
-			default:
-				fmt.Println("Invalid operation code:", ctl[1], "on unit",
-					unit+1, "program", prog+1)
+func (u *Accumulator) Switch(name, value string) error {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+
+	if name == "sf" {
+		n, _ := strconv.Atoi(value)
+		if !(n >= 0 && n <= 10) {
+			return fmt.Errorf("invalid switch %s setting %s", name, value)
+		}
+		u.sigfig = n
+		return nil
+	}
+	if name == "sc" {
+		switch value {
+		case "0":
+			u.sc = 0
+		case "SC", "sc":
+			u.sc = 1
+		default:
+			return fmt.Errorf("invalid switch %s setting %s", name, value)
+		}
+		return nil
+	}
+	if len(name) < 3 {
+		return fmt.Errorf("invalid switch %s", name)
+	}
+	prog, _ := strconv.Atoi(name[2:])
+	if !(prog >= 1 && prog <= 12) {
+		return fmt.Errorf("invalid switch %s", name)
+	}
+	prog--
+	switch name[:2] {
+	case "op":
+		switch value {
+		case "α", "a", "alpha":
+			u.opsw[prog] = 0
+		case "β", "b", "beta":
+			u.opsw[prog] = 1
+		case "γ", "g", "gamma":
+			u.opsw[prog] = 2
+		case "δ", "d", "delta":
+			u.opsw[prog] = 3
+		case "ε", "e", "epsilon":
+			u.opsw[prog] = 4
+		case "0":
+			u.opsw[prog] = 5
+		case "A":
+			u.opsw[prog] = 6
+		case "AS":
+			u.opsw[prog] = 7
+		case "S":
+			u.opsw[prog] = 8
+		default:
+			return fmt.Errorf("invalid switch %s setting %s", name, value)
+		}
+	case "cc":
+		switch value {
+		case "0":
+			u.clrsw[prog] = false
+		case "C", "c":
+			u.clrsw[prog] = true
+		default:
+			return fmt.Errorf("invalid switch %s setting %s", name, value)
+		}
+	case "rp":
+		if !(prog >= 4 && prog <= 11) {
+			return fmt.Errorf("invalid switch %s", name)
+		}
+		repeatCount, err := strconv.Atoi(value)
+		if err == nil {
+			if !(repeatCount >= 1 && repeatCount <= 9) {
+				return fmt.Errorf("invalid switch %s setting %s", name, value)
 			}
-		case "cc":
-			switch ctl[1] {
-			case "0":
-				units[unit].clrsw[prog] = false
-			case "C", "c":
-				units[unit].clrsw[prog] = true
-			default:
-				fmt.Println("Invalid clear/correct setting:", ctl[1], "on unit",
-					unit+1, "program", prog+1)
-			}
-		case "rp":
-			rpt, err := strconv.Atoi(ctl[1])
-			if err == nil {
-				units[unit].rptsw[prog-4] = byte(rpt - 1)
-			} else {
-				fmt.Println("Invalid repeat count:", ctl[1], "on unit",
-					unit+1, "program", prog+1)
-			}
-		case "sf":
-			n, _ := strconv.Atoi(ctl[1])
-			units[unit].sigfig = n
-		case "sc":
-			switch ctl[1] {
-			case "0":
-				units[unit].sc = 0
-			case "SC", "sc":
-				units[unit].sc = 1
-			default:
-				fmt.Println("Invalid selective clear setting:", ctl[1],
-					"on unit", unit+1)
-			}
+			u.rptsw[prog-4] = byte(repeatCount - 1)
+		} else {
+			return fmt.Errorf("invalid switch %s setting %s", name, value)
 		}
 	}
+	return nil
 }
 
 /*
  * Implement the PX-5-109 terminator and PX-5-110
  * and PX-5-121 interconnect cables
  */
-
-func su1(unit int) int {
-	u := &units[unit]
+func (u *Accumulator) su1() int {
 	x := 0
-	if u.rbuddy >= 0 && u.rbuddy != unit {
-		x = su1(u.rbuddy)
+	if u.rbuddy >= 0 && u.rbuddy != u.unit {
+		x = u.prbuddy.su1()
 	}
-	for i := 0; i < 12; i++ {
+	for i := range u.inff1 {
 		if u.inff1[i] {
 			switch u.opsw[i] {
 			case 0:
@@ -373,26 +422,25 @@ func su1(unit int) int {
 	return x
 }
 
-func st1(unit int) int {
-	u := &units[unit]
+func (u *Accumulator) st1() int {
 	x := 0
-	if u.lbuddy == unit {
-		x = su1(unit)
+	if u.lbuddy == u.unit {
+		x = u.su1()
 	} else if u.lbuddy == -1 {
-		x = su1(unit)
+		x = u.su1()
 		if u.Io.Multl() {
 			x |= stα
 		}
 	} else if u.lbuddy == -2 {
-		x = su1(unit)
+		x = u.su1()
 		if u.Io.Multr() {
 			x |= stα
 		}
 	} else if u.lbuddy == -3 {
-		x = su1(unit)
+		x = u.su1()
 		x |= u.Io.Sv()
 	} else if u.lbuddy == -4 {
-		x = su1(unit)
+		x = u.su1()
 		/* Wiring for PX-5-134 for quotient */
 		su2 := u.Io.Su2()
 		x |= su2 & stα
@@ -400,14 +448,14 @@ func st1(unit int) int {
 		x |= (su2 & su2qS) << 3
 		x |= (su2 & su2qCLR) << 3
 	} else if u.lbuddy == -5 {
-		x = su1(unit)
+		x = u.su1()
 		/* Wiring for PX-5-135 for shift */
 		su2 := u.Io.Su2()
 		x |= (su2 & su2sα) >> 1
 		x |= (su2 & su2sA) << 3
 		x |= (su2 & su2sCLR) << 2
 	} else if u.lbuddy == -6 {
-		x = su1(unit)
+		x = u.su1()
 		/* Wiring for PX-5-136 for denominator */
 		su3 := u.Io.Su3()
 		x |= su3 & (stα | stβ | stγ)
@@ -415,36 +463,18 @@ func st1(unit int) int {
 		x |= (su3 & su3S) << 3
 		x |= (su3 & su3CLR) << 3
 	} else {
-		x = st2(u.lbuddy) & 0x1c3ff
+		x = u.plbuddy.st2() & 0x1c3ff
 	}
 	return x
 }
 
-func st2(unit int) int {
-	//	u := &units[unit]
-	x := st1(unit) & 0x03ff
+func (u *Accumulator) st2() int {
+	x := u.st1() & 0x03ff
 
 	return x
 }
 
-func accrecv(unit, dat int) {
-	u := &units[unit]
-	for i := 0; i < 10; i++ {
-		if dat&1 == 1 {
-			u.val[i]++
-			if u.val[i] >= 10 {
-				u.decff[i] = true
-				u.val[i] -= 10
-			}
-		}
-		dat >>= 1
-	}
-	if dat&1 == 1 {
-		u.sign = !u.sign
-	}
-}
-
-func docpp(u *Accumulator, resp chan int, cyc int) {
+func (u *Accumulator) docpp(cyc int) {
 	for i := 0; i < 4; i++ {
 		if u.inff2[i] {
 			u.inff1[i] = false
@@ -460,10 +490,7 @@ func docpp(u *Accumulator, resp chan int, cyc int) {
 				u.inff2[i] = false
 				rstrep = true
 				t := (i-4)*2 + 5
-				if u.ctlterm[t] != nil {
-					u.ctlterm[t] <- Pulse{1, resp}
-					<-resp
-				}
+				Handshake(1, u.ctlterm[t], u.resp)
 			}
 		}
 		if rstrep {
@@ -473,8 +500,7 @@ func docpp(u *Accumulator, resp chan int, cyc int) {
 	}
 }
 
-func ripple(unit int) {
-	u := &units[unit]
+func (u *Accumulator) ripple() {
 	for i := 0; i < 9; i++ {
 		if u.decff[i] {
 			u.val[i+1]++
@@ -484,7 +510,7 @@ func ripple(unit int) {
 			}
 		}
 	}
-	if u.lbuddy < 0 || u.lbuddy == unit {
+	if u.lbuddy < 0 || u.lbuddy == u.unit {
 		if u.decff[9] {
 			/*
 			 * Connection PX-5-121 pins 14, 15
@@ -496,22 +522,22 @@ func ripple(unit int) {
 		 * PX-5-110, pin 15 straight through
 		 */
 		if u.decff[9] {
-			units[u.lbuddy].val[0]++
-			if units[u.lbuddy].val[0] == 10 {
-				units[u.lbuddy].val[0] = 0
-				units[u.lbuddy].decff[0] = true
+			u.plbuddy.val[0]++
+			if u.plbuddy.val[0] == 10 {
+				u.plbuddy.val[0] = 0
+				u.plbuddy.decff[0] = true
 			}
 		}
-		ripple(u.lbuddy)
+		u.plbuddy.ripple()
 	}
 }
 
-func doccg(u *Accumulator, unit int, resp chan int) {
-	curprog := st1(unit)
+func (u *Accumulator) doccg() {
+	curprog := u.st1()
 	u.whichrp = false
 	if curprog&0x1f != 0 {
-		if u.rbuddy == unit {
-			ripple(unit)
+		if u.rbuddy == u.unit {
+			u.ripple()
 		}
 	} else if (curprog & stCLR) != 0 {
 		for i := 0; i < 10; i++ {
@@ -521,7 +547,7 @@ func doccg(u *Accumulator, unit int, resp chan int) {
 	}
 }
 
-func dorp(u *Accumulator) {
+func (u *Accumulator) dorp() {
 	if !u.whichrp {
 		/*
 		 * Ugly hack to avoid races.  Effectively this is
@@ -544,8 +570,8 @@ func dorp(u *Accumulator) {
 	}
 }
 
-func dotenp(u *Accumulator, unit int) {
-	curprog := st1(unit)
+func (u *Accumulator) dotenp() {
+	curprog := u.st1()
 	if curprog&(stA|stAS|stS) != 0 {
 		for i := 0; i < 10; i++ {
 			u.val[i]++
@@ -557,8 +583,8 @@ func dotenp(u *Accumulator, unit int) {
 	}
 }
 
-func doninep(u *Accumulator, unit int, resp chan int) {
-	curprog := st1(unit)
+func (u *Accumulator) doninep() {
+	curprog := u.st1()
 	if curprog&(stA|stAS) != 0 {
 		if u.A != nil {
 			n := 0
@@ -571,8 +597,7 @@ func doninep(u *Accumulator, unit int, resp chan int) {
 				n |= 1 << 10
 			}
 			if n != 0 {
-				u.A <- Pulse{n, resp}
-				<-resp
+				Handshake(n, u.A, u.resp)
 			}
 		}
 	}
@@ -588,20 +613,19 @@ func doninep(u *Accumulator, unit int, resp chan int) {
 				n |= 1 << 10
 			}
 			if n != 0 {
-				u.S <- Pulse{n, resp}
-				<-resp
+				Handshake(n, u.S, u.resp)
 			}
 		}
 	}
 }
 
-func doonepp(u *Accumulator, unit int, resp chan int) {
-	curprog := st1(unit)
+func (u *Accumulator) doonepp() {
+	curprog := u.st1()
 	if curprog&stCORR != 0 {
 		/*
 		 * Connection of PX-5-109 pins 14, 15
 		 */
-		if u.rbuddy == unit {
+		if u.rbuddy == u.unit {
 			u.val[0]++
 			if u.val[0] > 9 {
 				u.val[0] = 0
@@ -610,182 +634,155 @@ func doonepp(u *Accumulator, unit int, resp chan int) {
 		}
 	}
 	if curprog&(stAS|stS) != 0 && u.S != nil {
-		if ((u.lbuddy < 0 || u.lbuddy == unit) && u.rbuddy == unit && u.sigfig > 0) ||
-			(u.rbuddy != unit && u.sigfig < 10) ||
-			(u.lbuddy != unit && u.lbuddy >= 0 && units[u.lbuddy].sigfig == 10 && u.sigfig > 0) ||
-			(u.rbuddy != unit && u.sigfig == 10 && units[u.rbuddy].sigfig == 0) {
-			u.S <- Pulse{1 << uint(10-u.sigfig), resp}
-			<-resp
+		if ((u.lbuddy < 0 || u.lbuddy == u.unit) && u.rbuddy == u.unit && u.sigfig > 0) ||
+			(u.rbuddy != u.unit && u.sigfig < 10) ||
+			(u.lbuddy != u.unit && u.lbuddy >= 0 && u.plbuddy.sigfig == 10 && u.sigfig > 0) ||
+			(u.rbuddy != u.unit && u.sigfig == 10 && u.prbuddy.sigfig == 0) {
+			Handshake(1<<uint(10-u.sigfig), u.S, u.resp)
 		}
 	}
 }
 
-func accpulse(u *Accumulator, unit int, resp chan int, p Pulse) {
+func (u *Accumulator) clock(p Pulse) {
 	cyc := p.Val
 	switch {
 	case cyc&Cpp != 0:
-		docpp(u, resp, cyc)
+		u.docpp(cyc)
 	case cyc&Ccg != 0:
-		doccg(u, unit, resp)
+		u.doccg()
 	case cyc&Scg != 0:
 		if u.sc == 1 {
-			Accclear(unit)
+			u.Clear()
 		}
 	case cyc&Rp != 0:
-		dorp(u)
+		u.dorp()
 	case cyc&Tenp != 0:
-		dotenp(u, unit)
+		u.dotenp()
 	case cyc&Ninep != 0:
-		doninep(u, unit, resp)
+		u.doninep()
 	case cyc&Onepp != 0:
-		doonepp(u, unit, resp)
+		u.doonepp()
 	}
 }
 
-func Accunit(unit int, io AccumulatorConn) {
-	u := &units[unit]
-	u.Io = io
-	u.change = make(chan int)
-	u.sigfig = 10
-	u.lbuddy = unit
-	u.rbuddy = unit
-	go accunit2(unit)
-}
-
-func Makeaccpulse(unit int) ClockFunc {
-	u := &units[unit]
-	resp := make(chan int)
+func (u *Accumulator) MakeClockFunc() ClockFunc {
 	return func(p Pulse) {
-		accpulse(u, unit, resp, p)
+		u.clock(p)
 	}
 }
 
-func accunit2(unit int) {
-	var dat, prog Pulse
+func (u *Accumulator) receive(value int) {
+	for i := 0; i < 10; i++ {
+		if value&1 == 1 {
+			u.val[i]++
+			if u.val[i] >= 10 {
+				u.decff[i] = true
+				u.val[i] -= 10
+			}
+		}
+		value >>= 1
+	}
+	if value&1 == 1 {
+		u.sign = !u.sign
+	}
+}
 
-	u := &units[unit]
+func (u *Accumulator) trigger(input int) {
+	u.mu.Lock()
+	u.inff1[input] = true
+	u.mu.Unlock()
+}
+
+func (u *Accumulator) Run() {
+	var p Pulse
+
 	for {
+		p.Resp = nil
 		select {
-		case <-u.change:
-		case dat = <-u.α:
-			if st1(unit)&stα != 0 {
-				accrecv(unit, dat.Val)
+		case <-u.rewiring:
+			u.waitingForRewiring <- 1
+			<-u.rewiring
+		case p = <-u.α:
+			u.mu.Lock()
+			if u.st1()&stα != 0 {
+				u.receive(p.Val)
 			}
-			if dat.Resp != nil {
-				dat.Resp <- 1
+			u.mu.Unlock()
+		case p = <-u.β:
+			u.mu.Lock()
+			if u.st1()&stβ != 0 {
+				u.receive(p.Val)
 			}
-		case dat = <-u.β:
-			if st1(unit)&stβ != 0 {
-				accrecv(unit, dat.Val)
+			u.mu.Unlock()
+		case p = <-u.γ:
+			u.mu.Lock()
+			if u.st1()&stγ != 0 {
+				u.receive(p.Val)
 			}
-			if dat.Resp != nil {
-				dat.Resp <- 1
+			u.mu.Unlock()
+		case p = <-u.δ:
+			u.mu.Lock()
+			if u.st1()&stδ != 0 {
+				u.receive(p.Val)
 			}
-		case dat = <-u.γ:
-			if st1(unit)&stγ != 0 {
-				accrecv(unit, dat.Val)
+			u.mu.Unlock()
+		case p = <-u.ε:
+			u.mu.Lock()
+			if u.st1()&stε != 0 {
+				u.receive(p.Val)
 			}
-			if dat.Resp != nil {
-				dat.Resp <- 1
+			u.mu.Unlock()
+		case p = <-u.ctlterm[0]:
+			if p.Val == 1 {
+				u.trigger(0)
 			}
-		case dat = <-u.δ:
-			if st1(unit)&stδ != 0 {
-				accrecv(unit, dat.Val)
+		case p = <-u.ctlterm[1]:
+			if p.Val == 1 {
+				u.trigger(1)
 			}
-			if dat.Resp != nil {
-				dat.Resp <- 1
+		case p = <-u.ctlterm[2]:
+			if p.Val == 1 {
+				u.trigger(2)
 			}
-		case dat = <-u.ε:
-			if st1(unit)&stε != 0 {
-				accrecv(unit, dat.Val)
+		case p = <-u.ctlterm[3]:
+			if p.Val == 1 {
+				u.trigger(3)
 			}
-			if dat.Resp != nil {
-				dat.Resp <- 1
+		case p = <-u.ctlterm[4]:
+			if p.Val == 1 {
+				u.trigger(4)
 			}
-		case prog = <-u.ctlterm[0]:
-			if prog.Val == 1 {
-				u.inff1[0] = true
+		case p = <-u.ctlterm[6]:
+			if p.Val == 1 {
+				u.trigger(5)
 			}
-			if prog.Resp != nil {
-				prog.Resp <- 1
+		case p = <-u.ctlterm[8]:
+			if p.Val == 1 {
+				u.trigger(6)
 			}
-		case prog = <-u.ctlterm[1]:
-			if prog.Val == 1 {
-				u.inff1[1] = true
+		case p = <-u.ctlterm[10]:
+			if p.Val == 1 {
+				u.trigger(7)
 			}
-			if prog.Resp != nil {
-				prog.Resp <- 1
+		case p = <-u.ctlterm[12]:
+			if p.Val == 1 {
+				u.trigger(8)
 			}
-		case prog = <-u.ctlterm[2]:
-			if prog.Val == 1 {
-				u.inff1[2] = true
+		case p = <-u.ctlterm[14]:
+			if p.Val == 1 {
+				u.trigger(9)
 			}
-			if prog.Resp != nil {
-				prog.Resp <- 1
+		case p = <-u.ctlterm[16]:
+			if p.Val == 1 {
+				u.trigger(10)
 			}
-		case prog = <-u.ctlterm[3]:
-			if prog.Val == 1 {
-				u.inff1[3] = true
+		case p = <-u.ctlterm[18]:
+			if p.Val == 1 {
+				u.trigger(11)
 			}
-			if prog.Resp != nil {
-				prog.Resp <- 1
-			}
-		case prog = <-u.ctlterm[4]:
-			if prog.Val == 1 {
-				u.inff1[4] = true
-			}
-			if prog.Resp != nil {
-				prog.Resp <- 1
-			}
-		case prog = <-u.ctlterm[6]:
-			if prog.Val == 1 {
-				u.inff1[5] = true
-			}
-			if prog.Resp != nil {
-				prog.Resp <- 1
-			}
-		case prog = <-u.ctlterm[8]:
-			if prog.Val == 1 {
-				u.inff1[6] = true
-			}
-			if prog.Resp != nil {
-				prog.Resp <- 1
-			}
-		case prog = <-u.ctlterm[10]:
-			if prog.Val == 1 {
-				u.inff1[7] = true
-			}
-			if prog.Resp != nil {
-				prog.Resp <- 1
-			}
-		case prog = <-u.ctlterm[12]:
-			if prog.Val == 1 {
-				u.inff1[8] = true
-			}
-			if prog.Resp != nil {
-				prog.Resp <- 1
-			}
-		case prog = <-u.ctlterm[14]:
-			if prog.Val == 1 {
-				u.inff1[9] = true
-			}
-			if prog.Resp != nil {
-				prog.Resp <- 1
-			}
-		case prog = <-u.ctlterm[16]:
-			if prog.Val == 1 {
-				u.inff1[10] = true
-			}
-			if prog.Resp != nil {
-				prog.Resp <- 1
-			}
-		case prog = <-u.ctlterm[18]:
-			if prog.Val == 1 {
-				u.inff1[11] = true
-			}
-			if prog.Resp != nil {
-				prog.Resp <- 1
-			}
+		}
+		if p.Resp != nil {
+			p.Resp <- 1
 		}
 	}
 }
