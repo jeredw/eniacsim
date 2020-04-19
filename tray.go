@@ -10,43 +10,48 @@ type trunk struct {
 	xmit    [16]chan Pulse
 	recv    []chan Pulse
 	started bool
-	update  chan int
+
+	rewiring chan int
+	waitingForRewiring chan int
 }
 
 var dtrays [20]trunk
 var ctrays [121]trunk
 
-func treset(t *trunk) {
+func (t *trunk) reset() {
 	for i, _ := range t.xmit {
 		t.xmit[i] = nil
 	}
 	t.recv = nil
 	t.started = false
-	if t.update != nil {
-		t.update <- -1
-		t.update = nil
+	if t.rewiring != nil {
+		t.rewiring <- -1
+		t.rewiring = nil
 	}
+	t.waitingForRewiring = nil
 }
 
 func trayreset() {
-	for i, _ := range dtrays {
-		treset(&dtrays[i])
+	for i := range dtrays {
+		dtrays[i].reset()
 	}
-	for i, _ := range ctrays {
-		treset(&ctrays[i])
+	for i := range ctrays {
+		ctrays[i].reset()
 	}
 }
 
-func dotrunk(t *trunk) {
+func (t *trunk) run() {
 	var x, p Pulse
 
 	p.Resp = make(chan int)
 	for {
 		select {
-		case q := <-t.update:
+		case q := <-t.rewiring:
 			if q == -1 {
 				return
 			}
+			t.waitingForRewiring <- 1
+			<-t.rewiring
 			continue
 		case x = <-t.xmit[0]:
 		case x = <-t.xmit[1]:
@@ -102,14 +107,17 @@ func trunkxmit(ilk, n int, ch chan Pulse) {
 		t = &ctrays[n]
 	}
 	if !t.started {
-		t.update = make(chan int)
-		go dotrunk(t)
+		t.rewiring = make(chan int)
+		t.waitingForRewiring = make(chan int)
+		go t.run()
 		t.started = true
 	}
 	for i, c := range t.xmit {
 		if c == nil {
+			t.rewiring <- 1
+			<-t.waitingForRewiring
 			t.xmit[i] = ch
-			t.update <- 1
+			t.rewiring <- 1
 			return
 		}
 	}
