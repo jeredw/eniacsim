@@ -11,7 +11,7 @@ type trunk struct {
 	recv    []chan Pulse
 	started bool
 
-	rewiring chan int
+	rewiring           chan int
 	waitingForRewiring chan int
 }
 
