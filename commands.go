@@ -94,7 +94,7 @@ func doDump(f []string) {
 		}
 		fmt.Println(accumulator[unit-1].Stat())
 	case 'b':
-		fmt.Println(debugstat())
+		fmt.Println(debugger.Stat())
 	case 'c':
 		fmt.Println(constant.Stat())
 	case 'd':
@@ -254,8 +254,10 @@ func doPlugSide(side int, command string, f []string, p []string, ch chan Pulse)
 				fmt.Println("Debugger jumper syntax: debug.bpn")
 				return
 			}
-			unit, _ := strconv.Atoi(p[1][2:])
-			debugplug(unit, ch, f[1])
+			err := debugger.Plug(p[1], ch, f[1])
+			if err != nil {
+				fmt.Printf("Debugger: %s\n", err)
+			}
 		}
 	case p[0][0] == 'f':
 		if len(p) != 2 {
@@ -340,7 +342,7 @@ func doReset(f []string) {
 		}
 		accumulator[unit-1].Reset()
 	case "b":
-		debugreset()
+		debugger.Reset()
 	case "c":
 		constant.Reset()
 	case "d":
@@ -368,7 +370,7 @@ func doReset(f []string) {
 func doResetAll() {
 	initiate.Reset()
 	cycle.Io.Reset <- 1
-	debugreset()
+	debugger.Reset()
 	mp.Reset()
 	ft[0].Reset()
 	ft[1].Reset()

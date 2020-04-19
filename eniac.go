@@ -20,6 +20,7 @@ var constant *units.Constant
 var printer *units.Printer
 var ft [3]*units.Ft
 var accumulator [20]*units.Accumulator
+var debugger *Debugger
 
 var width, height int
 var demomode, tkkludge, usecontrol *bool
@@ -47,6 +48,7 @@ func main() {
 		go ctlstation()
 	}
 
+	debugger = NewDebugger()
 	cycle = units.NewCycle(units.CycleConn{
 		CycleButton: NewButton(),
 		Switches:    make(chan [2]string),
