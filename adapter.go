@@ -34,10 +34,57 @@ func (a *Adapters) Reset() {
 	}
 }
 
+func (a *Adapters) Switch(ilk, id string, param string) error {
+	i, _ := strconv.Atoi(id)
+	if !(i >= 1 && i <= 40) {
+		return fmt.Errorf("invalid id %s", id)
+	}
+	switch ilk {
+	case "dp":
+		return fmt.Errorf("digit adapters always specify param in p")
+	case "s":
+		amount, _ := strconv.Atoi(param)
+		if !(amount >= -10 && amount <= 10) {
+			return fmt.Errorf("invalid shift amount %s", param)
+		}
+		a.shift[i].amount = amount
+	case "d":
+		digit, _ := strconv.Atoi(param)
+		if !(digit >= -10 && digit <= 10) {
+			return fmt.Errorf("invalid digit %s", param)
+		}
+		a.del[i].digit = digit
+	case "sd":
+		digit, _ := strconv.Atoi(param)
+		if !(digit >= -10 && digit <= 10) {
+			return fmt.Errorf("invalid digit %s", param)
+		}
+		a.sd[i].digit = uint(digit)
+	case "permute":
+		order := strings.Split(param, ",")
+		if len(order) != 11 {
+			return fmt.Errorf("ad.permute usage: ad.permute.1.11,10,9,8,7,6,5,4,3,2,1")
+		}
+		for j := range order {
+			pos, _ := strconv.Atoi(order[j])
+			if !(pos >= 0 && pos <= 11) {
+				return fmt.Errorf("invalid digit field in permutation")
+			}
+			a.permute[i].order[j] = pos
+		}
+	default:
+		return fmt.Errorf("invalid type %s", ilk)
+	}
+	return nil
+}
+
 func (a *Adapters) Plug(ilk, id, param string, ch chan Pulse, output bool) error {
 	i, _ := strconv.Atoi(id)
 	if !(i >= 1 && i <= 40) {
 		return fmt.Errorf("invalid id %s", id)
+	}
+	if len(param) > 0 {
+		adapters.Switch(ilk, id, param)
 	}
 
 	switch ilk {
@@ -48,6 +95,9 @@ func (a *Adapters) Plug(ilk, id, param string, ch chan Pulse, output bool) error
 			go a.dp[i].run()
 		} else {
 			// ch is a control channel such as a program trunk
+			if len(param) == 0 {
+				return fmt.Errorf("p ad.dp.<id> always requires param")
+			}
 			digit, _ := strconv.Atoi(param)
 			if !(digit >= 1 && digit <= 11) {
 				return fmt.Errorf("invalid digit %s", param)
@@ -60,11 +110,6 @@ func (a *Adapters) Plug(ilk, id, param string, ch chan Pulse, output bool) error
 		} else {
 			a.shift[i].out = ch
 		}
-		amount, _ := strconv.Atoi(param)
-		if !(amount >= -10 && amount <= 10) {
-			return fmt.Errorf("invalid shift amount %s", param)
-		}
-		a.shift[i].amount = amount
 		if a.shift[i].in != nil && a.shift[i].out != nil {
 			go a.shift[i].run()
 		}
@@ -74,11 +119,6 @@ func (a *Adapters) Plug(ilk, id, param string, ch chan Pulse, output bool) error
 		} else {
 			a.del[i].out = ch
 		}
-		digit, _ := strconv.Atoi(param)
-		if !(digit >= -10 && digit <= 10) {
-			return fmt.Errorf("invalid digit %s", param)
-		}
-		a.del[i].digit = digit
 		if a.del[i].in != nil && a.del[i].out != nil {
 			go a.del[i].run()
 		}
@@ -88,11 +128,6 @@ func (a *Adapters) Plug(ilk, id, param string, ch chan Pulse, output bool) error
 		} else {
 			a.sd[i].out = ch
 		}
-		digit, _ := strconv.Atoi(param)
-		if !(digit >= -10 && digit <= 10) {
-			return fmt.Errorf("invalid digit %s", param)
-		}
-		a.sd[i].digit = uint(digit)
 		if a.sd[i].in != nil && a.sd[i].out != nil {
 			go a.sd[i].run()
 		}
@@ -101,17 +136,6 @@ func (a *Adapters) Plug(ilk, id, param string, ch chan Pulse, output bool) error
 			a.permute[i].in = ch
 		} else {
 			a.permute[i].out = ch
-		}
-		order := strings.Split(param, ",")
-		if len(order) != 11 {
-			return fmt.Errorf("ad.permute usage: ad.permute.1.11,10,9,8,7,6,5,4,3,2,1")
-		}
-		for j := range order {
-			pos, _ := strconv.Atoi(order[j])
-			if !(pos >= 0 && pos <= 11) {
-				return fmt.Errorf("invalid digit field in permutation")
-			}
-			a.permute[i].order[j] = pos
 		}
 		if a.permute[i].in != nil && a.permute[i].out != nil {
 			go a.permute[i].run()

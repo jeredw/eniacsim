@@ -209,7 +209,14 @@ func doPlugSide(side int, command string, f []string, p []string, ch chan Pulse)
 	output := side == 1
 	switch {
 	case p[0] == "ad":
-		if len(p) != 4 {
+    if len(p) == 3 {
+		  err := adapters.Plug(p[1], p[2], "", ch, output)
+		  if err != nil {
+			  fmt.Printf("Adapter: %s\n", err)
+		  }
+      return
+    }
+    if len(p) != 4 {
 			fmt.Println("Adapter jumper syntax: ad.<type>.<id>.param")
 			return
 		}
@@ -377,6 +384,15 @@ func doSwitch(command string, f []string) {
 	}
 	p := strings.Split(f[1], ".")
 	switch {
+  case p[0] == "ad":
+    if len(p) != 3 {
+      fmt.Println("Invalid adapter switch:", command)
+      return
+    }
+    err := adapters.Switch(p[1], p[2], f[2])
+    if err != nil {
+      fmt.Printf("Adapter: %s\n", err)
+    }
 	case p[0][0] == 'a':
 		if len(p) != 2 {
 			fmt.Println("Invalid accumulator switch:", command)
