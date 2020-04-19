@@ -3,16 +3,20 @@ package units
 import (
 	"fmt"
 	"strconv"
+	"sync"
 
 	. "github.com/jeredw/eniacsim/lib"
 )
 
-type ft struct {
-	jack             [27]chan Pulse
-	inff1, inff2     [11]bool
-	opsw             [11]int
-	rptsw            [11]int
-	argsw            [11]int
+// Simulates an ENIAC function table unit.
+type Ft struct {
+	jack [27]chan Pulse
+
+	inff1, inff2 [11]bool
+	opsw         [11]int
+	rptsw        [11]int
+	argsw        [11]int
+
 	pm1, pm2         int
 	cons             [8]int
 	del              [8]int
@@ -24,227 +28,329 @@ type ft struct {
 	subtr            bool
 	argsetup         bool
 	gateh42, gatee42 bool
-	update           chan int
 	resp             chan int
 	whichrp          bool
 	px4119           bool
 	prog             int
+
+	rewiring           chan int
+	waitingForRewiring chan int
+
+	mu sync.Mutex
 }
 
-var ftable [3]ft
+func NewFt() *Ft {
+	return &Ft{
+		rewiring:           make(chan int),
+		waitingForRewiring: make(chan int),
+		resp:               make(chan int),
+	}
+}
 
-func Ftstat(unit int) (s string) {
-	for i := 0; i < 11; i++ {
-		if ftable[unit].inff2[i] {
+func (u *Ft) Stat() string {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	s := ""
+	for i := range u.inff2 {
+		if u.inff2[i] {
 			s += "1"
 		} else {
 			s += "0"
 		}
 	}
-	s += fmt.Sprintf(" %d %d", ftable[unit].arg, ftable[unit].ring)
-	if ftable[unit].add {
+	s += fmt.Sprintf(" %d %d", u.arg, u.ring)
+	if u.add {
 		s += " 1"
 	} else {
 		s += " 0"
 	}
-	if ftable[unit].subtr {
+	if u.subtr {
 		s += " 1"
 	} else {
 		s += " 0"
 	}
-	if ftable[unit].argsetup {
+	if u.argsetup {
 		s += " 1"
 	} else {
 		s += " 0"
 	}
-	return
+	return s
 }
 
-func Ftreset(unit int) {
-	f := &ftable[unit]
-	for i := 0; i < 27; i++ {
-		f.jack[i] = nil
+func (u *Ft) Reset() {
+	u.rewiring <- 1
+	<-u.waitingForRewiring
+	defer func() { u.rewiring <- 1 }()
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	for i := range u.jack {
+		u.jack[i] = nil
 	}
-	for i := 0; i < 11; i++ {
-		f.inff1[i] = false
-		f.inff2[i] = false
-		f.opsw[i] = 0
-		f.rptsw[i] = 0
-		f.argsw[i] = 0
+	for i := range u.inff1 {
+		u.inff1[i] = false
+		u.inff2[i] = false
+		u.opsw[i] = 0
+		u.rptsw[i] = 0
+		u.argsw[i] = 0
 	}
-	f.pm1 = 0
-	f.pm2 = 0
-	for i := 0; i < 8; i++ {
-		f.cons[i] = 0
-		f.del[i] = 0
+	u.pm1 = 0
+	u.pm2 = 0
+	for i := range u.cons {
+		u.cons[i] = 0
+		u.del[i] = 0
 	}
-	for i := 0; i < 12; i++ {
-		f.sub[i] = 0
+	for i := range u.sub {
+		u.sub[i] = 0
 	}
-	for i := 0; i < 104; i++ {
-		for j := 0; j < 14; j++ {
-			f.tab[i][j] = 0
+	for i := 0; i < len(u.tab); i++ {
+		for j := 0; j < len(u.tab[0]); j++ {
+			u.tab[i][j] = 0
 		}
 	}
-	f.arg = 0
-	f.ring = 0
-	f.add = false
-	f.subtr = false
-	f.argsetup = false
-	f.gateh42 = false
-	f.gatee42 = false
-	f.whichrp = false
-	f.px4119 = false
-	f.update <- 1
+	u.arg = 0
+	u.ring = 0
+	u.add = false
+	u.subtr = false
+	u.argsetup = false
+	u.gateh42 = false
+	u.gatee42 = false
+	u.whichrp = false
+	u.px4119 = false
 }
 
-func Ftplug(unit int, jack string, ch chan Pulse) {
-	jacks := [22]string{"1i", "1o", "2i", "2o", "3i", "3o", "4i", "4o",
-		"5i", "5o", "6i", "6o", "7i", "7o", "8i", "8o", "9i", "9o",
-		"10i", "10o", "11i", "11o"}
-	switch {
-	case jack == "arg", jack == "ARG":
-		ftable[unit].jack[0] = ch
-	case jack == "A":
-		ftable[unit].jack[1] = ch
-	case jack == "B":
-		ftable[unit].jack[2] = ch
-	case jack == "NC":
-		ftable[unit].jack[3] = ch
-	case jack == "C":
-		ftable[unit].jack[4] = ch
+func (u *Ft) Plug(jack string, ch chan Pulse) error {
+	u.rewiring <- 1
+	<-u.waitingForRewiring
+	defer func() { u.rewiring <- 1 }()
+	u.mu.Lock()
+	defer u.mu.Unlock()
+
+	name := "ft." + jack
+	switch jack {
+	case "arg", "ARG":
+		SafePlug(name, &u.jack[0], ch)
+	case "A":
+		SafePlug(name, &u.jack[1], ch)
+	case "B":
+		SafePlug(name, &u.jack[2], ch)
+	case "NC":
+		SafePlug(name, &u.jack[3], ch)
+	case "C":
+		SafePlug(name, &u.jack[4], ch)
 	default:
+		jacks := [22]string{
+			"1i", "1o", "2i", "2o", "3i", "3o", "4i", "4o",
+			"5i", "5o", "6i", "6o", "7i", "7o", "8i", "8o", "9i", "9o",
+			"10i", "10o", "11i", "11o",
+		}
 		for i, j := range jacks {
 			if j == jack {
-				ftable[unit].jack[i+5] = ch
-				break
+				SafePlug(name, &u.jack[i+5], ch)
+				return nil
 			}
 		}
+		return fmt.Errorf("invalid jack %s", name)
 	}
-	ftable[unit].update <- 1
+	return nil
 }
 
-func Ftctl(unit int, ch chan [2]string) {
-	var digit, row, val int
-	var bank, ilk rune
+func (u *Ft) Switch(name, value string) error {
+	u.rewiring <- 1
+	<-u.waitingForRewiring
+	defer func() { u.rewiring <- 1 }()
+	u.mu.Lock()
+	defer u.mu.Unlock()
 
-	ops := [10]string{"A-2", "A-1", "A0", "A+1", "A+2", "S+2", "S+1", "S0", "S-1", "S-2"}
-	for {
-		swval := <-ch
-		switch {
-		case swval[0][:2] == "op":
-			sw, _ := strconv.Atoi(swval[0][2:])
-			for i, o := range ops {
-				if o == swval[1] {
-					ftable[unit].opsw[sw-1] = i
-					break
-				}
+	switch {
+	case len(name) > 2 && name[:2] == "op":
+		sw, _ := strconv.Atoi(name[2:])
+		if !(sw >= 1 && sw <= 11) {
+			return fmt.Errorf("invalid switch %s", name)
+		}
+		ops := [10]string{"A-2", "A-1", "A0", "A+1", "A+2", "S+2", "S+1", "S0", "S-1", "S-2"}
+		for i, o := range ops {
+			if o == value {
+				u.opsw[sw-1] = i
+				return nil
 			}
-		case swval[0][:2] == "cl":
-			sw, _ := strconv.Atoi(swval[0][2:])
-			switch swval[1] {
+		}
+		return fmt.Errorf("invalid switch %s", name)
+	case len(name) > 2 && name[:2] == "cl":
+		sw, _ := strconv.Atoi(name[2:])
+		if !(sw >= 1 && sw <= 11) {
+			return fmt.Errorf("invalid switch %s", name)
+		}
+		switch value {
+		case "0":
+			u.argsw[sw-1] = 0
+		case "NC", "nc":
+			u.argsw[sw-1] = 1
+		case "C", "c":
+			u.argsw[sw-1] = 2
+		default:
+			return fmt.Errorf("invalid switch %s setting %s", name, value)
+		}
+	case len(name) > 2 && name[:2] == "rp":
+		sw, _ := strconv.Atoi(name[2:])
+		if !(sw >= 1 && sw <= 11) {
+			return fmt.Errorf("invalid switch %s", name)
+		}
+		repeatCount, _ := strconv.Atoi(value)
+		if !(repeatCount >= 1 && repeatCount <= 9) {
+			return fmt.Errorf("invalid switch %s setting %s", name, value)
+		}
+		u.rptsw[sw-1] = repeatCount - 1
+	case name == "mpm1":
+		if len(value) == 0 {
+			return fmt.Errorf("invalid switch %s setting", name)
+		}
+		switch value[0] {
+		case 'P', 'p':
+			u.pm1 = 0
+		case 'M', 'm':
+			u.pm1 = 1
+		case 'T', 't':
+			u.pm1 = 2
+		default:
+			return fmt.Errorf("invalid switch %s setting %s", name, value)
+		}
+	case name == "mpm2":
+		if len(value) == 0 {
+			return fmt.Errorf("invalid switch %s setting", name)
+		}
+		switch value[0] {
+		case 'P', 'p':
+			u.pm2 = 0
+		case 'M', 'm':
+			u.pm2 = 1
+		case 'T', 't':
+			u.pm2 = 2
+		default:
+			return fmt.Errorf("invalid switch %s setting %s", name, value)
+		}
+	case len(name) > 1 && name[0] == 'A', len(name) > 1 && name[0] == 'B':
+		var bank, digit, ilk int
+		fmt.Sscanf(name, "%c%d%c", &bank, &digit, &ilk)
+		var offset int
+		switch bank {
+		case 'A':
+			offset = 0
+		case 'B':
+			offset = 1
+		default:
+			return fmt.Errorf("invalid switch %s", name)
+		}
+		switch ilk {
+		case 'd', 'D':
+			if !(digit >= 1 && digit <= 4) {
+				return fmt.Errorf("invalid switch %s", name)
+			}
+			switch value {
+			case "d", "D":
+				u.del[4*offset+digit-1] = 1
+			case "o", "O":
+				u.del[4*offset+digit-1] = 0
+			default:
+				return fmt.Errorf("invalid switch %s setting %s", name, value)
+			}
+		case 'c', 'C':
+			if !(digit >= 1 && digit <= 4) {
+				return fmt.Errorf("invalid switch %s", name)
+			}
+			switch value {
+			case "pm1", "PM1":
+				u.cons[4*offset+digit-1] = 10
+			case "pm2", "PM2":
+				u.cons[4*offset+digit-1] = 11
+			default:
+				n, _ := strconv.Atoi(value)
+				if !(n >= 0 && n <= 9) {
+					return fmt.Errorf("invalid switch %s setting %s", name, value)
+				}
+				u.cons[4*offset+digit-1] = n
+			}
+		case 's', 'S':
+			if !(digit >= 4 && digit <= 10) {
+				return fmt.Errorf("invalid switch %s", name)
+			}
+			switch value {
+			case "s", "S":
+				u.sub[6*offset+digit-5] = 1
 			case "0":
-				ftable[unit].argsw[sw-1] = 0
-			case "NC", "nc":
-				ftable[unit].argsw[sw-1] = 1
-			case "C", "c":
-				ftable[unit].argsw[sw-1] = 2
-			}
-		case swval[0][:2] == "rp":
-			sw, _ := strconv.Atoi(swval[0][2:])
-			val, _ := strconv.Atoi(swval[1])
-			ftable[unit].rptsw[sw-1] = val - 1
-		case swval[0] == "mpm1":
-			switch swval[1][0] {
-			case 'P', 'p':
-				ftable[unit].pm1 = 0
-			case 'M', 'm':
-				ftable[unit].pm1 = 1
-			case 'T', 't':
-				ftable[unit].pm1 = 2
-			}
-		case swval[0] == "mpm2":
-			switch swval[1][0] {
-			case 'P', 'p':
-				ftable[unit].pm2 = 0
-			case 'M', 'm':
-				ftable[unit].pm2 = 1
-			case 'T', 't':
-				ftable[unit].pm2 = 2
-			}
-		case swval[0][0] == 'A', swval[0][0] == 'B':
-			offset := 0
-			fmt.Sscanf(swval[0], "%c%d%c", &bank, &digit, &ilk)
-			if bank == 'B' {
-				offset = 1
-			}
-			switch ilk {
-			case 'd', 'D':
-				switch swval[1] {
-				case "d", "D":
-					ftable[unit].del[4*offset+digit-1] = 1
-				case "o", "O":
-					ftable[unit].del[4*offset+digit-1] = 0
-				}
-			case 'c', 'C':
-				switch swval[1] {
-				case "pm1", "PM1":
-					ftable[unit].cons[4*offset+digit-1] = 10
-				case "pm2", "PM2":
-					ftable[unit].cons[4*offset+digit-1] = 11
-				default:
-					n, _ := strconv.Atoi(swval[1])
-					ftable[unit].cons[4*offset+digit-1] = n
-				}
-			case 's', 'S':
-				switch swval[1] {
-				case "s", "S":
-					ftable[unit].sub[6*offset+digit-5] = 1
-				case "0":
-					ftable[unit].sub[6*offset+digit-5] = 0
-				}
-			}
-		case swval[0][0] == 'R':
-			n, _ := fmt.Sscanf(swval[0], "R%c%dL%d", &bank, &row, &digit)
-			if n == 3 {
-				val, _ = strconv.Atoi(swval[1])
-				if bank == 'A' {
-					ftable[unit].tab[row+2][7-digit] = val
-				} else {
-					ftable[unit].tab[row+2][13-digit] = val
-				}
-			} else {
-				fmt.Sscanf(swval[0], "R%c%dS", &bank, &row)
-				if swval[1] == "m" || swval[1] == "M" {
-					val = 1
-				} else {
-					val = 0
-				}
-				if bank == 'A' {
-					ftable[unit].tab[row+2][0] = val
-				} else {
-					ftable[unit].tab[row+2][13] = val
-				}
-			}
-		case swval[0] == "ninep" || swval[0] == "Ninep":
-			if swval[1][0] == 'C' || swval[1][0] == 'c' {
-				ftable[unit].px4119 = true
-			} else {
-				ftable[unit].px4119 = false
+				u.sub[6*offset+digit-5] = 0
+			default:
+				return fmt.Errorf("invalid switch %s setting %s", name, value)
 			}
 		default:
-			fmt.Printf("Invalid function table switch %s\n", swval[0])
+			return fmt.Errorf("invalid switch %s", name)
 		}
+	case len(name) > 1 && name[0] == 'R':
+		var bank, row, digit int
+		n, _ := fmt.Sscanf(name, "R%c%dL%d", &bank, &row, &digit)
+		if n == 3 {
+			val, _ := strconv.Atoi(value)
+			if !(row >= -2 && row <= 101) {
+				return fmt.Errorf("invalid switch %s", name)
+			}
+			if !(digit >= 1 && digit <= 6) {
+				return fmt.Errorf("invalid switch %s", name)
+			}
+			if !(val >= 0 && val <= 9) {
+				return fmt.Errorf("invalid switch %s setting %s", name, value)
+			}
+			switch bank {
+			case 'A':
+				u.tab[row+2][7-digit] = val
+			case 'B':
+				u.tab[row+2][13-digit] = val
+			default:
+				return fmt.Errorf("invalid switch %s", name)
+			}
+		} else {
+			fmt.Sscanf(name, "R%c%dS", &bank, &row)
+			if !(row >= -2 && row <= 101) {
+				return fmt.Errorf("invalid switch %s", name)
+			}
+			var val int
+			switch value {
+			case "P", "p":
+				val = 0
+			case "M", "m":
+				val = 1
+			default:
+				return fmt.Errorf("invalid switch %s setting %s", name, value)
+			}
+			switch bank {
+			case 'A':
+				u.tab[row+2][0] = val
+			case 'B':
+				u.tab[row+2][13] = val
+			default:
+				return fmt.Errorf("invalid switch %s", name)
+			}
+		}
+	case name == "ninep" || name == "Ninep":
+		if len(value) == 0 {
+			return fmt.Errorf("invalid switch %s", name)
+		}
+		if value[0] == 'C' || value[0] == 'c' {
+			u.px4119 = true
+		} else {
+			u.px4119 = false
+		}
+	default:
+		return fmt.Errorf("invalid switch %s", name)
 	}
+	return nil
 }
 
-func addlookup(f *ft, c int) {
+func (u *Ft) addlookup(c int) {
 	a := 0
 	b := 0
-	arg := f.arg
+	arg := u.arg
 	if c&Ninep != 0 {
-		as := f.pm1 == 1 || f.pm1 == 2 && f.tab[arg][0] == 1
-		bs := f.pm2 == 1 || f.pm2 == 2 && f.tab[arg][13] == 1
+		as := u.pm1 == 1 || u.pm1 == 2 && u.tab[arg][0] == 1
+		bs := u.pm2 == 1 || u.pm2 == 2 && u.tab[arg][13] == 1
 		if as {
 			a |= 1 << 10
 		}
@@ -252,127 +358,125 @@ func addlookup(f *ft, c int) {
 			b |= 1 << 10
 		}
 		for i := 0; i < 4; i++ {
-			if f.del[i] == 0 {
-				if f.cons[i] == 10 && as {
+			if u.del[i] == 0 {
+				if u.cons[i] == 10 && as {
 					a |= 1 << (9 - uint(i))
-				} else if f.cons[i] == 11 && bs {
+				} else if u.cons[i] == 11 && bs {
 					a |= 1 << (9 - uint(i))
 				}
 			}
-			if f.del[i+4] == 0 {
-				if f.cons[i+4] == 10 && as {
+			if u.del[i+4] == 0 {
+				if u.cons[i+4] == 10 && as {
 					b |= 1 << (9 - uint(i))
-				} else if f.cons[i+4] == 11 && bs {
+				} else if u.cons[i+4] == 11 && bs {
 					b |= 1 << (9 - uint(i))
 				}
 			}
 		}
 		for i := 0; i < 4; i++ {
-			if f.cons[i] == 9 {
+			if u.cons[i] == 9 {
 				a |= 1 << (9 - uint(i))
 			}
-			if f.cons[i+4] == 9 {
+			if u.cons[i+4] == 9 {
 				b |= 1 << (9 - uint(i))
 			}
 		}
 		for i := 0; i < 6; i++ {
-			if f.tab[arg][i+1] == 9 {
+			if u.tab[arg][i+1] == 9 {
 				a |= 1 << (5 - uint(i))
 			}
-			if f.tab[arg][i+7] == 9 {
+			if u.tab[arg][i+7] == 9 {
 				b |= 1 << (5 - uint(i))
 			}
 		}
 	}
 	if c&Fourp != 0 {
 		for i := 0; i < 4; i++ {
-			if x := f.cons[i]; x >= 4 && x <= 8 {
+			if x := u.cons[i]; x >= 4 && x <= 8 {
 				a |= 1 << (9 - uint(i))
 			}
-			if x := f.cons[i+4]; x >= 4 && x <= 8 {
+			if x := u.cons[i+4]; x >= 4 && x <= 8 {
 				b |= 1 << (9 - uint(i))
 			}
 		}
 		for i := 0; i < 6; i++ {
-			if x := f.tab[arg][i+1]; x >= 4 && x <= 8 {
+			if x := u.tab[arg][i+1]; x >= 4 && x <= 8 {
 				a |= 1 << (5 - uint(i))
 			}
-			if x := f.tab[arg][i+7]; x >= 4 && x <= 8 {
+			if x := u.tab[arg][i+7]; x >= 4 && x <= 8 {
 				b |= 1 << (5 - uint(i))
 			}
 		}
 	}
 	if c&Twopp != 0 {
 		for i := 0; i < 4; i++ {
-			if x := f.cons[i]; x == 8 || x == 8 {
+			if x := u.cons[i]; x == 8 || x == 8 {
 				a |= 1 << (9 - uint(i))
 			}
-			if x := f.cons[i+4]; x == 8 || x == 8 {
+			if x := u.cons[i+4]; x == 8 || x == 8 {
 				b |= 1 << (9 - uint(i))
 			}
 		}
 		for i := 0; i < 6; i++ {
-			if x := f.tab[arg][i+1]; x == 8 || x == 8 {
+			if x := u.tab[arg][i+1]; x == 8 || x == 8 {
 				a |= 1 << (5 - uint(i))
 			}
-			if x := f.tab[arg][i+7]; x == 8 || x == 8 {
+			if x := u.tab[arg][i+7]; x == 8 || x == 8 {
 				b |= 1 << (5 - uint(i))
 			}
 		}
 	}
 	if c&Twop != 0 {
 		for i := 0; i < 4; i++ {
-			if x := f.cons[i]; x == 2 || x == 3 || (x > 5 && x < 9) {
+			if x := u.cons[i]; x == 2 || x == 3 || (x > 5 && x < 9) {
 				a |= 1 << (9 - uint(i))
 			}
-			if x := f.cons[i+4]; x == 2 || x == 3 || (x > 5 && x < 9) {
+			if x := u.cons[i+4]; x == 2 || x == 3 || (x > 5 && x < 9) {
 				b |= 1 << (9 - uint(i))
 			}
 		}
 		for i := 0; i < 6; i++ {
-			if x := f.tab[arg][i+1]; x == 2 || x == 3 || (x > 5 && x < 9) {
+			if x := u.tab[arg][i+1]; x == 2 || x == 3 || (x > 5 && x < 9) {
 				a |= 1 << (5 - uint(i))
 			}
-			if x := f.tab[arg][i+7]; x == 2 || x == 3 || (x > 5 && x < 9) {
+			if x := u.tab[arg][i+7]; x == 2 || x == 3 || (x > 5 && x < 9) {
 				b |= 1 << (5 - uint(i))
 			}
 		}
 	}
 	if c&Onep != 0 {
 		for i := 0; i < 4; i++ {
-			if x := f.cons[i]; x < 9 && x%2 == 1 {
+			if x := u.cons[i]; x < 9 && x%2 == 1 {
 				a |= 1 << (9 - uint(i))
 			}
-			if x := f.cons[i+4]; x < 9 && x%2 == 1 {
+			if x := u.cons[i+4]; x < 9 && x%2 == 1 {
 				b |= 1 << (9 - uint(i))
 			}
 		}
 		for i := 0; i < 6; i++ {
-			if x := f.tab[arg][i+1]; x < 9 && x%2 == 1 {
+			if x := u.tab[arg][i+1]; x < 9 && x%2 == 1 {
 				a |= 1 << (5 - uint(i))
 			}
-			if x := f.tab[arg][i+7]; x < 9 && x%2 == 1 {
+			if x := u.tab[arg][i+7]; x < 9 && x%2 == 1 {
 				b |= 1 << (5 - uint(i))
 			}
 		}
 	}
-	if a != 0 && f.jack[1] != nil {
-		f.jack[1] <- Pulse{a, f.resp}
-		<-f.resp
+	if a != 0 {
+		Handshake(a, u.jack[1], u.resp)
 	}
-	if b != 0 && f.jack[2] != nil {
-		f.jack[2] <- Pulse{b, f.resp}
-		<-f.resp
+	if b != 0 {
+		Handshake(b, u.jack[1], u.resp)
 	}
 }
 
-func subtrlookup(f *ft, c int) {
+func (u *Ft) subtrlookup(c int) {
 	a := 0
 	b := 0
-	arg := f.arg
+	arg := u.arg
 	if c&Ninep != 0 {
-		as := f.pm1 == 0 || f.pm1 == 2 && f.tab[arg][0] == 0
-		bs := f.pm2 == 0 || f.pm2 == 2 && f.tab[arg][13] == 0
+		as := u.pm1 == 0 || u.pm1 == 2 && u.tab[arg][0] == 0
+		bs := u.pm2 == 0 || u.pm2 == 2 && u.tab[arg][13] == 0
 		if as {
 			a |= 1 << 10
 		}
@@ -380,17 +484,17 @@ func subtrlookup(f *ft, c int) {
 			b |= 1 << 10
 		}
 		for i := 0; i < 4; i++ {
-			if f.del[i] == 0 {
-				if f.cons[i] == 10 && as {
+			if u.del[i] == 0 {
+				if u.cons[i] == 10 && as {
 					a |= 1 << (9 - uint(i))
-				} else if f.cons[i] == 11 && bs {
+				} else if u.cons[i] == 11 && bs {
 					a |= 1 << (9 - uint(i))
 				}
 			}
-			if f.del[i+4] == 0 {
-				if f.cons[i+4] == 10 && as {
+			if u.del[i+4] == 0 {
+				if u.cons[i+4] == 10 && as {
 					b |= 1 << (9 - uint(i))
-				} else if f.cons[i+4] == 11 && bs {
+				} else if u.cons[i+4] == 11 && bs {
 					b |= 1 << (9 - uint(i))
 				}
 			}
@@ -398,98 +502,98 @@ func subtrlookup(f *ft, c int) {
 	}
 	if c&Fourp != 0 {
 		for i := 0; i < 4; i++ {
-			if x := f.cons[i]; x < 6 {
+			if x := u.cons[i]; x < 6 {
 				a |= 1 << (9 - uint(i))
 			}
-			if x := f.cons[i+4]; x < 6 {
+			if x := u.cons[i+4]; x < 6 {
 				b |= 1 << (9 - uint(i))
 			}
 		}
 		for i := 0; i < 6; i++ {
-			if x := f.tab[arg][i+1]; x < 6 {
+			if x := u.tab[arg][i+1]; x < 6 {
 				a |= 1 << (5 - uint(i))
 			}
-			if x := f.tab[arg][i+7]; x < 6 {
+			if x := u.tab[arg][i+7]; x < 6 {
 				b |= 1 << (5 - uint(i))
 			}
 		}
 	}
 	if c&Twopp != 0 {
 		for i := 0; i < 4; i++ {
-			if x := f.cons[i]; x < 2 {
+			if x := u.cons[i]; x < 2 {
 				a |= 1 << (9 - uint(i))
 			}
-			if x := f.cons[i+4]; x < 2 {
+			if x := u.cons[i+4]; x < 2 {
 				b |= 1 << (9 - uint(i))
 			}
 		}
 		for i := 0; i < 6; i++ {
-			if x := f.tab[arg][i+1]; x < 2 {
+			if x := u.tab[arg][i+1]; x < 2 {
 				a |= 1 << (5 - uint(i))
 			}
-			if x := f.tab[arg][i+7]; x < 2 {
+			if x := u.tab[arg][i+7]; x < 2 {
 				b |= 1 << (5 - uint(i))
 			}
 		}
 	}
 	if c&Twop != 0 {
 		for i := 0; i < 4; i++ {
-			if x := f.cons[i]; x == 6 || x == 7 || x < 4 {
+			if x := u.cons[i]; x == 6 || x == 7 || x < 4 {
 				a |= 1 << (9 - uint(i))
 			}
-			if x := f.cons[i+4]; x == 6 || x == 7 || x < 4 {
+			if x := u.cons[i+4]; x == 6 || x == 7 || x < 4 {
 				b |= 1 << (9 - uint(i))
 			}
 		}
 		for i := 0; i < 6; i++ {
-			if x := f.tab[arg][i+1]; x == 6 || x == 7 || x < 4 {
+			if x := u.tab[arg][i+1]; x == 6 || x == 7 || x < 4 {
 				a |= 1 << (5 - uint(i))
 			}
-			if x := f.tab[arg][i+7]; x == 6 || x == 7 || x < 4 {
+			if x := u.tab[arg][i+7]; x == 6 || x == 7 || x < 4 {
 				b |= 1 << (5 - uint(i))
 			}
 		}
 	}
 	if c&Onep != 0 {
 		for i := 0; i < 4; i++ {
-			if x := f.cons[i]; x < 10 && x%2 == 0 {
+			if x := u.cons[i]; x < 10 && x%2 == 0 {
 				a |= 1 << (9 - uint(i))
 			}
-			if x := f.cons[i+4]; x < 10 && x%2 == 0 {
+			if x := u.cons[i+4]; x < 10 && x%2 == 0 {
 				b |= 1 << (9 - uint(i))
 			}
 		}
 		for i := 0; i < 6; i++ {
-			if x := f.tab[arg][i+1]; x < 10 && x%2 == 0 {
+			if x := u.tab[arg][i+1]; x < 10 && x%2 == 0 {
 				a |= 1 << (5 - uint(i))
 			}
-			if x := f.tab[arg][i+7]; x < 10 && x%2 == 0 {
+			if x := u.tab[arg][i+7]; x < 10 && x%2 == 0 {
 				b |= 1 << (5 - uint(i))
 			}
 		}
 	}
 	if c&Onepp != 0 {
 		for i := 0; i < 6; i++ {
-			if f.sub[i] == 1 {
+			if u.sub[i] == 1 {
 				a |= 1 << (5 - uint(i))
 			}
-			if f.sub[i+6] == 1 {
+			if u.sub[i+6] == 1 {
 				b |= 1 << (5 - uint(i))
 			}
 		}
 	}
-	if a != 0 && f.jack[1] != nil {
-		f.jack[1] <- Pulse{a, f.resp}
-		<-f.resp
+	if a != 0 {
+		Handshake(a, u.jack[1], u.resp)
 	}
-	if b != 0 && f.jack[2] != nil {
-		f.jack[2] <- Pulse{b, f.resp}
-		<-f.resp
+	if b != 0 {
+		Handshake(b, u.jack[2], u.resp)
 	}
 }
 
-func ftpulse(f *ft, p Pulse) {
-	if f.px4119 {
+func (u *Ft) clock(p Pulse) {
+	//  u.mu.Lock()
+	//  defer u.mu.Unlock()
+	if u.px4119 {
 		if p.Val&Cpp != 0 {
 			p.Val |= Ninep
 		} else {
@@ -497,200 +601,161 @@ func ftpulse(f *ft, p Pulse) {
 		}
 	}
 	c := p.Val
-	if f.gatee42 {
-		sw := f.opsw[f.prog]
+	if u.gatee42 {
+		sw := u.opsw[u.prog]
 		if c&Onep != 0 && (sw == 1 || sw == 3 || sw == 6 || sw == 8) {
-			f.arg++
+			u.arg++
 		}
 		if c&Twop != 0 && (sw == 2 || sw == 3 || sw == 6 || sw == 7) {
-			f.arg++
+			u.arg++
 		}
 		if c&Fourp != 0 && (sw == 4 || sw == 5) {
-			f.arg++
+			u.arg++
 		}
 	}
-	if f.add {
-		if f.arg >= 0 && f.arg < 104 {
-			addlookup(f, c)
+	if u.add {
+		if u.arg >= 0 && u.arg < 104 {
+			u.addlookup(c)
 		} else {
-			fmt.Println("Invalid function table argument", f.arg)
+			fmt.Println("Invalid function table argument", u.arg)
 		}
 	}
-	if f.subtr {
-		if f.arg >= 0 && f.arg < 104 {
-			subtrlookup(f, c)
+	if u.subtr {
+		if u.arg >= 0 && u.arg < 104 {
+			u.subtrlookup(c)
 		} else {
-			fmt.Println("Invalid function table argument", f.arg)
+			fmt.Println("Invalid function table argument", u.arg)
 		}
 	}
 	if c&Cpp != 0 {
-		switch f.ring {
+		switch u.ring {
 		case 0: // Stage -3
-			for f.prog = 0; f.prog < 11 && !f.inff2[f.prog]; f.prog++ {
+			for u.prog = 0; u.prog < 11 && !u.inff2[u.prog]; u.prog++ {
 			}
-			if f.prog >= 11 {
+			if u.prog >= 11 {
 				break
 			}
-			switch f.argsw[f.prog] {
+			switch u.argsw[u.prog] {
 			case 1:
-				if f.jack[3] != nil {
-					f.jack[3] <- Pulse{1, f.resp}
-					<-f.resp
-				}
+				Handshake(1, u.jack[3], u.resp)
 			case 2:
-				if f.jack[4] != nil {
-					f.jack[4] <- Pulse{1, f.resp}
-					<-f.resp
-				}
+				Handshake(1, u.jack[4], u.resp)
 			}
-			f.ring++ // Stage -2 begins
-			f.gateh42 = true
+			u.ring++ // Stage -2 begins
+			u.gateh42 = true
 		case 1:
-			f.ring++ // Stage -1 begins
-			f.gateh42 = false
-			f.gatee42 = true
+			u.ring++ // Stage -1 begins
+			u.gateh42 = false
+			u.gatee42 = true
 		case 2:
-			f.ring++ // Stage 0 begins
-			f.gatee42 = false
+			u.ring++ // Stage 0 begins
+			u.gatee42 = false
 			/*
-				if f.opsw[f.prog] < 5 {
-					f.add = true
+				if u.opsw[u.prog] < 5 {
+					u.add = true
 				} else {
-					f.subtr = true
+					u.subtr = true
 				}
 			*/
 		case 3: // Stage 0
-			f.ring++ // Stage 1 begins
-			if f.opsw[f.prog] < 5 {
-				f.add = true
+			u.ring++ // Stage 1 begins
+			if u.opsw[u.prog] < 5 {
+				u.add = true
 			} else {
-				f.subtr = true
+				u.subtr = true
 			}
 		default: // Stages 1-9
-			if f.rptsw[f.prog] == f.ring-4 {
-				if f.jack[f.prog*2+6] != nil {
-					f.jack[f.prog*2+6] <- Pulse{1, f.resp}
-					<-f.resp
-				}
-				f.arg = 0
-				f.add = false
-				f.subtr = false
-				f.inff2[f.prog] = false
-				f.argsetup = false
-				f.ring = 0
+			if u.rptsw[u.prog] == u.ring-4 {
+				Handshake(1, u.jack[u.prog*2+6], u.resp)
+				u.arg = 0
+				u.add = false
+				u.subtr = false
+				u.inff2[u.prog] = false
+				u.argsetup = false
+				u.ring = 0
 			} else {
-				f.ring++
+				u.ring++
 			}
 		}
 	}
 	if c&Ccg != 0 {
-		f.whichrp = false
+		u.whichrp = false
 	}
 	if c&Rp != 0 {
-		if f.whichrp {
-			for i, _ := range f.inff1 {
-				if f.inff1[i] {
-					f.inff1[i] = false
-					f.inff2[i] = true
+		if u.whichrp {
+			for i, _ := range u.inff1 {
+				if u.inff1[i] {
+					u.inff1[i] = false
+					u.inff2[i] = true
 				}
 			}
-			f.whichrp = false
+			u.whichrp = false
 		} else {
-			f.whichrp = true
+			u.whichrp = true
 		}
 	}
-	if f.ring == 2 && c&Onepp != 0 {
-		f.argsetup = true
+	if u.ring == 2 && c&Onepp != 0 {
+		u.argsetup = true
 	}
 }
 
-func Makeftpulse(unit int) ClockFunc {
-	f := &ftable[unit]
+func (u *Ft) MakeClockFunc() ClockFunc {
 	return func(p Pulse) {
-		ftpulse(f, p)
+		u.clock(p)
 	}
 }
 
-func Ftunit(unit int) {
-	f := &ftable[unit]
-	f.update = make(chan int)
-	go ftunit2(f)
-	f.resp = make(chan int)
+func (u *Ft) trigger(input int) {
+	u.mu.Lock()
+	u.inff1[input] = true
+	u.mu.Unlock()
 }
 
-func ftunit2(f *ft) {
+func (u *Ft) Run() {
 	var p Pulse
 
 	for {
+		p.Resp = nil
 		select {
-		case <-f.update:
-		case p = <-f.jack[5]:
-			f.inff1[0] = true
-			if p.Resp != nil {
-				p.Resp <- 1
-			}
-		case p = <-f.jack[7]:
-			f.inff1[1] = true
-			if p.Resp != nil {
-				p.Resp <- 1
-			}
-		case p = <-f.jack[9]:
-			f.inff1[2] = true
-			if p.Resp != nil {
-				p.Resp <- 1
-			}
-		case p = <-f.jack[11]:
-			f.inff1[3] = true
-			if p.Resp != nil {
-				p.Resp <- 1
-			}
-		case p = <-f.jack[13]:
-			f.inff1[4] = true
-			if p.Resp != nil {
-				p.Resp <- 1
-			}
-		case p = <-f.jack[15]:
-			f.inff1[5] = true
-			if p.Resp != nil {
-				p.Resp <- 1
-			}
-		case p = <-f.jack[17]:
-			f.inff1[6] = true
-			if p.Resp != nil {
-				p.Resp <- 1
-			}
-		case p = <-f.jack[19]:
-			f.inff1[7] = true
-			if p.Resp != nil {
-				p.Resp <- 1
-			}
-		case p = <-f.jack[21]:
-			f.inff1[8] = true
-			if p.Resp != nil {
-				p.Resp <- 1
-			}
-		case p = <-f.jack[23]:
-			f.inff1[9] = true
-			if p.Resp != nil {
-				p.Resp <- 1
-			}
-		case p = <-f.jack[25]:
-			f.inff1[10] = true
-			if p.Resp != nil {
-				p.Resp <- 1
-			}
-		case arg := <-f.jack[0]:
-			if f.gateh42 {
-				if arg.Val&0x01 != 0 {
-					f.arg++
+		case <-u.rewiring:
+			u.waitingForRewiring <- 1
+			<-u.rewiring
+		case p = <-u.jack[5]:
+			u.trigger(0)
+		case p = <-u.jack[7]:
+			u.trigger(1)
+		case p = <-u.jack[9]:
+			u.trigger(2)
+		case p = <-u.jack[11]:
+			u.trigger(3)
+		case p = <-u.jack[13]:
+			u.trigger(4)
+		case p = <-u.jack[15]:
+			u.trigger(5)
+		case p = <-u.jack[17]:
+			u.trigger(6)
+		case p = <-u.jack[19]:
+			u.trigger(7)
+		case p = <-u.jack[21]:
+			u.trigger(8)
+		case p = <-u.jack[23]:
+			u.trigger(9)
+		case p = <-u.jack[25]:
+			u.trigger(10)
+		case p = <-u.jack[0]:
+			u.mu.Lock()
+			if u.gateh42 {
+				if p.Val&0x01 != 0 {
+					u.arg++
 				}
-				if arg.Val&0x02 != 0 {
-					f.arg += 10
+				if p.Val&0x02 != 0 {
+					u.arg += 10
 				}
 			}
-			if arg.Resp != nil {
-				arg.Resp <- 1
-			}
+			u.mu.Unlock()
+		}
+		if p.Resp != nil {
+			p.Resp <- 1
 		}
 	}
 }

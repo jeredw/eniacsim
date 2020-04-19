@@ -18,10 +18,9 @@ var divsr *units.Divsr
 var multiplier *units.Multiplier
 var constant *units.Constant
 var printer *units.Printer
+var ft [3]*units.Ft
 
-var prsw chan [2]string
 var accsw [20]chan [2]string
-var ftsw [3]chan [2]string
 var width, height int
 var demomode, tkkludge, usecontrol *bool
 
@@ -48,6 +47,14 @@ func main() {
 		go ctlstation()
 	}
 
+	cycle = units.NewCycle(units.CycleConn{
+		CycleButton: NewButton(),
+		Switches:    make(chan [2]string),
+		Reset:       make(chan int),
+		Stop:        make(chan int),
+		TestButton:  NewButton(),
+		TestCycles:  *testCycles,
+	})
 	initiate = units.NewInitiate(units.InitiateConn{
 		InitButton: NewButton(),
 		Ppunch:     ppunch,
@@ -57,6 +64,10 @@ func main() {
 	multiplier = units.NewMultiplier()
 	constant = units.NewConstant()
 	printer = units.NewPrinter()
+	for i := 0; i < 3; i++ {
+		ft[i] = units.NewFt()
+	}
+
 	clockFuncs := []ClockFunc{
 		initiate.MakeClockFunc(),
 		mp.MakeClockFunc(),
@@ -67,7 +78,6 @@ func main() {
 	clearFuncs := []func(){
 		func() { mp.Clear() },
 	}
-	prsw = make(chan [2]string)
 	for i := 0; i < 20; i++ {
 		accsw[i] = make(chan [2]string)
 		clockFuncs = append(clockFuncs, units.Makeaccpulse(i))
@@ -76,28 +86,11 @@ func main() {
 	}
 	clearFuncs = append(clearFuncs, func() { divsr.Clear() })
 	for i := 0; i < 3; i++ {
-		ftsw[i] = make(chan [2]string)
-		clockFuncs = append(clockFuncs, units.Makeftpulse(i))
+		clockFuncs = append(clockFuncs, ft[i].MakeClockFunc())
 	}
 
-	cycle = units.NewCycle(units.CycleConn{
-		Units:       clockFuncs,
-		Clear:       func() bool { return initiate.ShouldClear() },
-		CycleButton: NewButton(),
-		Switches:    make(chan [2]string),
-		Reset:       make(chan int),
-		Stop:        make(chan int),
-		TestButton:  NewButton(),
-		TestCycles:  *testCycles,
-	})
-	printer.Io.MpPrinterDecades = func() string { return mp.PrinterDecades() }
-	for i := 0; i < 20; i++ {
-		printer.Io.AccValue[i] = func(i int) func() string {
-			return func() string {
-				return units.Accvalue(i)
-			}
-		}(i)
-	}
+	cycle.Io.Units = clockFuncs
+	cycle.Io.Clear = func() bool { return initiate.ShouldClear() }
 	initiate.Io.ClearUnits = clearFuncs
 	initiate.Io.AddCycle = func() int { return cycle.AddCycle() }
 	initiate.Io.Stepping = func() bool { return cycle.Stepping() }
@@ -111,6 +104,14 @@ func main() {
 	multiplier.Io.Acc8Value = func() string { return units.Accvalue(8) }
 	multiplier.Io.Acc9Clear = func() { units.Accclear(9) }
 	multiplier.Io.Acc9Value = func() string { return units.Accvalue(9) }
+	printer.Io.MpPrinterDecades = func() string { return mp.PrinterDecades() }
+	for i := 0; i < 20; i++ {
+		printer.Io.AccValue[i] = func(i int) func() string {
+			return func() string {
+				return units.Accvalue(i)
+			}
+		}(i)
+	}
 
 	go initiate.Run()
 	go mp.Run()
@@ -129,8 +130,7 @@ func main() {
 		})
 	}
 	for i := 0; i < 3; i++ {
-		go units.Ftctl(i, ftsw[i])
-		go units.Ftunit(i)
+		go ft[i].Run()
 	}
 
 	if flag.NArg() >= 1 {

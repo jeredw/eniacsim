@@ -97,7 +97,11 @@ func doDump(f []string) {
 		fmt.Println(divsr.Stat2())
 	case 'f':
 		unit, _ := strconv.Atoi(f[1][1:])
-		fmt.Println(units.Ftstat(unit - 1))
+		if !(unit >= 1 && unit <= 3) {
+			fmt.Println("Invalid function table")
+			return
+		}
+		fmt.Println(ft[unit-1].Stat())
 	case 'i':
 		fmt.Println(initiate.Stat())
 	case 'm':
@@ -121,7 +125,7 @@ func doDumpAll() {
 	fmt.Println(divsr.Stat2())
 	fmt.Println(multiplier.Stat())
 	for i := 0; i < 3; i++ {
-		fmt.Println(units.Ftstat(i))
+		fmt.Println(ft[i].Stat())
 	}
 	fmt.Println(constant.Stat())
 	fmt.Println()
@@ -243,7 +247,14 @@ func doPlugSide(side int, command string, f []string, p []string, ch chan Pulse)
 			return
 		}
 		unit, _ := strconv.Atoi(p[0][1:])
-		units.Ftplug(unit-1, p[1], ch)
+		if !(unit >= 1 && unit <= 3) {
+			fmt.Println("Invalid function table")
+			return
+		}
+		err := ft[unit-1].Plug(p[1], ch)
+		if err != nil {
+			fmt.Printf("Function table %d: %s", unit, err)
+		}
 	case p[0] == "i":
 		if len(p) != 2 {
 			fmt.Println("Initiator jumper syntax: i.terminal")
@@ -316,7 +327,11 @@ func doReset(f []string) {
 			fmt.Println("Function table reset syntax: r f.unit")
 		} else {
 			unit, _ := strconv.Atoi(p[1])
-			units.Ftreset(unit)
+			if !(unit >= 1 && unit <= 3) {
+				fmt.Println("Invalid function table")
+				return
+			}
+			ft[unit-1].Reset()
 		}
 	case "i":
 		initiate.Reset()
@@ -332,9 +347,9 @@ func doResetAll() {
 	cycle.Io.Reset <- 1
 	debugreset()
 	mp.Reset()
-	units.Ftreset(0)
-	units.Ftreset(1)
-	units.Ftreset(2)
+	ft[0].Reset()
+	ft[1].Reset()
+	ft[2].Reset()
 	for i := 0; i < 20; i++ {
 		units.Accreset(i)
 	}
@@ -387,9 +402,16 @@ func doSwitch(command string, f []string) {
 	case p[0][0] == 'f':
 		if len(p) != 2 {
 			fmt.Println("Function table switch syntax: s funit.switch value", command)
-		} else {
-			unit, _ := strconv.Atoi(p[0][1:])
-			ftsw[unit-1] <- [2]string{p[1], f[2]}
+			break
+		}
+		unit, _ := strconv.Atoi(p[0][1:])
+		if !(unit >= 1 && unit <= 3) {
+			fmt.Println("Invalid function table")
+			break
+		}
+		err := ft[unit-1].Switch(p[1], f[2])
+		if err != nil {
+			fmt.Printf("Function table %d: %s", unit, err)
 		}
 	case p[0] == "m":
 		if len(p) != 2 {

@@ -797,7 +797,7 @@ func innergui() {
 		}
 		// Function tables
 		for i := 0; i < 3; i++ {
-			s = units.Ftstat(i)
+			s = ft[i].Stat()
 			if s != guistate.lastft[i] {
 				p := strings.Split(s, " ")
 				for j, f := range p[0] {
