@@ -22,6 +22,8 @@ type gstat struct {
 	upd                                                    chan int
 }
 
+var width, height int
+
 var guistate gstat
 
 var ftuoff = []int{4, 28, 30}
@@ -268,13 +270,14 @@ func setneonsize(gpipe io.Writer, img string) {
 	}
 }
 
-func gui() {
+func gui(demoMode, tkKludge, useControl bool, widthIn int) {
+	width = widthIn
 	for {
-		innergui()
+		innergui(demoMode, tkKludge, useControl)
 	}
 }
 
-func innergui() {
+func innergui(demoMode, tkKludge, useControl bool) {
 	var nname string
 	var x, y int
 
@@ -312,7 +315,7 @@ func innergui() {
 	height = width / 2
 	fmt.Fprintln(gpipe, "fconfigure stdout -buffering none -blocking false")
 	go guicmd(sc, gpipe)
-	if *demomode {
+	if demoMode {
 		go rundemo(gpipe)
 	}
 	if width > 480 {
@@ -344,7 +347,7 @@ func innergui() {
 	fmt.Fprintln(gpipe, "button .readbut "+butparam+" -text READ -command {puts stdout \"b r\"}")
 	fmt.Fprintln(gpipe, "button .initbut "+butparam+" -text INIT -command {puts stdout \"b i\"}")
 	fmt.Fprintln(gpipe, "button .pulbut "+butparam+" -text PULSE -command {puts stdout \"b p\"}")
-	if !*usecontrol {
+	if !useControl {
 		if width > 480 {
 			fmt.Fprintf(gpipe, "place .control -x %d -y %d\n", width/12, height-82)
 			fmt.Fprintf(gpipe, "place .cmode -x %d -y %d\n",
@@ -404,7 +407,7 @@ func innergui() {
 	fmt.Fprintf(gpipe, "button .perspbut -borderwidth 2 -pady 0 -font [list Clean 10] "+
 		"-text \"Perspective View\" -relief sunken -command {puts stdout \"perspview\"}\n")
 	if width > 480 {
-		if *usecontrol {
+		if useControl {
 			fmt.Fprintf(gpipe, "place .s1but -anchor c -x %d -y %d\n",
 				width/8, height-48)
 			fmt.Fprintf(gpipe, "place .s2but -anchor c -x %d -y %d\n",
@@ -606,7 +609,7 @@ func innergui() {
 	// it running out of memory.  Only seems to be
 	// an issue on Linux/arm version of wish
 	updatecnt := 0
-	if *tkkludge {
+	if tkKludge {
 		updatecnt = 1
 	}
 	for i := 0; i < 10000; i += updatecnt {
@@ -647,7 +650,7 @@ func innergui() {
 			guistate.lastcyc = s
 			needupdate = true
 		}
-		if lastcmode != cycle.Mode() && !*usecontrol {
+		if lastcmode != cycle.Mode() && !useControl {
 			lastcmode = cycle.Mode()
 			switch lastcmode {
 			case units.OnePulse:

@@ -24,29 +24,25 @@ var debugger *Debugger
 var trays *Trays
 var adapters *Adapters
 
-var width, height int
-var demomode, tkkludge, usecontrol *bool
-
 func main() {
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [options] [configuration file]\n", os.Args[0])
 		flag.PrintDefaults()
 	}
-	usecontrol = flag.Bool("c", false, "use a portable control station connected to GPIO pins")
-	demomode = flag.Bool("D", false, "automatically cycle among perspectives")
-	nogui := flag.Bool("g", false, "run without GUI")
-	tkkludge = flag.Bool("K", false, "work around wish memory leaks")
-	wp := flag.Int("w", 0, "`width` of the simulation window in pixels")
+	useControl := flag.Bool("c", false, "use a portable control station connected to GPIO pins")
+	demoMode := flag.Bool("D", false, "automatically cycle among perspectives")
+	noGui := flag.Bool("g", false, "run without GUI")
+	tkKludge := flag.Bool("K", false, "work around wish memory leaks")
+	width := flag.Int("w", 0, "`width` of the simulation window in pixels")
 	testCycles := flag.Int("t", 0, "run for n add cycles and dump state")
 	flag.Parse()
 
 	var ppunch chan string
-	width = *wp
-	if !*nogui {
-		go gui()
+	if !*noGui {
+		go gui(*demoMode, *tkKludge, *useControl, *width)
 		ppunch = make(chan string)
 	}
-	if *usecontrol {
+	if *useControl {
 		go ctlstation()
 	}
 
