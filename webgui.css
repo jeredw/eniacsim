@@ -18,3 +18,30 @@ body {
   height: 100vh;
   cursor: default;
 }
+
+.angle-value {
+  position: fixed;
+  bottom: 50px;
+  color: #fff;
+  right: 20px;
+  font-size: 20px;
+}
+
+.angle {
+  position: fixed;
+  bottom: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 50px;
+  background: #ccc;
+}
+
+.angle::-webkit-slider-thumb {
+  -webkit-appearance: none; /* Override default look */
+  appearance: none;
+  width: 25px; /* Set a specific slider handle width */
+  height: 25px; /* Slider handle height */
+  background: #4CAF50; /* Green background */
+  cursor: pointer; /* Cursor on hover */
+}
