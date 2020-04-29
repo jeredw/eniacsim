@@ -52,14 +52,24 @@ let adjustRotary = null;
 function connectRotarySwitch(selector, settings, onChange=undefined) {
   const rotary = eniac.querySelector(selector);
   const svg = rotary.ownerSVGElement;
-  const wiper = rotary.querySelector('path');
-  const box = wiper.getBBox();
-  const [cx, cy] = [box.x + box.width / 2, box.y + box.height / 2];
   rotary.style.contain = 'layout paint';
-  wiper.style.transition = 'transform 100ms linear';
   let rotation = svg.createSVGTransform();
-  rotation.setRotate(0, cx, cy);
-  wiper.transform.baseVal.appendItem(rotation);
+  let [cx, cy] = [0, 0];
+  if (!rotary.classList.contains('knub')) {
+    const wiper = rotary.querySelector('path');
+    const box = wiper.getBBox();
+    [cx, cy] = [box.x + box.width / 2, box.y + box.height / 2];
+    rotation.setRotate(0, cx, cy);
+    wiper.transform.baseVal.appendItem(rotation);
+    wiper.style.transition = 'transform 100ms linear';
+  } else {
+    const base = rotary.querySelector('circle');
+    const box = base.getBBox();
+    [cx, cy] = [box.x + box.width / 2, box.y + box.height / 2];
+    rotation.setRotate(0, cx, cy);
+    rotary.transform.baseVal.appendItem(rotation);
+    rotary.style.transition = 'transform 100ms linear';
+  }
   let index = settings.findIndex(s => s.degrees == 0);
   rotary.dataset.value = settings[index].value;
   rotary.addEventListener('click', (event) => {
@@ -155,15 +165,20 @@ function makeNeedleRotateable(selector) {
   return (angle) => rotation.setRotate(angle, rx, ry);
 }
 
-function connectInitiateElements() {
-  const panel = eniac.querySelector('#initiate-panel');
+function makePanelSelectable(panelSelector) {
+  const panel = eniac.querySelector(panelSelector);
+  // TODO: hover feedback and right click tip
   panel.addEventListener('click', (event) => {
-    viewElementSelector('#initiate-panel');
+    viewElementSelector(panelSelector);
   });
   panel.addEventListener('contextmenu', (event) => {
     event.preventDefault();
     viewDefault();
   });
+}
+
+function connectInitiateElements() {
+  makePanelSelectable('#initiate-panel');
   const rotateNeedle1 = makeNeedleRotateable('#initiate-vm1-needle');
   const showRandomTrace = () => {
     const traces = eniac.querySelectorAll('.initiate-trace');
@@ -211,14 +226,8 @@ function connectInitiateElements() {
 }
 
 function connectCyclingElements() {
-  const panel = eniac.querySelector('#cycling-panel');
-  panel.addEventListener('click', (event) => {
-    viewElementSelector('#cycling-panel');
-  });
-  panel.addEventListener('contextmenu', (event) => {
-    event.preventDefault();
-    viewDefault();
-  });
+  makePanelSelectable('#cycling-panel');
+  connectToggleSwitch('#cycling-heater-toggle');
   const showPulseTrace = (value) => {
     const traces = eniac.querySelectorAll('.cycling-trace');
     const selected = eniac.querySelector('#cycling-trace-' + value);
@@ -245,36 +254,21 @@ function connectCyclingElements() {
     {value: '1a', degrees: -30},
     {value: 'co', degrees: 0},
   ]);
-  connectToggleSwitch('#cycling-heater-toggle');
   connectButton('#cycling-p');
 }
 
-function connectMP1Elements() {
-  const panel = eniac.querySelector('#mp1-panel');
-  panel.addEventListener('click', (event) => {
-    viewElementSelector('#mp1-panel');
-  });
-  panel.addEventListener('contextmenu', (event) => {
-    event.preventDefault();
-    viewDefault();
-  });
-  connectToggleSwitch('#mp1-heater-toggle');
-  connectRotarySwitch('#mp1-assoc-ab', [
-    {value: 'a', degrees: -35},
-    {value: 'b', degrees: 0},
-  ]);
-  connectRotarySwitch('#mp1-assoc-bc', [
-    {value: 'b', degrees: -35},
-    {value: 'c', degrees: 0},
-  ]);
-  connectRotarySwitch('#mp1-assoc-cd', [
-    {value: 'c', degrees: -35},
-    {value: 'd', degrees: 0},
-  ]);
-  connectRotarySwitch('#mp1-assoc-de', [
-    {value: 'd', degrees: -35},
-    {value: 'e', degrees: 0},
-  ]);
+function connectMPElements(panelNumber) {
+  const prefix = `mp${panelNumber}`;
+  makePanelSelectable(`#${prefix}-panel`);
+  connectToggleSwitch(`#${prefix}-heater-toggle`);
+  const steppers = panelNumber == 1 ? 'abcde' : 'fghjk';
+  for (let i = 0; i < steppers.length - 1; i++) {
+    const [s1, s2] = [steppers[i], steppers[i+1]];
+    connectRotarySwitch(`#${prefix}-assoc-${s1}${s2}`, [
+      {value: s1, degrees: -35},
+      {value: s2, degrees: 0},
+    ]);
+  }
   const decadeSettings = [
     {value: '0', degrees: -185},
     {value: '1', degrees: -155},
@@ -287,10 +281,10 @@ function connectMP1Elements() {
     {value: '8', degrees: 55},
     {value: '9', degrees: 85},
   ];
-  for (let decade = 20; decade >= 11; decade--) {
+  const startDecade = panelNumber == 1 ? 20 : 10;
+  for (let decade = startDecade; decade > startDecade - 10; decade--) {
     for (let digit = 1; digit <= 6; digit++) {
-      const name = `d${decade}s${digit}`;
-      connectRotarySwitch(`#mp1-${name}`, decadeSettings);
+      connectRotarySwitch(`#${prefix}-d${decade}s${digit}`, decadeSettings);
     }
   }
   const clearSettings = [
@@ -301,11 +295,48 @@ function connectMP1Elements() {
     {value: '5', degrees: 0},
     {value: '6', degrees: 20},
   ];
-  connectRotarySwitch(`#mp1-ca`, clearSettings);
-  connectRotarySwitch(`#mp1-cb`, clearSettings);
-  connectRotarySwitch(`#mp1-cc`, clearSettings);
-  connectRotarySwitch(`#mp1-cd`, clearSettings);
-  connectRotarySwitch(`#mp1-ce`, clearSettings);
+  for (const s of steppers) {
+    connectRotarySwitch(`#${prefix}-c${s}`, clearSettings);
+  }
+}
+
+function connectFT1Elements(ftNumber) {
+  const prefix = `ft${ftNumber}1`;
+  makePanelSelectable(`#${prefix}-panel`);
+  connectToggleSwitch(`#${prefix}-heater-toggle`);
+  const opSettings = [
+    {value: 'A-2', degrees: -185},
+    {value: 'A-1', degrees: -150},
+    {value: 'A0', degrees: -120},
+    {value: 'A+1', degrees: -90},
+    {value: 'A+2', degrees: -65},
+    {value: 'S+2', degrees: -30},
+    {value: 'S+1', degrees: 0},
+    {value: 'S0', degrees: 25},
+    {value: 'S-1', degrees: 55},
+    {value: 'S-2', degrees: 85},
+  ];
+  const clearSettings = [
+    {value: '0', degrees: 0},
+    {value: 'NC', degrees: 25},
+    {value: 'C', degrees: 55},
+  ];
+  const repeatSettings = [
+    {value: '1', degrees: -185},
+    {value: '2', degrees: -150},
+    {value: '3', degrees: -115},
+    {value: '4', degrees: -90},
+    {value: '5', degrees: -60},
+    {value: '6', degrees: -25},
+    {value: '7', degrees: 0},
+    {value: '8', degrees: 30},
+    {value: '9', degrees: 60},
+  ];
+  for (let i = 1; i <= 11; i++) {
+    connectRotarySwitch(`#${prefix}-op${i}`, opSettings);
+    connectRotarySwitch(`#${prefix}-cl${i}`, clearSettings);
+    connectRotarySwitch(`#${prefix}-rp${i}`, repeatSettings);
+  }
 }
 
 window.onload = (event) => {
@@ -316,7 +347,9 @@ window.onload = (event) => {
   defaultViewBox = eniac.getAttribute('viewBox');
   connectInitiateElements();
   connectCyclingElements();
-  connectMP1Elements();
+  connectMPElements(1);
+  connectMPElements(2);
+  connectFT1Elements(1);
 
   // for finding rotary switch settings
   const angle = document.querySelector('.angle');
