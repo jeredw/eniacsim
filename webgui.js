@@ -36,10 +36,35 @@ function transformedBoundingBox(elem) {
 let source = new EventSource('/events');
 let eniac = null;
 let defaultViewBox = '';
+let neons = [];
+let machineState = {};
 
 source.addEventListener('message', (event) => {
-  //console.log(e.data);
+  machineState = JSON.parse(event.data);
 });
+
+function step(ts) {
+  for (const neon of neons) {
+    neon(machineState);
+  }
+  requestAnimationFrame(step);
+}
+requestAnimationFrame(step);
+
+function connectNeon(selector, extractState) {
+  const neon = eniac.querySelector(selector);
+  neon.style.fill = '#574400';
+  neons.push((s) => {
+    switch (extractState(s)) {
+    case '0':
+      neon.style.fill = '#574400';
+      break;
+    case '1':
+      neon.style.fill = '#ffd43a';
+      break;
+    }
+  });
+}
 
 function addStylesToSvg(doc) {
   let style = document.createElement('style');
@@ -223,9 +248,35 @@ function connectInitiateElements() {
   connectButton('#initiate-clear');
   connectButton('#initiate-door');
   connectButton('#initiate-pulse');
+
+  makePanelSelectable('#initiate-bottom');
+  connectNeon('#initiate-neon-sc1',   (s) => s.initiate[0]);
+  connectNeon('#initiate-neon-sc2',   (s) => s.initiate[1]);
+  connectNeon('#initiate-neon-sc3',   (s) => s.initiate[2]);
+  connectNeon('#initiate-neon-sc4',   (s) => s.initiate[3]);
+  connectNeon('#initiate-neon-sc5',   (s) => s.initiate[4]);
+  connectNeon('#initiate-neon-sc6',   (s) => s.initiate[5]);
+  connectNeon('#initiate-neon-rs',    (s) => s.initiate[6]);
+  connectNeon('#initiate-neon-ps',    (s) => s.initiate[7]);
+  connectNeon('#initiate-neon-rf',    (s) => s.initiate[8]);
+  connectNeon('#initiate-neon-ri',    (s) => s.initiate[9]);
+  connectNeon('#initiate-neon-rsync', (s) => s.initiate[10]);
+  connectNeon('#initiate-neon-pf',    (s) => s.initiate[11]);
+  connectNeon('#initiate-neon-psync', (s) => s.initiate[12]);
+  connectNeon('#initiate-neon-ip',    (s) => s.initiate[13]);
+  connectNeon('#initiate-neon-isync', (s) => s.initiate[14]);
 }
 
 function connectCyclingElements() {
+  makePanelSelectable('#cycling-top');
+  for (let i = 1; i <= 20; i++) {
+    connectNeon(`#cycling-neon-r${i}`, ((i) => {
+      return (s) => parseInt(s.cycling, 10)/2 == i-1 ? '1' : '0'
+    })(i));
+  }
+  connectNeon('#cycling-neon-10p', () => '0')
+  connectNeon('#cycling-neon-ccg', () => '0')
+
   makePanelSelectable('#cycling-panel');
   connectToggleSwitch('#cycling-heater-toggle');
   const showPulseTrace = (value) => {
@@ -255,6 +306,12 @@ function connectCyclingElements() {
     {value: 'co', degrees: 0},
   ]);
   connectButton('#cycling-p');
+
+  makePanelSelectable('#cycling-bottom');
+  connectRotarySwitch('#cycling-osc-source', [
+    {value: 'I', degrees: 0},
+    {value: 'E', degrees: 100},
+  ]);
 }
 
 function connectMPElements(panelNumber) {

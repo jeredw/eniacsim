@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -52,8 +53,12 @@ func streamEvents(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
+	status := make(map[string]string)
 	for {
-		fmt.Fprintf(w, "data: %s\n\n", accumulator[0].Stat())
+		status["initiate"] = initiate.Stat()
+		status["cycling"] = cycle.Stat()
+		message, _ := json.Marshal(status)
+		fmt.Fprintf(w, "data: %s\n\n", message)
 		time.Sleep(100 * time.Millisecond)
 		flusher.Flush()
 	}
