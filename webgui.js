@@ -301,9 +301,9 @@ function connectMPElements(panelNumber) {
 }
 
 function connectFT1Elements(ftNumber) {
-  const prefix = `ft${ftNumber}1`;
-  makePanelSelectable(`#${prefix}-panel`);
-  connectToggleSwitch(`#${prefix}-heater-toggle`);
+  const unit = `#ft${ftNumber}-1`;
+  makePanelSelectable(`${unit} .front-panel`);
+  connectToggleSwitch(`${unit} .heater-toggle`);
   const opSettings = [
     {value: 'A-2', degrees: -185},
     {value: 'A-1', degrees: -150},
@@ -333,9 +333,216 @@ function connectFT1Elements(ftNumber) {
     {value: '9', degrees: 60},
   ];
   for (let i = 1; i <= 11; i++) {
-    connectRotarySwitch(`#${prefix}-op${i}`, opSettings);
-    connectRotarySwitch(`#${prefix}-cl${i}`, clearSettings);
-    connectRotarySwitch(`#${prefix}-rp${i}`, repeatSettings);
+    connectRotarySwitch(`${unit} .op${i}`, opSettings);
+    connectRotarySwitch(`${unit} .cl${i}`, clearSettings);
+    connectRotarySwitch(`${unit} .rp${i}`, repeatSettings);
+  }
+}
+
+function connectFT2Elements(ftNumber) {
+  const unit = `#ft${ftNumber}-2`;
+  makePanelSelectable(`${unit} .front-panel`);
+  connectToggleSwitch(`${unit} .heater-toggle`);
+  const pmSettings = [
+    {value: 'P', degrees: -60},
+    {value: 'M', degrees: -30},
+    {value: 'T', degrees: 0},
+  ];
+  connectRotarySwitch(`${unit} .mpm1`, pmSettings);
+  connectRotarySwitch(`${unit} .mpm2`, pmSettings);
+  const deleteSettings = [
+    {value: 'D', degrees: 0},
+    {value: 'O', degrees: 50},
+  ];
+  const constantSettings = [
+    {value: '0', degrees: -215},
+    {value: '1', degrees: -180},
+    {value: '2', degrees: -150},
+    {value: '3', degrees: -120},
+    {value: '4', degrees: -95},
+    {value: '5', degrees: -60},
+    {value: '6', degrees: -30},
+    {value: '7', degrees: 0},
+    {value: '8', degrees: 20},
+    {value: '9', degrees: 55},
+    {value: 'PM1', degrees: 80},
+    {value: 'PM2', degrees: 110},
+  ];
+  for (let i = 1; i <= 4; i++) {
+    connectRotarySwitch(`${unit} .a${i}d`, deleteSettings);
+    connectRotarySwitch(`${unit} .b${i}d`, deleteSettings);
+    connectRotarySwitch(`${unit} .a${i}c`, constantSettings);
+    connectRotarySwitch(`${unit} .b${i}c`, constantSettings);
+  }
+  const subtractSettings = [
+    {value: '0', degrees: -50},
+    {value: 'S', degrees: 0},
+  ];
+  for (let i = 5; i <= 10; i++) {
+    connectRotarySwitch(`${unit} .a${i}s`, subtractSettings);
+    connectRotarySwitch(`${unit} .b${i}s`, subtractSettings);
+  }
+}
+
+function connectAccumulatorElements(accNumber) {
+  const unit = `#accumulator-${accNumber}`;
+  makePanelSelectable(`${unit} .front-panel`);
+  connectToggleSwitch(`${unit} .heater-toggle`);
+  connectRotarySwitch(`${unit} .sf`, [
+    {value: '10', degrees: -185},
+    {value: '9', degrees: -150},
+    {value: '8', degrees: -125},
+    {value: '7', degrees: -95},
+    {value: '6', degrees: -65},
+    {value: '5', degrees: -35},
+    {value: '4', degrees: 0},
+    {value: '3', degrees: 30},
+    {value: '2', degrees: 60},
+    {value: '1', degrees: 90},
+    {value: '0', degrees: 120},
+  ]);
+  connectRotarySwitch(`${unit} .sc`, [
+    {value: 'C', degrees: 0},
+    {value: '0', degrees: -50},
+  ]);
+  for (let i = 1; i <= 12; i++) {
+    connectRotarySwitch(`${unit} .op${i}`, [
+      {value: 'α', degrees: -150},
+      {value: 'β', degrees: -125},
+      {value: 'γ', degrees: -90},
+      {value: 'δ', degrees: -65},
+      {value: 'ε', degrees: -32},
+      {value: '0', degrees: 0},
+      {value: 'A', degrees: 30},
+      {value: 'AS', degrees: 55},
+      {value: 'S', degrees: 85},
+    ]);
+    connectRotarySwitch(`${unit} .cc${i}`, [
+      {value: 'C', degrees: 0},
+      {value: '0', degrees: -75},
+    ]);
+  }
+  for (let i = 5; i <= 12; i++) {
+    connectRotarySwitch(`${unit} .rp${i}`, [
+      {value: '1', degrees: -185},
+      {value: '2', degrees: -150},
+      {value: '3', degrees: -115},
+      {value: '4', degrees: -90},
+      {value: '5', degrees: -60},
+      {value: '6', degrees: -25},
+      {value: '7', degrees: 0},
+      {value: '8', degrees: 30},
+      {value: '9', degrees: 60},
+    ]);
+  }
+}
+
+function connectDividerElements() {
+  makePanelSelectable('#div-front-panel');
+  connectToggleSwitch('#div-heater-toggle');
+  for (let i = 1; i <= 8; i++) {
+    connectRotarySwitch(`#div-nr${i}`, [
+      {value: 'α', degrees: -120},
+      {value: 'β', degrees: -60},
+      {value: '0', degrees: 0},
+    ]);
+    connectRotarySwitch(`#div-nc${i}`, [
+      {value: 'C', degrees: 45},
+      {value: '0', degrees: 0},
+    ]);
+    connectRotarySwitch(`#div-dr${i}`, [
+      {value: 'α', degrees: -120},
+      {value: 'β', degrees: -60},
+      {value: '0', degrees: 0},
+    ]);
+    connectRotarySwitch(`#div-dc${i}`, [
+      {value: 'C', degrees: 45},
+      {value: '0', degrees: 0},
+    ]);
+    connectRotarySwitch(`#div-pl${i}`, [
+      {value: 'D4', degrees: -180},
+      {value: 'D7', degrees: -150},
+      {value: 'D8', degrees: -115},
+      {value: 'D9', degrees: -90},
+      {value: 'D10', degrees: -55},
+      {value: 'S4', degrees: -20},
+      {value: 'S7', degrees: 0},
+      {value: 'S8', degrees: 35},
+      {value: 'S9', degrees: 65},
+      {value: 'S10', degrees: 90},
+    ]);
+    connectRotarySwitch(`#div-ro${i}`, [
+      {value: 'RO', degrees: 0},
+      {value: 'NRO', degrees: -45},
+    ]);
+    connectRotarySwitch(`#div-an${i}`, [
+      {value: '1', degrees: -130},
+      {value: '2', degrees: -100},
+      {value: '3', degrees: -70},
+      {value: '4', degrees: -40},
+      {value: 'OFF', degrees: 0},
+    ]);
+    connectRotarySwitch(`#div-il${i}`, [
+      {value: 'I', degrees: 0},
+      {value: 'NI', degrees: -30},
+    ]);
+  }
+}
+
+function connectMultiplierElements(panelNumber) {
+  const prefix = `mult${panelNumber}`;
+  makePanelSelectable(`#${prefix}-front-panel`);
+  connectToggleSwitch(`#${prefix}-heater-toggle`);
+  const startDigit = [1, 9, 17][panelNumber - 1];
+  for (let i = startDigit; i < startDigit + 8; i++) {
+    const ierIcandSettings = [
+      {value: 'α', degrees: -120},
+      {value: 'β', degrees: -90},
+      {value: 'γ', degrees: -60},
+      {value: 'δ', degrees: -30},
+      {value: 'ε', degrees: 0},
+      {value: '0', degrees: 25},
+    ];
+    const ierIcandClearSettings = [
+      {value: 'C', degrees: 45},
+      {value: '0', degrees: 0},
+    ];
+    connectRotarySwitch(`#${prefix}-ieracc${i}`, ierIcandSettings);
+    connectRotarySwitch(`#${prefix}-iercl${i}`, ierIcandClearSettings);
+    connectRotarySwitch(`#${prefix}-icandacc${i}`, ierIcandSettings);
+    connectRotarySwitch(`#${prefix}-icandcl${i}`, ierIcandClearSettings);
+    connectRotarySwitch(`#${prefix}-sf${i}`, [
+      {value: '10', degrees: -190},
+      {value: '9', degrees: -155},
+      {value: '8', degrees: -125},
+      {value: '7', degrees: -95},
+      {value: '6', degrees: -65},
+      {value: '5', degrees: -35},
+      {value: '4', degrees: 0},
+      {value: '3', degrees: 25},
+      {value: '2', degrees: 55},
+      {value: '0', degrees: 85},
+    ]);
+    connectRotarySwitch(`#${prefix}-place${i}`, [
+      {value: '2', degrees: -180},
+      {value: '3', degrees: -150},
+      {value: '4', degrees: -120},
+      {value: '5', degrees: -90},
+      {value: '6', degrees: -55},
+      {value: '7', degrees: -25},
+      {value: '8', degrees: 0},
+      {value: '9', degrees: 30},
+      {value: '10', degrees: 60},
+    ]);
+    connectRotarySwitch(`#${prefix}-prod${i}`, [
+      {value: 'A', degrees: -160},
+      {value: 'S', degrees: -130},
+      {value: 'AS', degrees: -90},
+      {value: '0', degrees: -60},
+      {value: 'AC', degrees: -25},
+      {value: 'SC', degrees: 0},
+      {value: 'ASC', degrees: 30},
+    ]);
   }
 }
 
@@ -350,6 +557,13 @@ window.onload = (event) => {
   connectMPElements(1);
   connectMPElements(2);
   connectFT1Elements(1);
+  connectFT2Elements(1);
+  connectAccumulatorElements(1);
+  connectAccumulatorElements(2);
+  connectDividerElements();
+  connectMultiplierElements(1);
+  connectMultiplierElements(2);
+  connectMultiplierElements(3);
 
   // for finding rotary switch settings
   const angle = document.querySelector('.angle');
