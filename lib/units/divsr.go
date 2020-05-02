@@ -38,7 +38,8 @@ type Divsr struct {
 
 	progin, progout, ilock                                                     [8]chan Pulse
 	answer                                                                     chan Pulse
-	numarg, numcl, denarg, dencl, roundoff, places, ilocksw, anssw             [8]int
+	numarg, denarg, roundoff, places, ilocksw, anssw                           [8]int
+	numcl, dencl                                                               [8]bool
 	preff, progff                                                              [8]bool
 	placering, progring                                                        int
 	divff, clrff, ilockff, coinff, dpγ, nγ, psrcff, pringff, denomff, numrplus bool
@@ -241,9 +242,9 @@ func (u *Divsr) Reset() {
 		u.progout[i] = nil
 		u.ilock[i] = nil
 		u.numarg[i] = 0
-		u.numcl[i] = 0
+		u.numcl[i] = false
 		u.denarg[i] = 0
-		u.dencl[i] = 0
+		u.dencl[i] = false
 		u.roundoff[i] = 0
 		u.places[i] = 0
 		u.ilocksw[i] = 0
@@ -338,136 +339,114 @@ func (u *Divsr) Plug(jack string, ch chan Pulse, output bool) error {
 	return nil
 }
 
-func (u *Divsr) Switch(name, value string) error {
-	u.mu.Lock()
-	defer u.mu.Unlock()
+func adSettings() []IntSwitchSetting {
+	return []IntSwitchSetting{
+		{"A", 0},
+		{"B", 1},
+		{"C", 2},
+	}
+}
+
+func argSettings() []IntSwitchSetting {
+	return []IntSwitchSetting{
+		{"α", 0}, {"a", 0}, {"alpha", 0},
+		{"β", 1}, {"b", 1}, {"beta", 1},
+		{"0", 2},
+	}
+}
+
+func placeSettings() []IntSwitchSetting {
+	return []IntSwitchSetting{
+		{"D4", 0}, {"d4", 0},
+		{"D7", 1}, {"d7", 1},
+		{"D8", 2}, {"d8", 2},
+		{"D9", 3}, {"d9", 3},
+		{"D10", 4}, {"d10", 4},
+		{"S4", 5}, {"s4", 5}, {"R4", 5}, {"r4", 5},
+		{"S7", 6}, {"s7", 6}, {"R7", 6}, {"r7", 6},
+		{"S8", 7}, {"s8", 7}, {"R8", 7}, {"r8", 7},
+		{"S9", 8}, {"s9", 8}, {"R9", 8}, {"r9", 8},
+		{"S10", 9}, {"s10", 9}, {"R10", 9}, {"r10", 9},
+	}
+}
+
+func roSettings() []IntSwitchSetting {
+	return []IntSwitchSetting{
+		{"RO", 1}, {"ro", 1},
+		{"NRO", 0}, {"nro", 0},
+	}
+}
+
+func ilSettings() []IntSwitchSetting {
+	return []IntSwitchSetting{
+		{"I", 1}, {"i", 1},
+		{"NI", 0}, {"ni", 0},
+	}
+}
+
+func anSettings() []IntSwitchSetting {
+	return []IntSwitchSetting{
+		{"1", 0},
+		{"2", 1},
+		{"3", 2},
+		{"4", 3},
+		{"OFF", 4}, {"off", 4},
+	}
+}
+
+func (u *Divsr) lookupSwitch(name string) (Switch, error) {
 	if name == "da" {
-		if len(value) < 1 {
-			return fmt.Errorf("invalid switch %s", name)
-		}
-		adapter := int(value[0] - 'A')
-		if !(adapter >= 0 && adapter <= 2) {
-			return fmt.Errorf("invalid switch %s", name)
-		}
-		u.divadap = adapter
-		return nil
+		return &IntSwitch{name, &u.divadap, adSettings()}, nil
 	}
 	if name == "ra" {
-		if len(value) < 1 {
-			return fmt.Errorf("invalid switch %s", name)
-		}
-		adapter := int(value[0] - 'A')
-		if !(adapter >= 0 && adapter <= 2) {
-			return fmt.Errorf("invalid switch %s", name)
-		}
-		u.sradap = adapter
-		return nil
+		return &IntSwitch{name, &u.sradap, adSettings()}, nil
 	}
 	if len(name) < 3 {
-		return fmt.Errorf("invalid switch %s", name)
+		return nil, fmt.Errorf("invalid switch %s", name)
 	}
 	sw, _ := strconv.Atoi(name[2:])
 	if !(sw >= 1 && sw <= 8) {
-		return fmt.Errorf("invalid switch %s", name)
+		return nil, fmt.Errorf("invalid switch %s", name)
 	}
 	switch name[:2] {
 	case "nr":
-		switch value {
-		case "α", "a", "alpha":
-			u.numarg[sw-1] = 0
-		case "β", "b", "beta":
-			u.numarg[sw-1] = 1
-		case "0":
-			u.numarg[sw-1] = 2
-		default:
-			return fmt.Errorf("invalid %s setting %s", name, value)
-		}
+		return &IntSwitch{name, &u.numarg[sw-1], argSettings()}, nil
 	case "nc":
-		switch value {
-		case "C", "c":
-			u.numcl[sw-1] = 1
-		case "0":
-			u.numcl[sw-1] = 0
-		default:
-			return fmt.Errorf("invalid %s setting %s", name, value)
-		}
+		return &ClearSwitch{name, &u.numcl[sw-1]}, nil
 	case "dr":
-		switch value {
-		case "α", "a", "alpha":
-			u.denarg[sw-1] = 0
-		case "β", "b", "beta":
-			u.denarg[sw-1] = 1
-		case "0":
-			u.denarg[sw-1] = 2
-		default:
-			return fmt.Errorf("invalid %s setting %s", name, value)
-		}
+		return &IntSwitch{name, &u.denarg[sw-1], argSettings()}, nil
 	case "dc":
-		switch value {
-		case "C", "c":
-			u.dencl[sw-1] = 1
-		case "0":
-			u.dencl[sw-1] = 0
-		default:
-			return fmt.Errorf("invalid %s setting %s", name, value)
-		}
+		return &ClearSwitch{name, &u.dencl[sw-1]}, nil
 	case "pl":
-		switch value {
-		case "D4", "d4":
-			u.places[sw-1] = 0
-		case "D7", "d7":
-			u.places[sw-1] = 1
-		case "D8", "d8":
-			u.places[sw-1] = 2
-		case "D9", "d9":
-			u.places[sw-1] = 3
-		case "D10", "d10":
-			u.places[sw-1] = 4
-		case "S4", "s4", "R4", "r4":
-			u.places[sw-1] = 5
-		case "S7", "s7", "R7", "r7":
-			u.places[sw-1] = 6
-		case "S8", "s8", "R8", "r8":
-			u.places[sw-1] = 7
-		case "S9", "s9", "R9", "r9":
-			u.places[sw-1] = 8
-		case "S10", "s10", "R10", "r10":
-			u.places[sw-1] = 9
-		default:
-			return fmt.Errorf("invalid %s setting %s", name, value)
-		}
+		return &IntSwitch{name, &u.places[sw-1], placeSettings()}, nil
 	case "ro":
-		switch value {
-		case "RO", "ro":
-			u.roundoff[sw-1] = 1
-		case "NRO", "nro":
-			u.roundoff[sw-1] = 0
-		default:
-			return fmt.Errorf("invalid switch %s", name)
-		}
+		return &IntSwitch{name, &u.roundoff[sw-1], roSettings()}, nil
 	case "an":
-		if value == "OFF" || value == "off" {
-			u.anssw[sw-1] = 4
-		} else {
-			anssw, _ := strconv.Atoi(value)
-			if !(anssw >= 1 && anssw <= 4) {
-				return fmt.Errorf("invalid switch %s", name)
-			}
-			u.anssw[sw-1] = anssw - 1
-		}
+		return &IntSwitch{name, &u.anssw[sw-1], anSettings()}, nil
 	case "il":
-		switch value {
-		case "i", "I":
-			u.ilocksw[sw-1] = 1
-		case "ni", "NI":
-			u.ilocksw[sw-1] = 0
-		default:
-			return fmt.Errorf("invalid switch %s", name)
-		}
-	default:
-		return fmt.Errorf("invalid switch %s", name)
+		return &IntSwitch{name, &u.ilocksw[sw-1], ilSettings()}, nil
 	}
-	return nil
+	return nil, fmt.Errorf("invalid switch %s", name)
+}
+
+func (u *Divsr) SetSwitch(name, value string) error {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	sw, err := u.lookupSwitch(name)
+	if err != nil {
+		return err
+	}
+	return sw.Set(value)
+}
+
+func (u *Divsr) GetSwitch(name string) (string, error) {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	sw, err := u.lookupSwitch(name)
+	if err != nil {
+		return "", err
+	}
+	return sw.Get(), nil
 }
 
 func (u *Divsr) divargs(prog int) {
@@ -599,10 +578,10 @@ func (u *Divsr) doGP(resp chan int) {
 				u.su3 |= su3S | su3CLR
 			}
 		}
-		if u.numcl[u.curprog] == 1 {
+		if u.numcl[u.curprog] {
 			u.Io.A2Clear()
 		}
-		if u.dencl[u.curprog] == 1 {
+		if u.dencl[u.curprog] {
 			u.Io.A4Clear()
 		}
 		u.intclear()

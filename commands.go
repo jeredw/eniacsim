@@ -426,12 +426,14 @@ func doGetSwitch(command string, f []string) {
 		}
 	case p[0] == "d" || p[0] == "ds":
 		if len(p) != 2 {
-			fmt.Println("Divider switch syntax: s d.switch value")
+			fmt.Println("Divider switch syntax: s? d.switch")
 			return
 		}
-		err := divsr.Switch(p[1], f[2])
+		value, err := divsr.GetSwitch(p[1])
 		if err != nil {
-			fmt.Printf("Divider: %s\n", err)
+			fmt.Printf("error: %s\n", err)
+		} else {
+			fmt.Printf("%s\n", value)
 		}
 	case p[0][0] == 'f':
 		if len(p) != 2 {
@@ -531,7 +533,7 @@ func doSetSwitch(command string, f []string) {
 			fmt.Println("Divider switch syntax: s d.switch value")
 			return
 		}
-		err := divsr.Switch(p[1], f[2])
+		err := divsr.SetSwitch(p[1], f[2])
 		if err != nil {
 			fmt.Printf("Divider: %s\n", err)
 		}
