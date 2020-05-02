@@ -108,104 +108,160 @@ func (u *Constant) Plug(jack string, ch chan Pulse, output bool) error {
 	return nil
 }
 
-func (u *Constant) Switch(name, value string) error {
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	if len(name) < 2 {
-		return fmt.Errorf("invalid switch")
+type selSwitch struct {
+	name string
+	prog int
+	data *int
+}
+
+func (s *selSwitch) Get() string {
+	constants := "ABCDEFGHJK"
+	i := 2 * (s.prog - 1) / 6
+	switch *s.data {
+	case 0:
+		return fmt.Sprintf("%cl", constants[i])
+	case 1:
+		return fmt.Sprintf("%cr", constants[i])
+	case 2:
+		return fmt.Sprintf("%clr", constants[i])
+	case 3:
+		return fmt.Sprintf("%cl", constants[i+1])
+	case 4:
+		return fmt.Sprintf("%cr", constants[i+1])
+	case 5:
+		return fmt.Sprintf("%clr", constants[i+1])
+	}
+	return "?"
+}
+
+func (s *selSwitch) Set(value string) error {
+	if len(value) < 2 {
+		return fmt.Errorf("invalid switch %s setting %s", s.name, value)
 	}
 	var n int
+	switch value[0] {
+	case 'a', 'A', 'c', 'C', 'e', 'E', 'g', 'G', 'j', 'J':
+		n = 0
+	case 'b', 'B', 'd', 'D', 'f', 'F', 'h', 'H', 'k', 'K':
+		n = 3
+	default:
+		return fmt.Errorf("invalid switch %s setting %s", s.name, value)
+	}
+	switch value[1:] {
+	case "l":
+		*s.data = n
+	case "r":
+		*s.data = n + 1
+	case "lr":
+		*s.data = n + 2
+	default:
+		return fmt.Errorf("invalid switch %s setting %s", s.name, value)
+	}
+	return nil
+}
+
+type signSwitch struct {
+	name string
+	data *byte
+}
+
+func (s *signSwitch) Set(value string) error {
+	switch value {
+	case "P", "p":
+		*s.data = 0
+	case "M", "m":
+		*s.data = 1
+	default:
+		return fmt.Errorf("invalid switch %s setting %s", s.name, value)
+	}
+	return nil
+}
+
+func (s *signSwitch) Get() string {
+	switch *s.data {
+	case 0:
+		return "P"
+	case 1:
+		return "M"
+	}
+	return "?"
+}
+
+type digitSwitch struct {
+	name string
+	data *byte
+}
+
+func (s *digitSwitch) Set(value string) error {
+	n, _ := strconv.Atoi(value)
+	if !(n >= 0 && n <= 9) {
+		return fmt.Errorf("invalid switch %s setting %s", s.name, value)
+	}
+	*s.data = byte(n)
+	return nil
+}
+
+func (s *digitSwitch) Get() string {
+	return fmt.Sprintf("%d", int(*s.data))
+}
+
+func (u *Constant) lookupSwitch(name string) (Switch, error) {
+	if len(name) < 2 {
+		return nil, fmt.Errorf("invalid switch")
+	}
 	switch name[0] {
 	case 's':
 		prog, _ := strconv.Atoi(name[1:])
 		if !(prog >= 1 && prog <= 30) {
-			return fmt.Errorf("invalid switch %s", name)
+			return nil, fmt.Errorf("invalid switch %s", name)
 		}
-		if len(value) < 2 {
-			return fmt.Errorf("invalid switch %s setting %s", name, value)
-		}
-		switch value[0] {
-		case 'a', 'A', 'c', 'C', 'e', 'E', 'g', 'G', 'j', 'J':
-			n = 0
-		case 'b', 'B', 'd', 'D', 'f', 'F', 'h', 'H', 'k', 'K':
-			n = 3
-		default:
-			return fmt.Errorf("invalid switch %s setting %s", name, value)
-		}
-		switch value[1:] {
-		case "l":
-			u.sel[prog-1] = n
-		case "r":
-			u.sel[prog-1] = n + 1
-		case "lr":
-			u.sel[prog-1] = n + 2
-		default:
-			return fmt.Errorf("invalid switch %s setting %s", name, value)
-		}
+		return &selSwitch{name: name, prog: prog, data: &u.sel[prog-1]}, nil
 	case 'j', 'J':
 		if name[1] == 'l' {
-			switch value {
-			case "P", "p":
-				u.signj[0] = 0
-			case "M", "m":
-				u.signj[0] = 1
-			default:
-				return fmt.Errorf("invalid switch %s setting %s", name, value)
-			}
-		} else if name[1] == 'r' {
-			switch value {
-			case "P", "p":
-				u.signj[1] = 0
-			case "M", "m":
-				u.signj[1] = 1
-			default:
-				return fmt.Errorf("invalid switch %s setting %s", name, value)
-			}
-		} else {
-			digit, _ := strconv.Atoi(name[1:])
-			if !(digit >= 1 && digit <= 10) {
-				return fmt.Errorf("invalid switch %s", name)
-			}
-			n, _ := strconv.Atoi(value)
-			if !(n >= 0 && n <= 9) {
-				return fmt.Errorf("invalid switch %s setting %s", name, digit)
-			}
-			u.j[digit-1] = byte(n)
+			return &signSwitch{name: name, data: &u.signj[0]}, nil
 		}
+		if name[1] == 'r' {
+			return &signSwitch{name: name, data: &u.signj[1]}, nil
+		}
+		digit, _ := strconv.Atoi(name[1:])
+		if !(digit >= 1 && digit <= 10) {
+			return nil, fmt.Errorf("invalid switch %s", name)
+		}
+		return &digitSwitch{name: name, data: &u.j[digit-1]}, nil
 	case 'k', 'K':
 		if name[1] == 'l' {
-			switch value {
-			case "P", "p":
-				u.signk[0] = 0
-			case "M", "m":
-				u.signk[0] = 1
-			default:
-				return fmt.Errorf("invalid switch %s setting %s", name, value)
-			}
-		} else if name[1] == 'r' {
-			switch value {
-			case "P", "p":
-				u.signk[1] = 0
-			case "M", "m":
-				u.signk[1] = 1
-			default:
-				return fmt.Errorf("invalid switch %s setting %s", name, value)
-			}
-		} else {
-			digit, _ := strconv.Atoi(name[1:])
-			if !(digit >= 1 && digit <= 10) {
-				return fmt.Errorf("invalid switch %s", name)
-			}
-			n, _ := strconv.Atoi(value)
-			if !(n >= 0 && n <= 9) {
-				return fmt.Errorf("invalid switch %s setting %s", name, digit)
-			}
-			u.k[digit-1] = byte(n)
+			return &signSwitch{name: name, data: &u.signk[0]}, nil
 		}
-	default:
-		return fmt.Errorf("invalid switch %s", name)
+		if name[1] == 'r' {
+			return &signSwitch{name: name, data: &u.signk[1]}, nil
+		}
+		digit, _ := strconv.Atoi(name[1:])
+		if !(digit >= 1 && digit <= 10) {
+			return nil, fmt.Errorf("invalid switch %s", name)
+		}
+		return &digitSwitch{name: name, data: &u.k[digit-1]}, nil
 	}
-	return nil
+	return nil, fmt.Errorf("invalid switch %s", name)
+}
+
+func (u *Constant) GetSwitch(name string) (string, error) {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	sw, err := u.lookupSwitch(name)
+	if err != nil {
+		return "", err
+	}
+	return sw.Get(), nil
+}
+
+func (u *Constant) SetSwitch(name, value string) error {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	sw, err := u.lookupSwitch(name)
+	if err != nil {
+		return err
+	}
+	return sw.Set(value)
 }
 
 func (u *Constant) ReadCard(c string) {
