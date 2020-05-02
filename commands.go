@@ -405,9 +405,11 @@ func doGetSwitch(command string, f []string) {
 			fmt.Printf("Invalid accumulator %s\n", p[0][1:])
 			return
 		}
-		err := accumulator[unit-1].Switch(p[1], f[2])
+		value, err := accumulator[unit-1].GetSwitch(p[1])
 		if err != nil {
-			fmt.Printf("Accumulator %d: %s\n", unit, err)
+			fmt.Printf("error: %s\n", err)
+		} else {
+			fmt.Printf("%s\n", value)
 		}
 	case p[0] == "c":
 		if len(p) != 2 {
@@ -507,7 +509,7 @@ func doSetSwitch(command string, f []string) {
 			fmt.Printf("Invalid accumulator %s\n", p[0][1:])
 			return
 		}
-		err := accumulator[unit-1].Switch(p[1], f[2])
+		err := accumulator[unit-1].SetSwitch(p[1], f[2])
 		if err != nil {
 			fmt.Printf("Accumulator %d: %s\n", unit, err)
 		}

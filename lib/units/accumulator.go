@@ -325,85 +325,195 @@ func (u *Accumulator) Plug(jack string, ch chan Pulse, output bool) error {
 	return nil
 }
 
-func (u *Accumulator) Switch(name, value string) error {
-	u.mu.Lock()
-	defer u.mu.Unlock()
+type sfSwitch struct {
+	name string
+	data *int
+}
 
+func (s *sfSwitch) Get() string {
+	return fmt.Sprintf("%d", *s.data)
+}
+
+func (s *sfSwitch) Set(value string) error {
+	n, _ := strconv.Atoi(value)
+	if !(n >= 0 && n <= 10) {
+		return fmt.Errorf("invalid switch %s setting %s", s.name, value)
+	}
+	*s.data = n
+	return nil
+}
+
+type scSwitch struct {
+	name string
+	data *byte
+}
+
+func (s *scSwitch) Get() string {
+	switch *s.data {
+	case 0:
+		return "0"
+	case 1:
+		return "SC"
+	}
+	return "?"
+}
+
+func (s *scSwitch) Set(value string) error {
+	switch value {
+	case "0":
+		*s.data = 0
+	case "SC", "sc":
+		*s.data = 1
+	default:
+		return fmt.Errorf("invalid switch %s setting %s", s.name, value)
+	}
+	return nil
+}
+
+type opSwitch struct {
+	name string
+	data *byte
+}
+
+func (s *opSwitch) Set(value string) error {
+	switch value {
+	case "α", "a", "alpha":
+		*s.data = 0
+	case "β", "b", "beta":
+		*s.data = 1
+	case "γ", "g", "gamma":
+		*s.data = 2
+	case "δ", "d", "delta":
+		*s.data = 3
+	case "ε", "e", "epsilon":
+		*s.data = 4
+	case "0":
+		*s.data = 5
+	case "A":
+		*s.data = 6
+	case "AS":
+		*s.data = 7
+	case "S":
+		*s.data = 8
+	default:
+		return fmt.Errorf("invalid switch %s setting %s", s.name, value)
+	}
+	return nil
+}
+
+func (s *opSwitch) Get() string {
+	switch *s.data {
+	case 0:
+		return "α"
+	case 1:
+		return "β"
+	case 2:
+		return "γ"
+	case 3:
+		return "δ"
+	case 4:
+		return "ε"
+	case 5:
+		return "0"
+	case 6:
+		return "A"
+	case 7:
+		return "AS"
+	case 8:
+		return "S"
+	}
+	return "?"
+}
+
+type ccSwitch struct {
+	name string
+	data *bool
+}
+
+func (s *ccSwitch) Get() string {
+	if *s.data {
+		return "C"
+	}
+	return "0"
+}
+
+func (s *ccSwitch) Set(value string) error {
+	switch value {
+	case "0":
+		*s.data = false
+	case "C", "c":
+		*s.data = true
+	default:
+		return fmt.Errorf("invalid switch %s setting %s", s.name, value)
+	}
+	return nil
+}
+
+type rpSwitch struct {
+	name string
+	data *byte
+}
+
+func (s *rpSwitch) Get() string {
+	return fmt.Sprintf("%d", int(1+*s.data))
+}
+
+func (s *rpSwitch) Set(value string) error {
+	repeatCount, _ := strconv.Atoi(value)
+	if !(repeatCount >= 1 && repeatCount <= 9) {
+		return fmt.Errorf("invalid switch %s setting %s", s.name, value)
+	}
+	*s.data = byte(repeatCount - 1)
+	return nil
+}
+
+func (u *Accumulator) lookupSwitch(name string) (Switch, error) {
 	if name == "sf" {
-		n, _ := strconv.Atoi(value)
-		if !(n >= 0 && n <= 10) {
-			return fmt.Errorf("invalid switch %s setting %s", name, value)
-		}
-		u.sigfig = n
-		return nil
+		return &sfSwitch{name: name, data: &u.sigfig}, nil
 	}
 	if name == "sc" {
-		switch value {
-		case "0":
-			u.sc = 0
-		case "SC", "sc":
-			u.sc = 1
-		default:
-			return fmt.Errorf("invalid switch %s setting %s", name, value)
-		}
-		return nil
+		return &scSwitch{name: name, data: &u.sc}, nil
 	}
 	if len(name) < 3 {
-		return fmt.Errorf("invalid switch %s", name)
+		return nil, fmt.Errorf("invalid switch %s", name)
 	}
 	prog, _ := strconv.Atoi(name[2:])
 	if !(prog >= 1 && prog <= 12) {
-		return fmt.Errorf("invalid switch %s", name)
+		return nil, fmt.Errorf("invalid switch %s", name)
 	}
 	prog--
 	switch name[:2] {
 	case "op":
-		switch value {
-		case "α", "a", "alpha":
-			u.opsw[prog] = 0
-		case "β", "b", "beta":
-			u.opsw[prog] = 1
-		case "γ", "g", "gamma":
-			u.opsw[prog] = 2
-		case "δ", "d", "delta":
-			u.opsw[prog] = 3
-		case "ε", "e", "epsilon":
-			u.opsw[prog] = 4
-		case "0":
-			u.opsw[prog] = 5
-		case "A":
-			u.opsw[prog] = 6
-		case "AS":
-			u.opsw[prog] = 7
-		case "S":
-			u.opsw[prog] = 8
-		default:
-			return fmt.Errorf("invalid switch %s setting %s", name, value)
-		}
+		return &opSwitch{name: name, data: &u.opsw[prog]}, nil
 	case "cc":
-		switch value {
-		case "0":
-			u.clrsw[prog] = false
-		case "C", "c":
-			u.clrsw[prog] = true
-		default:
-			return fmt.Errorf("invalid switch %s setting %s", name, value)
-		}
+		return &ccSwitch{name: name, data: &u.clrsw[prog]}, nil
 	case "rp":
 		if !(prog >= 4 && prog <= 11) {
-			return fmt.Errorf("invalid switch %s", name)
+			return nil, fmt.Errorf("invalid switch %s", name)
 		}
-		repeatCount, err := strconv.Atoi(value)
-		if err == nil {
-			if !(repeatCount >= 1 && repeatCount <= 9) {
-				return fmt.Errorf("invalid switch %s setting %s", name, value)
-			}
-			u.rptsw[prog-4] = byte(repeatCount - 1)
-		} else {
-			return fmt.Errorf("invalid switch %s setting %s", name, value)
-		}
+		return &rpSwitch{name: name, data: &u.rptsw[prog-4]}, nil
 	}
-	return nil
+	return nil, fmt.Errorf("invalid switch %s", name)
+}
+
+func (u *Accumulator) SetSwitch(name, value string) error {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	sw, err := u.lookupSwitch(name)
+	if err != nil {
+		return err
+	}
+	return sw.Set(value)
+}
+
+func (u *Accumulator) GetSwitch(name string) (string, error) {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	sw, err := u.lookupSwitch(name)
+	if err != nil {
+		return "?", err
+	}
+	return sw.Get(), nil
 }
 
 /*
