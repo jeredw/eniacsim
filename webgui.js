@@ -6,7 +6,9 @@ let machineState = {};
 
 source.addEventListener('message', (event) => {
   machineState = JSON.parse(event.data);
-  machineState.pulse = parseInt(machineState.cycling, 10) / 2;
+  machineState["cycling"] = {
+    "pulse": parseInt(machineState["cycling"], 10) / 2
+  };
 });
 
 function step(ts) {
@@ -14,6 +16,28 @@ function step(ts) {
     neon(machineState);
   }
   requestAnimationFrame(step);
+}
+
+function extractState({unit,
+                       unitIndex=undefined,
+                       field=undefined,
+                       fieldIndex=undefined,
+                       eqValue=true}) {
+  // s[unit][unitIndex][field][fieldIndex] == eqValue
+  if (unit == "nil") {
+    return (s) => false;
+  }
+  if (field === undefined) {
+    return (s) => s[unit][unitIndex] == eqValue;
+  }
+  if (unitIndex === undefined) {
+    return fieldIndex === undefined ?
+      (s) => s[unit][field] == eqValue :
+      (s) => s[unit][field][fieldIndex] == eqValue;
+  }
+  return fieldIndex === undefined ?
+    (s) => s[unit][unitIndex][field] == eqValue :
+    (s) => s[unit][unitIndex][field][fieldIndex] == eqValue;
 }
 
 function connectNeon(selector, isTurnedOn) {
@@ -164,7 +188,6 @@ function makePanelSelectable(panelSelector) {
 }
 
 function connectInitiateElements() {
-  makePanelSelectable('#initiate-panel');
   const rotateNeedle1 = makeNeedleRotateable('#initiate-vm1-needle');
   const showRandomTrace = () => {
     const traces = eniac.querySelectorAll('.initiate-trace');
@@ -203,35 +226,9 @@ function connectInitiateElements() {
     {value: 'VBC', degrees: -61},
     {value: 'VCA', degrees: 0},
   ], () => rotateNeedle2(Math.random() * 73));
-
-  makePanelSelectable('#initiate-bottom');
-  connectNeon('#initiate-neon-sc1',   (s) => s.initiate[0] == '1');
-  connectNeon('#initiate-neon-sc2',   (s) => s.initiate[1] == '1');
-  connectNeon('#initiate-neon-sc3',   (s) => s.initiate[2] == '1');
-  connectNeon('#initiate-neon-sc4',   (s) => s.initiate[3] == '1');
-  connectNeon('#initiate-neon-sc5',   (s) => s.initiate[4] == '1');
-  connectNeon('#initiate-neon-sc6',   (s) => s.initiate[5] == '1');
-  connectNeon('#initiate-neon-rs',    (s) => s.initiate[6] == '1');
-  connectNeon('#initiate-neon-ps',    (s) => s.initiate[7] == '1');
-  connectNeon('#initiate-neon-rf',    (s) => s.initiate[8] == '1');
-  connectNeon('#initiate-neon-ri',    (s) => s.initiate[9] == '1');
-  connectNeon('#initiate-neon-rsync', (s) => s.initiate[10] == '1');
-  connectNeon('#initiate-neon-pf',    (s) => s.initiate[11] == '1');
-  connectNeon('#initiate-neon-psync', (s) => s.initiate[12] == '1');
-  connectNeon('#initiate-neon-ip',    (s) => s.initiate[13] == '1');
-  connectNeon('#initiate-neon-isync', (s) => s.initiate[14] == '1');
 }
 
 function connectCyclingElements() {
-  makePanelSelectable('#cycling-top');
-  for (let i = 1; i <= 20; i++) {
-    connectNeon(`#cycling-neon-r${i}`, ((i) => {
-      return (s) => s.pulse == i-1;
-    })(i));
-  }
-  connectNeon('#cycling-neon-10p', () => false);
-  connectNeon('#cycling-neon-ccg', () => false);
-  makePanelSelectable('#cycling-panel');
   const showPulseTrace = (value) => {
     const traces = eniac.querySelectorAll('.cycling-trace');
     const selected = eniac.querySelector('#cycling-trace-' + value);
@@ -253,188 +250,20 @@ function connectCyclingElements() {
     {value: "9p", degrees: 75},
     {value: "scg", degrees: 100},
   ], showPulseTrace);
-  makePanelSelectable('#cycling-bottom');
 }
 
-function connectMPElements(panelNumber) {
-  const prefix = `mp${panelNumber}`;
-  const steppers = panelNumber == 1 ? 'abcde' : 'fghjk';
-  const startDecade = panelNumber == 1 ? 20 : 10;
-  const baseStepper = panelNumber == 1 ? 0 : 5;
-
-  makePanelSelectable(`#${prefix}-top`);
-  for (let decade = startDecade; decade > startDecade - 10; decade--) {
-    for (let value = 9; value >= 0; value--) {
-      connectNeon(`#${prefix}-neon-d${decade}v${value}`, ((d, v) => {
-        return (s) => s.mp.decade[20-d] == v;
-      })(decade, value));
+function configure(file, fn) {
+  fetch(file).then((response) => {
+    if (response.status != 200) {
+      console.error(file, response.status);
+      return;
     }
-  }
-  for (let i = 0; i < steppers.length; i++) {
-    for (let value = 6; value >= 1; value--) {
-      connectNeon(`#${prefix}-neon-s${steppers[i]}${value}`, ((i, v) => {
-        return (s) => s.mp.stage[i] == v;
-      })(baseStepper + i, value));
-    }
-  }
-  makePanelSelectable(`#${prefix}-panel`);
-  makePanelSelectable(`#${prefix}-bottom`);
-  for (let i = 0; i < steppers.length; i++) {
-    connectNeon(`#${prefix}-neon-${steppers[i]}in`, ((i) => {
-      return (s) => s.mp.inff[i] > 0;
-    })(baseStepper + i));
-  }
+    response.json().then((config) => fn(config))
+      .catch((e) => console.error(e));
+  }).catch((e) => console.error(e));
 }
 
-function connectFT1Elements(ftNumber) {
-  const unit = `#ft${ftNumber}-1`;
-  makePanelSelectable(`${unit} .top-panel`);
-  for (let d = 0; d <= 9; d++) {
-    connectNeon(`${unit} .arg-x${d}`, ((d) => {
-      return (s) => (s.ft[ftNumber-1].arg%10) == d;
-    })(d));
-  }
-  for (let d = 0; d <= 10; d++) {
-    connectNeon(`${unit} .arg-${d}x`, ((d) => {
-      return (s) => ~~(s.ft[ftNumber-1].arg/10) == d;
-    })(d));
-  }
-  connectNeon(`${unit} .arg-setup`, (s) => s.ft[ftNumber-1].argSetup);
-  connectNeon(`${unit} .add`, (s) => s.ft[ftNumber-1].add);
-  connectNeon(`${unit} .subtract`, (s) => s.ft[ftNumber-1].subtract);
-  for (let i = 0; i <= 12; i++) {
-    connectNeon(`${unit} .ring${i}`, ((i) => {
-      return (s) => s.ft[ftNumber-1].ring == i;
-    })(i));
-  }
-  makePanelSelectable(`${unit} .front-panel`);
-  makePanelSelectable(`${unit} .bottom-panel`);
-  for (let p = 0; p <= 10; p++) {
-    connectNeon(`${unit} .inff${p}`, ((p) => {
-      return (s) => s.ft[ftNumber-1].inff[p];
-    })(p));
-  }
-}
-
-function connectFT2Elements(ftNumber) {
-  const unit = `#ft${ftNumber}-2`;
-  makePanelSelectable(`${unit} .front-panel`);
-}
-
-function connectAccumulatorElements(accNumber) {
-  const unit = `#accumulator-${accNumber}`;
-  makePanelSelectable(`${unit} .top-panel`);
-  connectNeon(`${unit} .neon-p`, (s) => !s.acc[accNumber-1].sign);
-  connectNeon(`${unit} .neon-m`, (s) => s.acc[accNumber-1].sign);
-  for (let decade = 10; decade >= 1; decade--) {
-    connectNeon(`${unit} .d${decade}`, ((d) => {
-      return (s) => s.acc[accNumber-1].decff[d-1];
-    })(accNumber, decade));
-    for (let value = 0; value <= 9; value++) {
-      connectNeon(`${unit} .d${decade}v${value}`, ((d, v) => {
-        return (s) => s.acc[accNumber-1].decade[d-1] == v;
-      })(decade, value));
-    }
-  }
-  makePanelSelectable(`${unit} .front-panel`);
-  makePanelSelectable(`${unit} .bottom-panel`);
-  for (let i = 1; i <= 12; i++) {
-    connectNeon(`${unit} .p${i}`, ((i) => {
-      return (s) => s.acc[accNumber-1].program[i-1];
-    })(i));
-  }
-  for (let i = 1; i <= 9; i++) {
-    connectNeon(`${unit} .rep${i}`, ((v) => {
-      return (s) => s.acc[accNumber-1].repeat == v;
-    })(i));
-  }
-}
-
-function connectDividerElements() {
-  makePanelSelectable('#div-top');
-  connectNeon('#div-divff',    (s) => s.div.ffs[0] == '1');
-  connectNeon('#div-clrff',    (s) => s.div.ffs[1] == '1');
-  connectNeon('#div-coinff',   (s) => s.div.ffs[2] == '1');
-  connectNeon('#div-dpgamma',  (s) => s.div.ffs[3] == '1');
-  connectNeon('#div-ngamma',   (s) => s.div.ffs[4] == '1');
-  connectNeon('#div-psrcff',   (s) => s.div.ffs[5] == '1');
-  connectNeon('#div-pringff',  (s) => s.div.ffs[6] == '1');
-  connectNeon('#div-denomff',  (s) => s.div.ffs[7] == '1');
-  connectNeon('#div-numrplus', (s) => s.div.ffs[8] == '1');
-  connectNeon('#div-numrmin',  (s) => s.div.ffs[9] == '1');
-  connectNeon('#div-qalpha',   (s) => s.div.ffs[10] == '1');
-  connectNeon('#div-sac',      (s) => s.div.ffs[11] == '1');
-  connectNeon('#div-m2',       (s) => s.div.ffs[12] == '1');
-  connectNeon('#div-m1',       (s) => s.div.ffs[13] == '1');
-  connectNeon('#div-nac',      (s) => s.div.ffs[14] == '1');
-  connectNeon('#div-da',       (s) => s.div.ffs[15] == '1');
-  connectNeon('#div-nalpha',   (s) => s.div.ffs[16] == '1');
-  connectNeon('#div-dalpha',   (s) => s.div.ffs[17] == '1');
-  connectNeon('#div-dgamma',   (s) => s.div.ffs[18] == '1');
-  connectNeon('#div-npgamma',  (s) => s.div.ffs[19] == '1');
-  connectNeon('#div-p2',       (s) => s.div.ffs[20] == '1');
-  connectNeon('#div-p1',       (s) => s.div.ffs[21] == '1');
-  connectNeon('#div-salpha',   (s) => s.div.ffs[22] == '1');
-  connectNeon('#div-ds',       (s) => s.div.ffs[23] == '1');
-  connectNeon('#div-nbeta',    (s) => s.div.ffs[24] == '1');
-  connectNeon('#div-dbeta',    (s) => s.div.ffs[25] == '1');
-  connectNeon('#div-ans1',     (s) => s.div.ffs[26] == '1');
-  connectNeon('#div-ans2',     (s) => s.div.ffs[27] == '1');
-  connectNeon('#div-ans3',     (s) => s.div.ffs[28] == '1');
-  connectNeon('#div-ans4',     (s) => s.div.ffs[29] == '1');
-  for (let i = 1; i <= 10; i++) {
-    connectNeon(`#div-pring${i}`, ((i) => {
-      return (s) => s.div.placeRing == i - 1;
-    })(i));
-  }
-  makePanelSelectable('#div-front-panel');
-  makePanelSelectable('#div-bottom');
-  for (let i = 1; i <= 8; i++) {
-    connectNeon(`#div-prog${i}`, ((i) => {
-      return (s) => s.div.program[i-1];
-    })(i));
-  }
-  for (let i = 0; i < 9; i++) {
-    connectNeon(`#div-progring${i}`, ((i) => {
-      return (s) => s.div.progRing == i;
-    })(i));
-  }
-}
-
-function connectMultiplierElements(panelNumber) {
-  const prefix = `mult${panelNumber}`;
-  if (panelNumber == 1) {
-    connectNeon('#mult1-reset', (s) => s.mult.reset1);
-  } else if (panelNumber == 2) {
-    for (let i = 1; i <= 14; i++) {
-      connectNeon(`#mult2-stage${i}`, ((i) => {
-        return (s) => s.mult.stage == i-1;
-      })(i));
-    }
-  } else if (panelNumber == 3) {
-    connectNeon('#mult3-reset', (s) => s.mult.reset3);
-  }
-  makePanelSelectable(`#${prefix}-front-panel`);
-  const startDigit = [1, 9, 17][panelNumber - 1];
-  for (let i = startDigit; i < startDigit + 8; i++) {
-    connectNeon(`#${prefix}-prog${i}`, ((i) => {
-      return (s) => s.mult.program[i-1];
-    })(i));
-  }
-}
-
-function connectCT1Elements() {
-  makePanelSelectable('#ct1-top');
-  makePanelSelectable('#ct1-front-panel');
-  makePanelSelectable('#ct1-bottom');
-  for (let i = 1; i <= 30; i++) {
-    connectNeon(`#ct1-prog${i}`, ((i) => {
-      return (s) => s.constant[i-1] == '1';
-    })(i));
-  }
-}
-
-function connectSwitches(config) {
+function configureSwitches(config) {
   for (const [selector, s] of Object.entries(config)) {
     switch (s.type) {
     case 'rotary':
@@ -450,6 +279,18 @@ function connectSwitches(config) {
   }
 }
 
+function configureNeons(config) {
+  for (const [selector, predicate] of Object.entries(config)) {
+    connectNeon(selector, extractState(predicate));
+  }
+}
+
+function configurePanels(config) {
+  for (const selector of config) {
+    makePanelSelectable(selector);
+  }
+}
+
 window.onload = (event) => {
   const wrapper = document.querySelector('#eniac');
   const wrapperDoc = wrapper.contentDocument;
@@ -457,36 +298,11 @@ window.onload = (event) => {
   eniac = wrapperDoc.querySelector('#eniac');
   defaultViewBox = eniac.getAttribute('viewBox');
 
-  fetch('/switches.json').then((response) => {
-    if (response.status != 200) {
-      console.error('switches.json: ', response.status);
-      return;
-    }
-    response.json().then((config) => connectSwitches(config))
-      .catch((e) => console.error(e));
-  }).catch((e) => console.error(e));
-
+  configure('switches.json', configureSwitches);
+  configure('neons.json', configureNeons);
+  configure('panels.json', configurePanels);
   connectInitiateElements();
   connectCyclingElements();
-  connectMPElements(1);
-  connectMPElements(2);
-  for (let i = 1; i <= 3; i++) {
-    connectFT1Elements(i);
-    connectFT2Elements(i);
-  }
-  for (let i = 1; i <= 20; i++) {
-    connectAccumulatorElements(i);
-  }
-  connectDividerElements();
-  connectMultiplierElements(1);
-  connectMultiplierElements(2);
-  connectMultiplierElements(3);
-  connectCT1Elements();
-  makePanelSelectable('#ct2-front-panel');
-  makePanelSelectable('#ct3-front-panel');
-  makePanelSelectable('#pr1-front-panel');
-  makePanelSelectable('#pr2-front-panel');
-  makePanelSelectable('#pr3-front-panel');
 
   requestAnimationFrame(step);
 

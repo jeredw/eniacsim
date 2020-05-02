@@ -82,7 +82,8 @@ func (u *Ft) Stat() string {
 }
 
 type ftJson struct {
-	Arg      int      `json:"arg"`
+	ArgUnits int      `json:"argUnits"`
+	ArgTens  int      `json:"argTens"`
 	Ring     int      `json:"ring"`
 	ArgSetup bool     `json:"argSetup"`
 	Add      bool     `json:"add"`
@@ -95,7 +96,8 @@ func (u *Ft) State() json.RawMessage {
 	defer u.mu.Unlock()
 	s := ftJson{
 		Inff:     u.inff2,
-		Arg:      u.arg,
+		ArgUnits: u.arg % 10,
+		ArgTens:  u.arg / 10,
 		Ring:     u.ring,
 		Add:      u.add,
 		Subtract: u.subtr,

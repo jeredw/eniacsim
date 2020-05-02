@@ -103,9 +103,9 @@ func (u *Mp) Stat() string {
 }
 
 type mpJson struct {
-	Stage  [10]int `json:"stage"`  // A-K
-	Inff   [10]int `json:"inff"`   // A-K
-	Decade [20]int `json:"decade"` // 20 downto 1
+	Stage  [10]int  `json:"stage"`  // A-K
+	Inff   [10]bool `json:"inff"`   // A-K
+	Decade [20]int  `json:"decade"` // 20 downto 1
 }
 
 func (u *Mp) State() json.RawMessage {
@@ -119,7 +119,7 @@ func (u *Mp) State() json.RawMessage {
 		s.Decade[i] = u.decade[i].val
 	}
 	for i := range u.stepper {
-		s.Inff[i] = u.stepper[i].inff
+		s.Inff[i] = u.stepper[i].inff > 0
 	}
 	result, _ := json.Marshal(s)
 	return result
