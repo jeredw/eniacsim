@@ -184,80 +184,30 @@ func (u *Ft) Plug(jack string, ch chan Pulse, output bool) error {
 	return nil
 }
 
-func (u *Ft) Switch(name, value string) error {
-	u.rewiring <- 1
-	<-u.waitingForRewiring
-	defer func() { u.rewiring <- 1 }()
-	u.mu.Lock()
-	defer u.mu.Unlock()
-
+func (u *Ft) lookupSwitch(name string) (Switch, error) {
 	switch {
 	case len(name) > 2 && name[:2] == "op":
 		sw, _ := strconv.Atoi(name[2:])
 		if !(sw >= 1 && sw <= 11) {
-			return fmt.Errorf("invalid switch %s", name)
+			return nil, fmt.Errorf("invalid switch %s", name)
 		}
-		ops := [10]string{"A-2", "A-1", "A0", "A+1", "A+2", "S+2", "S+1", "S0", "S-1", "S-2"}
-		for i, o := range ops {
-			if o == value {
-				u.opsw[sw-1] = i
-				return nil
-			}
-		}
-		return fmt.Errorf("invalid switch %s", name)
+		return &IntSwitch{name, &u.opsw[sw-1], ftOpSettings()}, nil
 	case len(name) > 2 && name[:2] == "cl":
 		sw, _ := strconv.Atoi(name[2:])
 		if !(sw >= 1 && sw <= 11) {
-			return fmt.Errorf("invalid switch %s", name)
+			return nil, fmt.Errorf("invalid switch %s", name)
 		}
-		switch value {
-		case "0":
-			u.argsw[sw-1] = 0
-		case "NC", "nc":
-			u.argsw[sw-1] = 1
-		case "C", "c":
-			u.argsw[sw-1] = 2
-		default:
-			return fmt.Errorf("invalid switch %s setting %s", name, value)
-		}
+		return &IntSwitch{name, &u.argsw[sw-1], ftArgSettings()}, nil
 	case len(name) > 2 && name[:2] == "rp":
 		sw, _ := strconv.Atoi(name[2:])
 		if !(sw >= 1 && sw <= 11) {
-			return fmt.Errorf("invalid switch %s", name)
+			return nil, fmt.Errorf("invalid switch %s", name)
 		}
-		repeatCount, _ := strconv.Atoi(value)
-		if !(repeatCount >= 1 && repeatCount <= 9) {
-			return fmt.Errorf("invalid switch %s setting %s", name, value)
-		}
-		u.rptsw[sw-1] = repeatCount - 1
+		return &IntSwitch{name, &u.rptsw[sw-1], rpSettings()}, nil
 	case name == "mpm1":
-		if len(value) == 0 {
-			return fmt.Errorf("invalid switch %s setting", name)
-		}
-		switch value[0] {
-		case 'P', 'p':
-			u.pm1 = 0
-		case 'M', 'm':
-			u.pm1 = 1
-		case 'T', 't':
-			u.pm1 = 2
-		default:
-			return fmt.Errorf("invalid switch %s setting %s", name, value)
-		}
+		return &IntSwitch{name, &u.pm1, signSettings()}, nil
 	case name == "mpm2":
-		if len(value) == 0 {
-			return fmt.Errorf("invalid switch %s setting", name)
-		}
-		switch value[0] {
-		case 'P', 'p':
-			u.pm2 = 0
-		case 'M', 'm':
-			u.pm2 = 1
-		case 'T', 't':
-			u.pm2 = 2
-		default:
-			return fmt.Errorf("invalid switch %s setting %s", name, value)
-		}
+		return &IntSwitch{name, &u.pm2, signSettings()}, nil
 	case len(name) > 1 && name[0] == 'A', len(name) > 1 && name[0] == 'B':
 		var bank, digit, ilk int
 		fmt.Sscanf(name, "%c%d%c", &bank, &digit, &ilk)
@@ -268,110 +218,89 @@ func (u *Ft) Switch(name, value string) error {
 		case 'B':
 			offset = 1
 		default:
-			return fmt.Errorf("invalid switch %s", name)
+			return nil, fmt.Errorf("invalid switch %s", name)
 		}
 		switch ilk {
 		case 'd', 'D':
 			if !(digit >= 1 && digit <= 4) {
-				return fmt.Errorf("invalid switch %s", name)
+				return nil, fmt.Errorf("invalid switch %s", name)
 			}
-			switch value {
-			case "d", "D":
-				u.del[4*offset+digit-1] = 1
-			case "o", "O":
-				u.del[4*offset+digit-1] = 0
-			default:
-				return fmt.Errorf("invalid switch %s setting %s", name, value)
-			}
+			return &IntSwitch{name, &u.del[4*offset+digit-1], delSettings()}, nil
 		case 'c', 'C':
 			if !(digit >= 1 && digit <= 4) {
-				return fmt.Errorf("invalid switch %s", name)
+				return nil, fmt.Errorf("invalid switch %s", name)
 			}
-			switch value {
-			case "pm1", "PM1":
-				u.cons[4*offset+digit-1] = 10
-			case "pm2", "PM2":
-				u.cons[4*offset+digit-1] = 11
-			default:
-				n, _ := strconv.Atoi(value)
-				if !(n >= 0 && n <= 9) {
-					return fmt.Errorf("invalid switch %s setting %s", name, value)
-				}
-				u.cons[4*offset+digit-1] = n
-			}
+			return &IntSwitch{name, &u.cons[4*offset+digit-1], consSettings()}, nil
 		case 's', 'S':
 			if !(digit >= 4 && digit <= 10) {
-				return fmt.Errorf("invalid switch %s", name)
+				return nil, fmt.Errorf("invalid switch %s", name)
 			}
-			switch value {
-			case "s", "S":
-				u.sub[6*offset+digit-5] = 1
-			case "0":
-				u.sub[6*offset+digit-5] = 0
-			default:
-				return fmt.Errorf("invalid switch %s setting %s", name, value)
-			}
+			return &IntSwitch{name, &u.sub[6*offset+digit-5], subSettings()}, nil
 		default:
-			return fmt.Errorf("invalid switch %s", name)
+			return nil, fmt.Errorf("invalid switch %s", name)
 		}
 	case len(name) > 1 && name[0] == 'R':
 		var bank, row, digit int
 		n, _ := fmt.Sscanf(name, "R%c%dL%d", &bank, &row, &digit)
 		if n == 3 {
-			val, _ := strconv.Atoi(value)
 			if !(row >= -2 && row <= 101) {
-				return fmt.Errorf("invalid switch %s", name)
+				return nil, fmt.Errorf("invalid switch %s", name)
 			}
 			if !(digit >= 1 && digit <= 6) {
-				return fmt.Errorf("invalid switch %s", name)
-			}
-			if !(val >= 0 && val <= 9) {
-				return fmt.Errorf("invalid switch %s setting %s", name, value)
+				return nil, fmt.Errorf("invalid switch %s", name)
 			}
 			switch bank {
 			case 'A':
-				u.tab[row+2][7-digit] = val
+				return &IntSwitch{name, &u.tab[row+2][7-digit], valSettings()}, nil
 			case 'B':
-				u.tab[row+2][13-digit] = val
+				return &IntSwitch{name, &u.tab[row+2][13-digit], valSettings()}, nil
 			default:
-				return fmt.Errorf("invalid switch %s", name)
+				return nil, fmt.Errorf("invalid switch %s", name)
 			}
 		} else {
 			fmt.Sscanf(name, "R%c%dS", &bank, &row)
 			if !(row >= -2 && row <= 101) {
-				return fmt.Errorf("invalid switch %s", name)
-			}
-			var val int
-			switch value {
-			case "P", "p":
-				val = 0
-			case "M", "m":
-				val = 1
-			default:
-				return fmt.Errorf("invalid switch %s setting %s", name, value)
+				return nil, fmt.Errorf("invalid switch %s", name)
 			}
 			switch bank {
 			case 'A':
-				u.tab[row+2][0] = val
+				return &IntSwitch{name, &u.tab[row+2][0], pmSettings()}, nil
 			case 'B':
-				u.tab[row+2][13] = val
+				return &IntSwitch{name, &u.tab[row+2][13], pmSettings()}, nil
 			default:
-				return fmt.Errorf("invalid switch %s", name)
+				return nil, fmt.Errorf("invalid switch %s", name)
 			}
 		}
 	case name == "ninep" || name == "Ninep":
-		if len(value) == 0 {
-			return fmt.Errorf("invalid switch %s", name)
-		}
-		if value[0] == 'C' || value[0] == 'c' {
-			u.px4119 = true
-		} else {
-			u.px4119 = false
-		}
-	default:
-		return fmt.Errorf("invalid switch %s", name)
+		return &BoolSwitch{name, &u.px4119, ninepSettings()}, nil
 	}
-	return nil
+	return nil, fmt.Errorf("invalid switch %s", name)
+}
+
+func (u *Ft) SetSwitch(name, value string) error {
+	u.rewiring <- 1
+	<-u.waitingForRewiring
+	defer func() { u.rewiring <- 1 }()
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	sw, err := u.lookupSwitch(name)
+	if err != nil {
+		return err
+	}
+	return sw.Set(value)
+}
+
+func (u *Ft) GetSwitch(name string) (string, error) {
+	u.rewiring <- 1
+	<-u.waitingForRewiring
+	defer func() { u.rewiring <- 1 }()
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	sw, err := u.lookupSwitch(name)
+	if err != nil {
+		return "", err
+	}
+	return sw.Get(), nil
 }
 
 func (u *Ft) addlookup(c int) {

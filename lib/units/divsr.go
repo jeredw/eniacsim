@@ -339,61 +339,6 @@ func (u *Divsr) Plug(jack string, ch chan Pulse, output bool) error {
 	return nil
 }
 
-func adSettings() []IntSwitchSetting {
-	return []IntSwitchSetting{
-		{"A", 0},
-		{"B", 1},
-		{"C", 2},
-	}
-}
-
-func argSettings() []IntSwitchSetting {
-	return []IntSwitchSetting{
-		{"α", 0}, {"a", 0}, {"alpha", 0},
-		{"β", 1}, {"b", 1}, {"beta", 1},
-		{"0", 2},
-	}
-}
-
-func placeSettings() []IntSwitchSetting {
-	return []IntSwitchSetting{
-		{"D4", 0}, {"d4", 0},
-		{"D7", 1}, {"d7", 1},
-		{"D8", 2}, {"d8", 2},
-		{"D9", 3}, {"d9", 3},
-		{"D10", 4}, {"d10", 4},
-		{"S4", 5}, {"s4", 5}, {"R4", 5}, {"r4", 5},
-		{"S7", 6}, {"s7", 6}, {"R7", 6}, {"r7", 6},
-		{"S8", 7}, {"s8", 7}, {"R8", 7}, {"r8", 7},
-		{"S9", 8}, {"s9", 8}, {"R9", 8}, {"r9", 8},
-		{"S10", 9}, {"s10", 9}, {"R10", 9}, {"r10", 9},
-	}
-}
-
-func roSettings() []IntSwitchSetting {
-	return []IntSwitchSetting{
-		{"RO", 1}, {"ro", 1},
-		{"NRO", 0}, {"nro", 0},
-	}
-}
-
-func ilSettings() []IntSwitchSetting {
-	return []IntSwitchSetting{
-		{"I", 1}, {"i", 1},
-		{"NI", 0}, {"ni", 0},
-	}
-}
-
-func anSettings() []IntSwitchSetting {
-	return []IntSwitchSetting{
-		{"1", 0},
-		{"2", 1},
-		{"3", 2},
-		{"4", 3},
-		{"OFF", 4}, {"off", 4},
-	}
-}
-
 func (u *Divsr) lookupSwitch(name string) (Switch, error) {
 	if name == "da" {
 		return &IntSwitch{name, &u.divadap, adSettings()}, nil
@@ -412,11 +357,11 @@ func (u *Divsr) lookupSwitch(name string) (Switch, error) {
 	case "nr":
 		return &IntSwitch{name, &u.numarg[sw-1], argSettings()}, nil
 	case "nc":
-		return &ClearSwitch{name, &u.numcl[sw-1]}, nil
+		return &BoolSwitch{name, &u.numcl[sw-1], clearSettings()}, nil
 	case "dr":
 		return &IntSwitch{name, &u.denarg[sw-1], argSettings()}, nil
 	case "dc":
-		return &ClearSwitch{name, &u.dencl[sw-1]}, nil
+		return &BoolSwitch{name, &u.dencl[sw-1], clearSettings()}, nil
 	case "pl":
 		return &IntSwitch{name, &u.places[sw-1], placeSettings()}, nil
 	case "ro":

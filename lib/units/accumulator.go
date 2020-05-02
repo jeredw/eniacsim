@@ -66,7 +66,7 @@ type Accumulator struct {
 	inff1, inff2        [12]bool
 	opsw                [12]byte
 	clrsw               [12]bool
-	rptsw               [8]byte
+	rptsw               [8]int
 	sigfig              int
 	sc                  byte
 	val                 [10]byte
@@ -325,57 +325,6 @@ func (u *Accumulator) Plug(jack string, ch chan Pulse, output bool) error {
 	return nil
 }
 
-func sfSettings() []IntSwitchSetting {
-	return []IntSwitchSetting{
-		{"0", 0},
-		{"1", 1},
-		{"2", 2},
-		{"3", 3},
-		{"4", 4},
-		{"5", 5},
-		{"6", 6},
-		{"7", 7},
-		{"8", 8},
-		{"9", 9},
-		{"10", 10},
-	}
-}
-
-func scSettings() []ByteSwitchSetting {
-	return []ByteSwitchSetting{
-		{"0", 0},
-		{"SC", 1}, {"sc", 1},
-	}
-}
-
-func opSettings() []ByteSwitchSetting {
-	return []ByteSwitchSetting{
-		{"α", 0}, {"a", 0}, {"alpha", 0},
-		{"β", 1}, {"b", 1}, {"beta", 1},
-		{"γ", 2}, {"g", 2}, {"gamma", 2},
-		{"δ", 3}, {"d", 3}, {"delta", 3},
-		{"ε", 4}, {"e", 4}, {"epsilon", 4},
-		{"0", 5},
-		{"A", 6},
-		{"AS", 7},
-		{"S", 8},
-	}
-}
-
-func rpSettings() []ByteSwitchSetting {
-	return []ByteSwitchSetting{
-		{"1", 0},
-		{"2", 1},
-		{"3", 2},
-		{"4", 3},
-		{"5", 4},
-		{"6", 5},
-		{"7", 6},
-		{"8", 7},
-		{"9", 8},
-	}
-}
-
 func (u *Accumulator) lookupSwitch(name string) (Switch, error) {
 	if name == "sf" {
 		return &IntSwitch{name, &u.sigfig, sfSettings()}, nil
@@ -393,14 +342,14 @@ func (u *Accumulator) lookupSwitch(name string) (Switch, error) {
 	prog--
 	switch name[:2] {
 	case "op":
-		return &ByteSwitch{name, &u.opsw[prog], opSettings()}, nil
+		return &ByteSwitch{name, &u.opsw[prog], accOpSettings()}, nil
 	case "cc":
-		return &ClearSwitch{name, &u.clrsw[prog]}, nil
+		return &BoolSwitch{name, &u.clrsw[prog], clearSettings()}, nil
 	case "rp":
 		if !(prog >= 4 && prog <= 11) {
 			return nil, fmt.Errorf("invalid switch %s", name)
 		}
-		return &ByteSwitch{name, &u.rptsw[prog-4], rpSettings()}, nil
+		return &IntSwitch{name, &u.rptsw[prog-4], rpSettings()}, nil
 	}
 	return nil, fmt.Errorf("invalid switch %s", name)
 }

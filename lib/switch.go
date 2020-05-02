@@ -9,28 +9,34 @@ type Switch interface {
 	Set(value string) error
 }
 
-type ClearSwitch struct {
-	Name string
-	Data *bool
+type BoolSwitchSetting struct {
+	Key   string
+	Value bool
 }
 
-func (s *ClearSwitch) Get() string {
-	if *s.Data {
-		return "C"
-	}
-	return "0"
+type BoolSwitch struct {
+	Name     string
+	Data     *bool
+	Settings []BoolSwitchSetting
 }
 
-func (s *ClearSwitch) Set(value string) error {
-	switch value {
-	case "0":
-		*s.Data = false
-	case "C", "c":
-		*s.Data = true
-	default:
-		return fmt.Errorf("invalid switch %s setting %s", s.Name, value)
+func (s *BoolSwitch) Get() string {
+	for i := range s.Settings {
+		if *s.Data == s.Settings[i].Value {
+			return s.Settings[i].Key
+		}
 	}
-	return nil
+	return "?"
+}
+
+func (s *BoolSwitch) Set(value string) error {
+	for i := range s.Settings {
+		if value == s.Settings[i].Key {
+			*s.Data = s.Settings[i].Value
+			return nil
+		}
+	}
+	return fmt.Errorf("invalid switch %s setting %s", s.Name, value)
 }
 
 type IntSwitchSetting struct {

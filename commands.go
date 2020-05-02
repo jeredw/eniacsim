@@ -445,9 +445,11 @@ func doGetSwitch(command string, f []string) {
 			fmt.Println("Invalid function table")
 			return
 		}
-		err := ft[unit-1].Switch(p[1], f[2])
+		value, err := ft[unit-1].GetSwitch(p[1])
 		if err != nil {
-			fmt.Printf("Function table %d: %s", unit, err)
+			fmt.Printf("error: %s\n", err)
+		} else {
+			fmt.Printf("%s\n", value)
 		}
 	case p[0] == "m":
 		if len(p) != 2 {
@@ -547,7 +549,7 @@ func doSetSwitch(command string, f []string) {
 			fmt.Println("Invalid function table")
 			return
 		}
-		err := ft[unit-1].Switch(p[1], f[2])
+		err := ft[unit-1].SetSwitch(p[1], f[2])
 		if err != nil {
 			fmt.Printf("Function table %d: %s", unit, err)
 		}
