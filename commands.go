@@ -437,7 +437,7 @@ func doGetSwitch(command string, f []string) {
 		}
 	case p[0][0] == 'f':
 		if len(p) != 2 {
-			fmt.Println("Function table switch syntax: s funit.switch value", command)
+			fmt.Println("Function table switch syntax: s? funit.switch", command)
 			return
 		}
 		unit, _ := strconv.Atoi(p[0][1:])
@@ -453,16 +453,18 @@ func doGetSwitch(command string, f []string) {
 		}
 	case p[0] == "m":
 		if len(p) != 2 {
-			fmt.Println("Multiplier switch syntax: s m.switch value")
+			fmt.Println("Multiplier switch syntax: s? m.switch")
 			return
 		}
-		err := multiplier.Switch(p[1], f[2])
+		value, err := multiplier.GetSwitch(p[1])
 		if err != nil {
-			fmt.Printf("Multiplier: %s\n", err)
+			fmt.Printf("error: %s\n", err)
+		} else {
+			fmt.Printf("%s\n", value)
 		}
 	case p[0] == "p":
 		if len(p) != 2 {
-			fmt.Println("Programmer switch syntax: s p.switch value")
+			fmt.Println("Programmer switch syntax: s? p.switch")
 			break
 		}
 		value, err := mp.GetSwitch(p[1])
@@ -558,7 +560,7 @@ func doSetSwitch(command string, f []string) {
 			fmt.Println("Multiplier switch syntax: s m.switch value")
 			return
 		}
-		err := multiplier.Switch(p[1], f[2])
+		err := multiplier.SetSwitch(p[1], f[2])
 		if err != nil {
 			fmt.Printf("Multiplier: %s\n", err)
 		}

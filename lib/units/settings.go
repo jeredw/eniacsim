@@ -207,3 +207,62 @@ func ninepSettings() []BoolSwitchSetting {
 		{"Cpp", false}, {"cpp", false},
 	}
 }
+
+func recvSettings() []IntSwitchSetting {
+	return []IntSwitchSetting{
+		{"α", 0}, {"a", 0}, {"alpha", 0},
+		{"β", 1}, {"b", 1}, {"beta", 1},
+		{"γ", 2}, {"g", 2}, {"gamma", 2},
+		{"δ", 3}, {"d", 3}, {"delta", 3},
+		{"ε", 4}, {"e", 4}, {"epsilon", 4},
+		{"0", 5},
+	}
+}
+
+func mclSettings() []IntSwitchSetting {
+	return []IntSwitchSetting{
+		{"C", 1}, {"c", 1},
+		{"0", 0},
+	}
+}
+
+func msfSettings() []IntSwitchSetting {
+	return []IntSwitchSetting{
+		{"0", 9}, {"O", 9},
+		{"2", 8},
+		{"3", 7},
+		{"4", 6},
+		{"5", 5},
+		{"6", 4},
+		{"7", 3},
+		{"8", 2},
+		{"9", 1},
+		{"10", 0},
+	}
+}
+
+func mplSettings() []IntSwitchSetting {
+	return []IntSwitchSetting{
+		{"2", 0},
+		{"3", 1},
+		{"4", 2},
+		{"5", 3},
+		{"6", 4},
+		{"7", 5},
+		{"8", 6},
+		{"9", 7},
+		{"10", 8},
+	}
+}
+
+func prodSettings() []IntSwitchSetting {
+	return []IntSwitchSetting{
+		{"A", 0},
+		{"S", 1},
+		{"AS", 2},
+		{"0", 3},
+		{"AC", 4},
+		{"SC", 5},
+		{"ASC", 6},
+	}
+}

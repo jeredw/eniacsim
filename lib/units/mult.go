@@ -269,109 +269,78 @@ func (u *Multiplier) Plug(jack string, ch chan Pulse, output bool) error {
 	return nil
 }
 
-func (u *Multiplier) Switch(name, value string) error {
+func (u *Multiplier) lookupSwitch(name string) (Switch, error) {
+	switch {
+	case len(name) > 6 && name[:6] == "ieracc":
+		prog, _ := strconv.Atoi(name[6:])
+		if !(prog >= 1 && prog <= 24) {
+			return nil, fmt.Errorf("invalid switch %s", name)
+		}
+		return &IntSwitch{name, &u.iersw[prog-1], recvSettings()}, nil
+	case len(name) > 5 && name[:5] == "iercl":
+		prog, _ := strconv.Atoi(name[5:])
+		if !(prog >= 1 && prog <= 24) {
+			return nil, fmt.Errorf("invalid switch %s", name)
+		}
+		return &IntSwitch{name, &u.iercl[prog-1], mclSettings()}, nil
+	case len(name) > 8 && name[:8] == "icandacc":
+		prog, _ := strconv.Atoi(name[8:])
+		if !(prog >= 1 && prog <= 24) {
+			return nil, fmt.Errorf("invalid switch %s", name)
+		}
+		return &IntSwitch{name, &u.icandsw[prog-1], recvSettings()}, nil
+	case len(name) > 7 && name[:7] == "icandcl":
+		prog, _ := strconv.Atoi(name[7:])
+		if !(prog >= 1 && prog <= 24) {
+			return nil, fmt.Errorf("invalid switch %s", name)
+		}
+		return &IntSwitch{name, &u.icandcl[prog-1], mclSettings()}, nil
+	case len(name) > 2 && name[:2] == "sf":
+		prog, _ := strconv.Atoi(name[2:])
+		if !(prog >= 1 && prog <= 24) {
+			return nil, fmt.Errorf("invalid switch %s", name)
+		}
+		return &IntSwitch{name, &u.sigsw[prog-1], msfSettings()}, nil
+	case len(name) > 5 && name[:5] == "place":
+		prog, _ := strconv.Atoi(name[5:])
+		if !(prog >= 1 && prog <= 24) {
+			return nil, fmt.Errorf("invalid switch %s", name)
+		}
+		return &IntSwitch{name, &u.placsw[prog-1], mplSettings()}, nil
+	case len(name) > 4 && name[:4] == "prod":
+		prog, _ := strconv.Atoi(name[4:])
+		if !(prog >= 1 && prog <= 24) {
+			return nil, fmt.Errorf("invalid switch %s", name)
+		}
+		return &IntSwitch{name, &u.prodsw[prog-1], prodSettings()}, nil
+	}
+	return nil, fmt.Errorf("invalid switch %s", name)
+}
+
+func (u *Multiplier) SetSwitch(name, value string) error {
 	u.mu.Lock()
 	defer u.mu.Unlock()
 	u.rewiring <- 1
 	<-u.waitingForRewiring
 	defer func() { u.rewiring <- 1 }()
-	switch {
-	case len(name) > 6 && name[:6] == "ieracc":
-		prog, _ := strconv.Atoi(name[6:])
-		if !(prog >= 1 && prog <= 24) {
-			return fmt.Errorf("invalid switch %s", name)
-		}
-		u.iersw[prog-1] = recv2val(value)
-	case len(name) > 5 && name[:5] == "iercl":
-		prog, _ := strconv.Atoi(name[5:])
-		if !(prog >= 1 && prog <= 24) {
-			return fmt.Errorf("invalid switch %s", name)
-		}
-		switch value {
-		case "C":
-			u.iercl[prog-1] = 1
-		case "0":
-			u.iercl[prog-1] = 0
-		default:
-			return fmt.Errorf("invalid switch %s setting %s", name, value)
-		}
-	case len(name) > 8 && name[:8] == "icandacc":
-		prog, _ := strconv.Atoi(name[8:])
-		if !(prog >= 1 && prog <= 24) {
-			return fmt.Errorf("invalid switch %s", name)
-		}
-		u.icandsw[prog-1] = recv2val(value)
-	case len(name) > 7 && name[:7] == "icandcl":
-		prog, _ := strconv.Atoi(name[7:])
-		if !(prog >= 1 && prog <= 24) {
-			return fmt.Errorf("invalid switch %s", name)
-		}
-		switch value {
-		case "C":
-			u.icandcl[prog-1] = 1
-		case "0":
-			u.icandcl[prog-1] = 0
-		default:
-			return fmt.Errorf("invalid switch %s setting %s", name, value)
-		}
-	case len(name) > 2 && name[:2] == "sf":
-		prog, _ := strconv.Atoi(name[2:])
-		if !(prog >= 1 && prog <= 24) {
-			return fmt.Errorf("invalid switch %s", name)
-		}
-		val, _ := strconv.Atoi(value)
-		if !(val == 0 || val >= 2 && val <= 10) {
-			return fmt.Errorf("invalid switch %s setting %s", name, value)
-		}
-		if val == 0 {
-			val = 1
-		}
-		u.sigsw[prog-1] = 10 - val
-	case len(name) > 5 && name[:5] == "place":
-		prog, _ := strconv.Atoi(name[5:])
-		if !(prog >= 1 && prog <= 24) {
-			return fmt.Errorf("invalid switch %s", name)
-		}
-		val, _ := strconv.Atoi(value)
-		if !(val >= 2 && val <= 10) {
-			return fmt.Errorf("invalid switch %s setting %s", name, value)
-		}
-		u.placsw[prog-1] = val - 2
-	case len(name) > 4 && name[:4] == "prod":
-		prog, _ := strconv.Atoi(name[4:])
-		if !(prog >= 1 && prog <= 24) {
-			return fmt.Errorf("invalid switch %s", name)
-		}
-		products := [7]string{"A", "S", "AS", "0", "AC", "SC", "ASC"}
-		for i, p := range products {
-			if p == value {
-				u.prodsw[prog-1] = i
-				return nil
-			}
-		}
-		return fmt.Errorf("invalid switch %s setting %s", name, value)
-	default:
-		return fmt.Errorf("invalid switch %s", name)
+	sw, err := u.lookupSwitch(name)
+	if err != nil {
+		return err
 	}
-	return nil
+	return sw.Set(value)
 }
 
-func recv2val(recv string) int {
-	switch recv {
-	case "α", "a", "alpha":
-		return 0
-	case "β", "b", "beta":
-		return 1
-	case "γ", "g", "gamma":
-		return 2
-	case "δ", "d", "delta":
-		return 3
-	case "ε", "e", "epsilon":
-		return 4
-	case "0":
-		return 5
+func (u *Multiplier) GetSwitch(name string) (string, error) {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	u.rewiring <- 1
+	<-u.waitingForRewiring
+	defer func() { u.rewiring <- 1 }()
+	sw, err := u.lookupSwitch(name)
+	if err != nil {
+		return "", err
 	}
-	return 5
+	return sw.Get(), nil
 }
 
 func (u *Multiplier) shiftprod(lhpp, rhpp int, resp1, resp2, resp3, resp4 chan int) {
