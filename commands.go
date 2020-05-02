@@ -465,9 +465,11 @@ func doGetSwitch(command string, f []string) {
 			fmt.Println("Programmer switch syntax: s p.switch value")
 			break
 		}
-		err := mp.Switch(p[1], f[2])
+		value, err := mp.GetSwitch(p[1])
 		if err != nil {
-			fmt.Printf("Programmer: %s\n", err)
+			fmt.Printf("error: %s\n", err)
+		} else {
+			fmt.Printf("%s\n", value)
 		}
 	case p[0] == "pr":
 		if len(p) != 2 {
@@ -565,7 +567,7 @@ func doSetSwitch(command string, f []string) {
 			fmt.Println("Programmer switch syntax: s p.switch value")
 			break
 		}
-		err := mp.Switch(p[1], f[2])
+		err := mp.SetSwitch(p[1], f[2])
 		if err != nil {
 			fmt.Printf("Programmer: %s\n", err)
 		}

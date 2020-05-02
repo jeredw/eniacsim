@@ -216,83 +216,140 @@ func (u *Mp) Plug(jack string, ch chan Pulse, output bool) error {
 	return nil
 }
 
-// Switch sets the control switch name to the given value.
-func (u *Mp) Switch(name string, value string) error {
-	if len(name) == 0 {
-		return fmt.Errorf("invalid switch")
+type associatorSwitch struct {
+	name        string
+	left, right string
+	data        *byte
+}
+
+func (s *associatorSwitch) Get() string {
+	return string(*s.data)
+}
+
+func (s *associatorSwitch) Set(value string) error {
+	ucLeft := strings.ToUpper(s.left)
+	ucRight := strings.ToUpper(s.right)
+	switch value {
+	case s.left, ucLeft:
+		*s.data = ucLeft[0]
+	case s.right, ucRight:
+		*s.data = ucRight[0]
+	default:
+		return fmt.Errorf("%s associator invalid setting %s", s.name, value)
 	}
-	u.rewiring <- 1
-	<-u.waitingForRewiring
-	defer func() { u.rewiring <- 1 }()
-	u.mu.Lock()
-	defer u.mu.Unlock()
+	return nil
+}
+
+type decadeSwitch struct {
+	name string
+	data *int
+}
+
+func (s *decadeSwitch) Set(value string) error {
+	n, _ := strconv.Atoi(value)
+	if !(n >= 0 && n <= 9) {
+		return fmt.Errorf("invalid decade limit %s %s\n", s.name, value)
+	}
+	*s.data = n
+	return nil
+}
+
+func (s *decadeSwitch) Get() string {
+	return fmt.Sprintf("%d", *s.data)
+}
+
+type clearSwitch struct {
+	name string
+	data *int
+}
+
+func (s *clearSwitch) Set(value string) error {
+	n, _ := strconv.Atoi(value)
+	if !(n >= 1 && n <= 6) {
+		return fmt.Errorf("invalid clear stage %s\n", value)
+	}
+	*s.data = n - 1
+	return nil
+}
+
+func (s *clearSwitch) Get() string {
+	return fmt.Sprintf("%d", 1+*s.data)
+}
+
+func (u *Mp) lookupSwitch(name string) (Switch, error) {
+	if len(name) == 0 {
+		return nil, fmt.Errorf("invalid switch")
+	}
 	var d, s int
 	switch name[0] {
 	case 'a', 'A':
 		switch name {
 		case "a20", "A20":
-			return u.setAssociator(0, "a", "b", name, value)
+			return &associatorSwitch{name: name, left: "a", right: "b", data: &u.associator[0]}, nil
 		case "a18", "A18":
-			return u.setAssociator(1, "b", "c", name, value)
+			return &associatorSwitch{name: name, left: "b", right: "c", data: &u.associator[1]}, nil
 		case "a14", "A14":
-			return u.setAssociator(2, "c", "d", name, value)
+			return &associatorSwitch{name: name, left: "c", right: "d", data: &u.associator[2]}, nil
 		case "a12", "A12":
-			return u.setAssociator(3, "d", "e", name, value)
+			return &associatorSwitch{name: name, left: "d", right: "e", data: &u.associator[3]}, nil
 		case "a10", "A10":
-			return u.setAssociator(4, "f", "g", name, value)
+			return &associatorSwitch{name: name, left: "f", right: "g", data: &u.associator[4]}, nil
 		case "a8", "A8":
-			return u.setAssociator(5, "g", "h", name, value)
+			return &associatorSwitch{name: name, left: "g", right: "h", data: &u.associator[5]}, nil
 		case "a4", "A4":
-			return u.setAssociator(6, "h", "j", name, value)
+			return &associatorSwitch{name: name, left: "h", right: "j", data: &u.associator[6]}, nil
 		case "a2", "A2":
-			return u.setAssociator(7, "j", "k", name, value)
+			return &associatorSwitch{name: name, left: "j", right: "k", data: &u.associator[7]}, nil
 		default:
-			return fmt.Errorf("invalid associator switch %s", name)
+			return nil, fmt.Errorf("invalid associator switch %s", name)
 		}
 	case 'd', 'D':
 		fmt.Sscanf(name, "d%ds%d", &d, &s)
-		n, _ := strconv.Atoi(value)
 		if !(d >= 1 && d <= 20) {
-			return fmt.Errorf("invalid decade %s", name)
+			return nil, fmt.Errorf("invalid decade %s", name)
 		}
 		if !(s >= 1 && s <= 6) {
-			return fmt.Errorf("invalid decade stage %s", name)
+			return nil, fmt.Errorf("invalid decade stage %s", name)
 		}
-		if !(n >= 0 && n <= 9) {
-			return fmt.Errorf("invalid decade limit %s %s\n", name, value)
-		}
-		u.decade[20-d].limit[s-1] = n
+		return &decadeSwitch{name: name, data: &u.decade[20-d].limit[s-1]}, nil
 	case 'c', 'C':
 		if len(name) < 2 {
-			return fmt.Errorf("invalid stepper %s\n", name)
+			return nil, fmt.Errorf("invalid stepper %s\n", name)
 		}
 		s := stepperNameToIndex(name[1])
-		n, _ := strconv.Atoi(value)
 		if s == -1 {
-			return fmt.Errorf("invalid stepper %s\n", name)
+			return nil, fmt.Errorf("invalid stepper %s\n", name)
 		}
-		if !(n >= 1 && n <= 6) {
-			return fmt.Errorf("invalid clear stage %s\n", value)
-		}
-		u.stepper[s].csw = n - 1
-	default:
-		return fmt.Errorf("invalid switch %s", name)
+		return &clearSwitch{name: name, data: &u.stepper[s].csw}, nil
 	}
-	return nil
+	return nil, fmt.Errorf("invalid switch %s", name)
 }
 
-func (u *Mp) setAssociator(i int, left, right string, name, value string) error {
-	ucLeft := strings.ToUpper(left)
-	ucRight := strings.ToUpper(right)
-	switch value {
-	case left, ucLeft:
-		u.associator[i] = ucLeft[0]
-	case right, ucRight:
-		u.associator[i] = ucRight[0]
-	default:
-		return fmt.Errorf("%s associator invalid setting %s", name, value)
+// SetSwitch sets the control switch name to the given value.
+func (u *Mp) SetSwitch(name string, value string) error {
+	u.rewiring <- 1
+	<-u.waitingForRewiring
+	defer func() { u.rewiring <- 1 }()
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	sw, err := u.lookupSwitch(name)
+	if err != nil {
+		return err
 	}
-	return nil
+	return sw.Set(value)
+}
+
+func (u *Mp) GetSwitch(name string) (string, error) {
+	u.rewiring <- 1
+	<-u.waitingForRewiring
+	defer func() { u.rewiring <- 1 }()
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	sw, err := u.lookupSwitch(name)
+	if err != nil {
+		return "?", err
+	}
+	return sw.Get(), nil
 }
 
 // Return a bitmask of the decades associated with stepper s.
