@@ -1,6 +1,7 @@
 package units
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"sync"
@@ -85,6 +86,26 @@ func (u *Divsr) Su3() int {
 	return u.su3
 }
 
+type divsrJson struct {
+	PlaceRing int     `json:"progRing"`
+	ProgRing  int     `json:"progRing"`
+	Program   [8]bool `json:"program"`
+	Ffs       string  `json:"ffs"`
+}
+
+func (u *Divsr) State() json.RawMessage {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	s := divsrJson{
+		PlaceRing: u.placering,
+		ProgRing:  u.progring,
+		Program:   u.progff,
+		Ffs:       u.ffs(),
+	}
+	result, _ := json.Marshal(s)
+	return result
+}
+
 func (u *Divsr) Stat() string {
 	u.mu.Lock()
 	defer u.mu.Unlock()
@@ -96,14 +117,18 @@ func (u *Divsr) Stat() string {
 			s += "0"
 		}
 	}
-	s += " " + ToBin(u.divff) + ToBin(u.clrff) + ToBin(u.coinff) + ToBin(u.dpγ) +
+	s += " " + u.ffs()
+	return s
+}
+
+func (u *Divsr) ffs() string {
+	return ToBin(u.divff) + ToBin(u.clrff) + ToBin(u.coinff) + ToBin(u.dpγ) +
 		ToBin(u.nγ) + ToBin(u.psrcff) + ToBin(u.pringff) + ToBin(u.denomff) +
 		ToBin(u.numrplus) + ToBin(u.numrmin) + ToBin(u.qα) + ToBin(u.sac) +
 		ToBin(u.m2) + ToBin(u.m1) + ToBin(u.nac) + ToBin(u.da) + ToBin(u.nα) +
 		ToBin(u.dα) + ToBin(u.dγ) + ToBin(u.npγ) + ToBin(u.p2) + ToBin(u.p1) +
 		ToBin(u.sα) + ToBin(u.ds) + ToBin(u.nβ) + ToBin(u.dβ) + ToBin(u.ans1) +
 		ToBin(u.ans2) + ToBin(u.ans3) + ToBin(u.ans4)
-	return s
 }
 
 func (u *Divsr) Stat2() string {

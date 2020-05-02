@@ -1,6 +1,7 @@
 package units
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"sync"
@@ -78,6 +79,30 @@ func (u *Ft) Stat() string {
 		s += " 0"
 	}
 	return s
+}
+
+type ftJson struct {
+	Arg      int      `json:"arg"`
+	Ring     int      `json:"ring"`
+	ArgSetup bool     `json:"argSetup"`
+	Add      bool     `json:"add"`
+	Subtract bool     `json:"subtract"`
+	Inff     [11]bool `json:"inff"`
+}
+
+func (u *Ft) State() json.RawMessage {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	s := ftJson{
+		Inff:     u.inff2,
+		Arg:      u.arg,
+		Ring:     u.ring,
+		Add:      u.add,
+		Subtract: u.subtr,
+		ArgSetup: u.argsetup,
+	}
+	result, _ := json.Marshal(s)
+	return result
 }
 
 func (u *Ft) Reset() {

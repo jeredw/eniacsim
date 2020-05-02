@@ -41,6 +41,7 @@ let machineState = {};
 
 source.addEventListener('message', (event) => {
   machineState = JSON.parse(event.data);
+  machineState.pulse = parseInt(machineState.cycling, 10) / 2;
 });
 
 function step(ts) {
@@ -49,20 +50,15 @@ function step(ts) {
   }
   requestAnimationFrame(step);
 }
-requestAnimationFrame(step);
 
-function connectNeon(selector, extractState) {
+function connectNeon(selector, isTurnedOn) {
   const neon = eniac.querySelector(selector);
-  neon.style.fill = '#574400';
+  const onColor = '#ffd43a';
+  const offColor = '#574400';
+  neon.style.contain = 'layout paint';
+  neon.style.fill = offColor;
   neons.push((s) => {
-    switch (extractState(s)) {
-    case '0':
-      neon.style.fill = '#574400';
-      break;
-    case '1':
-      neon.style.fill = '#ffd43a';
-      break;
-    }
+    neon.style.fill = isTurnedOn(s) ? onColor : offColor;
   });
 }
 
@@ -250,32 +246,32 @@ function connectInitiateElements() {
   connectButton('#initiate-pulse');
 
   makePanelSelectable('#initiate-bottom');
-  connectNeon('#initiate-neon-sc1',   (s) => s.initiate[0]);
-  connectNeon('#initiate-neon-sc2',   (s) => s.initiate[1]);
-  connectNeon('#initiate-neon-sc3',   (s) => s.initiate[2]);
-  connectNeon('#initiate-neon-sc4',   (s) => s.initiate[3]);
-  connectNeon('#initiate-neon-sc5',   (s) => s.initiate[4]);
-  connectNeon('#initiate-neon-sc6',   (s) => s.initiate[5]);
-  connectNeon('#initiate-neon-rs',    (s) => s.initiate[6]);
-  connectNeon('#initiate-neon-ps',    (s) => s.initiate[7]);
-  connectNeon('#initiate-neon-rf',    (s) => s.initiate[8]);
-  connectNeon('#initiate-neon-ri',    (s) => s.initiate[9]);
-  connectNeon('#initiate-neon-rsync', (s) => s.initiate[10]);
-  connectNeon('#initiate-neon-pf',    (s) => s.initiate[11]);
-  connectNeon('#initiate-neon-psync', (s) => s.initiate[12]);
-  connectNeon('#initiate-neon-ip',    (s) => s.initiate[13]);
-  connectNeon('#initiate-neon-isync', (s) => s.initiate[14]);
+  connectNeon('#initiate-neon-sc1',   (s) => s.initiate[0] == '1');
+  connectNeon('#initiate-neon-sc2',   (s) => s.initiate[1] == '1');
+  connectNeon('#initiate-neon-sc3',   (s) => s.initiate[2] == '1');
+  connectNeon('#initiate-neon-sc4',   (s) => s.initiate[3] == '1');
+  connectNeon('#initiate-neon-sc5',   (s) => s.initiate[4] == '1');
+  connectNeon('#initiate-neon-sc6',   (s) => s.initiate[5] == '1');
+  connectNeon('#initiate-neon-rs',    (s) => s.initiate[6] == '1');
+  connectNeon('#initiate-neon-ps',    (s) => s.initiate[7] == '1');
+  connectNeon('#initiate-neon-rf',    (s) => s.initiate[8] == '1');
+  connectNeon('#initiate-neon-ri',    (s) => s.initiate[9] == '1');
+  connectNeon('#initiate-neon-rsync', (s) => s.initiate[10] == '1');
+  connectNeon('#initiate-neon-pf',    (s) => s.initiate[11] == '1');
+  connectNeon('#initiate-neon-psync', (s) => s.initiate[12] == '1');
+  connectNeon('#initiate-neon-ip',    (s) => s.initiate[13] == '1');
+  connectNeon('#initiate-neon-isync', (s) => s.initiate[14] == '1');
 }
 
 function connectCyclingElements() {
   makePanelSelectable('#cycling-top');
   for (let i = 1; i <= 20; i++) {
     connectNeon(`#cycling-neon-r${i}`, ((i) => {
-      return (s) => parseInt(s.cycling, 10)/2 == i-1 ? '1' : '0'
+      return (s) => s.pulse == i-1;
     })(i));
   }
-  connectNeon('#cycling-neon-10p', () => '0')
-  connectNeon('#cycling-neon-ccg', () => '0')
+  connectNeon('#cycling-neon-10p', () => false);
+  connectNeon('#cycling-neon-ccg', () => false);
 
   makePanelSelectable('#cycling-panel');
   connectToggleSwitch('#cycling-heater-toggle');
@@ -316,9 +312,28 @@ function connectCyclingElements() {
 
 function connectMPElements(panelNumber) {
   const prefix = `mp${panelNumber}`;
+  const steppers = panelNumber == 1 ? 'abcde' : 'fghjk';
+  const startDecade = panelNumber == 1 ? 20 : 10;
+  const baseStepper = panelNumber == 1 ? 0 : 5;
+
+  makePanelSelectable(`#${prefix}-top`);
+  for (let decade = startDecade; decade > startDecade - 10; decade--) {
+    for (let value = 9; value >= 0; value--) {
+      connectNeon(`#${prefix}-neon-d${decade}v${value}`, ((d, v) => {
+        return (s) => s.mp.decade[20-d] == v;
+      })(decade, value));
+    }
+  }
+  for (let i = 0; i < steppers.length; i++) {
+    for (let value = 6; value >= 1; value--) {
+      connectNeon(`#${prefix}-neon-s${steppers[i]}${value}`, ((i, v) => {
+        return (s) => s.mp.stage[i] == v;
+      })(baseStepper + i, value));
+    }
+  }
+
   makePanelSelectable(`#${prefix}-panel`);
   connectToggleSwitch(`#${prefix}-heater-toggle`);
-  const steppers = panelNumber == 1 ? 'abcde' : 'fghjk';
   for (let i = 0; i < steppers.length - 1; i++) {
     const [s1, s2] = [steppers[i], steppers[i+1]];
     connectRotarySwitch(`#${prefix}-assoc-${s1}${s2}`, [
@@ -338,7 +353,6 @@ function connectMPElements(panelNumber) {
     {value: '8', degrees: 55},
     {value: '9', degrees: 85},
   ];
-  const startDecade = panelNumber == 1 ? 20 : 10;
   for (let decade = startDecade; decade > startDecade - 10; decade--) {
     for (let digit = 1; digit <= 6; digit++) {
       connectRotarySwitch(`#${prefix}-d${decade}s${digit}`, decadeSettings);
@@ -355,10 +369,37 @@ function connectMPElements(panelNumber) {
   for (const s of steppers) {
     connectRotarySwitch(`#${prefix}-c${s}`, clearSettings);
   }
+
+  makePanelSelectable(`#${prefix}-bottom`);
+  for (let i = 0; i < steppers.length; i++) {
+    connectNeon(`#${prefix}-neon-${steppers[i]}in`, ((i) => {
+      return (s) => s.mp.inff[i] > 0;
+    })(baseStepper + i));
+  }
 }
 
 function connectFT1Elements(ftNumber) {
   const unit = `#ft${ftNumber}-1`;
+  makePanelSelectable(`${unit} .top-panel`);
+  for (let d = 0; d <= 9; d++) {
+    connectNeon(`${unit} .arg-x${d}`, ((d) => {
+      return (s) => (s.ft[ftNumber-1].arg%10) == d;
+    })(d));
+  }
+  for (let d = 0; d <= 10; d++) {
+    connectNeon(`${unit} .arg-${d}x`, ((d) => {
+      return (s) => ~~(s.ft[ftNumber-1].arg/10) == d;
+    })(d));
+  }
+  connectNeon(`${unit} .arg-setup`, (s) => s.ft[ftNumber-1].argSetup);
+  connectNeon(`${unit} .add`, (s) => s.ft[ftNumber-1].add);
+  connectNeon(`${unit} .subtract`, (s) => s.ft[ftNumber-1].subtract);
+  for (let i = 0; i <= 12; i++) {
+    connectNeon(`${unit} .ring${i}`, ((i) => {
+      return (s) => s.ft[ftNumber-1].ring == i;
+    })(i));
+  }
+
   makePanelSelectable(`${unit} .front-panel`);
   connectToggleSwitch(`${unit} .heater-toggle`);
   const opSettings = [
@@ -393,6 +434,13 @@ function connectFT1Elements(ftNumber) {
     connectRotarySwitch(`${unit} .op${i}`, opSettings);
     connectRotarySwitch(`${unit} .cl${i}`, clearSettings);
     connectRotarySwitch(`${unit} .rp${i}`, repeatSettings);
+  }
+
+  makePanelSelectable(`${unit} .bottom-panel`);
+  for (let p = 0; p <= 10; p++) {
+    connectNeon(`${unit} .inff${p}`, ((p) => {
+      return (s) => s.ft[ftNumber-1].inff[p];
+    })(p));
   }
 }
 
@@ -443,6 +491,20 @@ function connectFT2Elements(ftNumber) {
 
 function connectAccumulatorElements(accNumber) {
   const unit = `#accumulator-${accNumber}`;
+  makePanelSelectable(`${unit} .top-panel`);
+  connectNeon(`${unit} .neon-p`, (s) => !s.acc[accNumber-1].sign);
+  connectNeon(`${unit} .neon-m`, (s) => s.acc[accNumber-1].sign);
+  for (let decade = 10; decade >= 1; decade--) {
+    connectNeon(`${unit} .d${decade}`, ((d) => {
+      return (s) => s.acc[accNumber-1].decff[d-1];
+    })(accNumber, decade));
+    for (let value = 0; value <= 9; value++) {
+      connectNeon(`${unit} .d${decade}v${value}`, ((d, v) => {
+        return (s) => s.acc[accNumber-1].decade[d-1] == v;
+      })(decade, value));
+    }
+  }
+
   makePanelSelectable(`${unit} .front-panel`);
   connectToggleSwitch(`${unit} .heater-toggle`);
   connectRotarySwitch(`${unit} .sf`, [
@@ -492,9 +554,58 @@ function connectAccumulatorElements(accNumber) {
       {value: '9', degrees: 60},
     ]);
   }
+
+  makePanelSelectable(`${unit} .bottom-panel`);
+  for (let i = 1; i <= 12; i++) {
+    connectNeon(`${unit} .p${i}`, ((i) => {
+      return (s) => s.acc[accNumber-1].program[i-1];
+    })(i));
+  }
+  for (let i = 1; i <= 9; i++) {
+    connectNeon(`${unit} .rep${i}`, ((v) => {
+      return (s) => s.acc[accNumber-1].repeat == v;
+    })(i));
+  }
 }
 
 function connectDividerElements() {
+  makePanelSelectable('#div-top');
+  connectNeon('#div-divff',    (s) => s.div.ffs[0] == '1');
+  connectNeon('#div-clrff',    (s) => s.div.ffs[1] == '1');
+  connectNeon('#div-coinff',   (s) => s.div.ffs[2] == '1');
+  connectNeon('#div-dpgamma',  (s) => s.div.ffs[3] == '1');
+  connectNeon('#div-ngamma',   (s) => s.div.ffs[4] == '1');
+  connectNeon('#div-psrcff',   (s) => s.div.ffs[5] == '1');
+  connectNeon('#div-pringff',  (s) => s.div.ffs[6] == '1');
+  connectNeon('#div-denomff',  (s) => s.div.ffs[7] == '1');
+  connectNeon('#div-numrplus', (s) => s.div.ffs[8] == '1');
+  connectNeon('#div-numrmin',  (s) => s.div.ffs[9] == '1');
+  connectNeon('#div-qalpha',   (s) => s.div.ffs[10] == '1');
+  connectNeon('#div-sac',      (s) => s.div.ffs[11] == '1');
+  connectNeon('#div-m2',       (s) => s.div.ffs[12] == '1');
+  connectNeon('#div-m1',       (s) => s.div.ffs[13] == '1');
+  connectNeon('#div-nac',      (s) => s.div.ffs[14] == '1');
+  connectNeon('#div-da',       (s) => s.div.ffs[15] == '1');
+  connectNeon('#div-nalpha',   (s) => s.div.ffs[16] == '1');
+  connectNeon('#div-dalpha',   (s) => s.div.ffs[17] == '1');
+  connectNeon('#div-dgamma',   (s) => s.div.ffs[18] == '1');
+  connectNeon('#div-npgamma',  (s) => s.div.ffs[19] == '1');
+  connectNeon('#div-p2',       (s) => s.div.ffs[20] == '1');
+  connectNeon('#div-p1',       (s) => s.div.ffs[21] == '1');
+  connectNeon('#div-salpha',   (s) => s.div.ffs[22] == '1');
+  connectNeon('#div-ds',       (s) => s.div.ffs[23] == '1');
+  connectNeon('#div-nbeta',    (s) => s.div.ffs[24] == '1');
+  connectNeon('#div-dbeta',    (s) => s.div.ffs[25] == '1');
+  connectNeon('#div-ans1',     (s) => s.div.ffs[26] == '1');
+  connectNeon('#div-ans2',     (s) => s.div.ffs[27] == '1');
+  connectNeon('#div-ans3',     (s) => s.div.ffs[28] == '1');
+  connectNeon('#div-ans4',     (s) => s.div.ffs[29] == '1');
+  for (let i = 1; i <= 10; i++) {
+    connectNeon(`#div-pring${i}`, ((i) => {
+      return (s) => s.div.placeRing == i - 1;
+    })(i));
+  }
+
   makePanelSelectable('#div-front-panel');
   connectToggleSwitch('#div-heater-toggle');
   for (let i = 1; i <= 8; i++) {
@@ -544,10 +655,33 @@ function connectDividerElements() {
       {value: 'NI', degrees: -30},
     ]);
   }
+
+  makePanelSelectable('#div-bottom');
+  for (let i = 1; i <= 8; i++) {
+    connectNeon(`#div-prog${i}`, ((i) => {
+      return (s) => s.div.program[i-1];
+    })(i));
+  }
+  for (let i = 0; i < 9; i++) {
+    connectNeon(`#div-progring${i}`, ((i) => {
+      return (s) => s.div.progRing == i;
+    })(i));
+  }
 }
 
 function connectMultiplierElements(panelNumber) {
   const prefix = `mult${panelNumber}`;
+  if (panelNumber == 1) {
+    connectNeon('#mult1-reset', (s) => s.mult.reset1);
+  } else if (panelNumber == 2) {
+    for (let i = 1; i <= 14; i++) {
+      connectNeon(`#mult2-stage${i}`, ((i) => {
+        return (s) => s.mult.stage == i-1;
+      })(i));
+    }
+  } else if (panelNumber == 3) {
+    connectNeon('#mult3-reset', (s) => s.mult.reset3);
+  }
   makePanelSelectable(`#${prefix}-front-panel`);
   connectToggleSwitch(`#${prefix}-heater-toggle`);
   const startDigit = [1, 9, 17][panelNumber - 1];
@@ -600,6 +734,96 @@ function connectMultiplierElements(panelNumber) {
       {value: 'SC', degrees: 0},
       {value: 'ASC', degrees: 30},
     ]);
+    connectNeon(`#${prefix}-prog${i}`, ((i) => {
+      return (s) => s.mult.program[i-1];
+    })(i));
+  }
+}
+
+function connectCT1Elements() {
+  makePanelSelectable('#ct1-top');
+  makePanelSelectable('#ct1-front-panel');
+  makePanelSelectable('#ct1-bottom');
+  for (let i = 1; i <= 30; i++) {
+    connectNeon(`#ct1-prog${i}`, ((i) => {
+      return (s) => s.constant[i-1] == '1';
+    })(i));
+  }
+  
+  connectToggleSwitch('#ct1-heater-toggle');
+  const constantNames = 'abcdefghjk';
+  for (let i = 1; i <= 30; i++) {
+    const k = ~~((i - 1) / 6) * 2;
+    const [c1, c2] = [constantNames[k], constantNames[k+1]];
+    connectRotarySwitch(`#ct1-s${i}`, [
+      {value: `${c1}l`, degrees: -120},
+      {value: `${c1}r`, degrees: -90},
+      {value: `${c1}lr`, degrees: -60},
+      {value: `${c2}l`, degrees: -20},
+      {value: `${c2}r`, degrees: 0},
+      {value: `${c2}lr`, degrees: 25},
+    ]);
+  }
+}
+
+function connectCT2Elements() {
+  makePanelSelectable('#ct2-front-panel');
+  connectToggleSwitch('#ct2-heater-toggle');
+  const pmSettings = [
+    {value: 'P', degrees: 0},
+    {value: 'M', degrees: -60},
+  ];
+  connectRotarySwitch('#ct2-jl', pmSettings);
+  connectRotarySwitch('#ct2-jr', pmSettings);
+  connectRotarySwitch('#ct2-kl', pmSettings);
+  connectRotarySwitch('#ct2-kr', pmSettings);
+  const digitSettings = [
+    {value: '0', degrees: -175},
+    {value: '1', degrees: -150},
+    {value: '2', degrees: -120},
+    {value: '3', degrees: -90},
+    {value: '4', degrees: -60},
+    {value: '5', degrees: -30},
+    {value: '6', degrees: 0},
+    {value: '7', degrees: 25},
+    {value: '8', degrees: 55},
+    {value: '9', degrees: 85},
+  ];
+  for (let i = 1; i <= 10; i++) {
+    connectRotarySwitch(`#ct2-j${i}`, digitSettings);
+    connectRotarySwitch(`#ct2-k${i}`, digitSettings);
+  }
+}
+
+function connectPR1Elements() {
+  makePanelSelectable('#pr1-front-panel');
+  for (let i = 1; i <= 8; i++) {
+    connectRotarySwitch(`#pr1-${i}-${i+1}`, [
+      {value: '0', degrees: -60},
+      {value: 'C', degrees: 0},
+    ]);
+  }
+}
+
+function connectPR2Elements() {
+  makePanelSelectable('#pr2-front-panel');
+  connectToggleSwitch('#pr2-heater-toggle');
+  for (let i = 1; i <= 16; i++) {
+    connectRotarySwitch(`#pr2-${i}`, [
+      {value: '0', degrees: -60},
+      {value: 'p', degrees: 0},
+    ]);
+  }
+}
+
+function connectPR3Elements() {
+  makePanelSelectable('#pr3-front-panel');
+  for (let i = 9; i <= 16; i++) {
+    const n = i == 16 ? 1 : i + 1;
+    connectRotarySwitch(`#pr3-${i}-${n}`, [
+      {value: '0', degrees: -60},
+      {value: 'C', degrees: 0},
+    ]);
   }
 }
 
@@ -613,14 +837,25 @@ window.onload = (event) => {
   connectCyclingElements();
   connectMPElements(1);
   connectMPElements(2);
-  connectFT1Elements(1);
-  connectFT2Elements(1);
-  connectAccumulatorElements(1);
-  connectAccumulatorElements(2);
+  for (let i = 1; i <= 3; i++) {
+    connectFT1Elements(i);
+    connectFT2Elements(i);
+  }
+  for (let i = 1; i <= 20; i++) {
+    connectAccumulatorElements(i);
+  }
   connectDividerElements();
   connectMultiplierElements(1);
   connectMultiplierElements(2);
   connectMultiplierElements(3);
+  connectCT1Elements();
+  connectCT2Elements();
+  makePanelSelectable('#ct3-front-panel');
+  connectPR1Elements();
+  connectPR2Elements();
+  connectPR3Elements();
+
+  requestAnimationFrame(step);
 
   // for finding rotary switch settings
   const angle = document.querySelector('.angle');

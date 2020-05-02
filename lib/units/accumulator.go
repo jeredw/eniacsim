@@ -1,6 +1,7 @@
 package units
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"sync"
@@ -150,6 +151,32 @@ func (u *Accumulator) Stat() string {
 		s += ToBin(f)
 	}
 	return s
+}
+
+type accJson struct {
+	Sign    bool     `json:"sign"`
+	Decade  [10]int  `json:"decade"`
+	Decff   [10]bool `json:"decff"`
+	Repeat  int      `json:"repeat"`
+	Program [12]bool `json:"program"`
+}
+
+func (u *Accumulator) State() json.RawMessage {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	digits := [10]int{}
+	for i := range u.val {
+		digits[i] = int(u.val[i])
+	}
+	s := accJson{
+		Sign:    u.sign,
+		Decade:  digits,
+		Decff:   u.decff,
+		Repeat:  u.rep,
+		Program: u.inff1,
+	}
+	result, _ := json.Marshal(s)
+	return result
 }
 
 func (u *Accumulator) Reset() {

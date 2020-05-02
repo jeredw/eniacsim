@@ -1,6 +1,7 @@
 package units
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"sync"
@@ -125,6 +126,26 @@ func (u *Multiplier) Stat() string {
 		s += " 0"
 	}
 	return s
+}
+
+type multJson struct {
+	Reset1  bool     `json:"reset1"`
+	Reset3  bool     `json:"reset3"`
+	Stage   int      `json:"stage"`
+	Program [24]bool `json:"program"`
+}
+
+func (u *Multiplier) State() json.RawMessage {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	s := multJson{
+		Reset1:  u.reset1ff,
+		Reset3:  u.reset3ff,
+		Stage:   u.stage,
+		Program: u.multff,
+	}
+	result, _ := json.Marshal(s)
+	return result
 }
 
 func (u *Multiplier) Reset() {

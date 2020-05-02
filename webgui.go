@@ -14,6 +14,10 @@ func webGui() {
 	http.HandleFunc("/webgui.js", serveFile("webgui.js"))
 	http.HandleFunc("/webgui.css", serveFile("webgui.css"))
 	http.HandleFunc("/eniac.svg", serveFile("eniac.svg"))
+	http.HandleFunc("/initiate.svg", serveFile("initiate.svg"))
+	http.HandleFunc("/cycling.svg", serveFile("cycling.svg"))
+	http.HandleFunc("/mp-1.svg", serveFile("mp-1.svg"))
+	http.HandleFunc("/mp-2.svg", serveFile("mp-2.svg"))
 	http.HandleFunc("/events", streamEvents)
 	http.HandleFunc("/button", pushButton)
 	http.ListenAndServe(":8000", nil)
@@ -53,10 +57,21 @@ func streamEvents(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
-	status := make(map[string]string)
+	status := make(map[string]json.RawMessage)
 	for {
-		status["initiate"] = initiate.Stat()
-		status["cycling"] = cycle.Stat()
+		status["initiate"], _ = json.Marshal(initiate.Stat())
+		status["cycling"], _ = json.Marshal(cycle.Stat())
+		status["mp"] = mp.State()
+		ftState := []json.RawMessage{ft[0].State(), ft[1].State(), ft[2].State()}
+		status["ft"], _ = json.Marshal(ftState)
+		accState := [20]json.RawMessage{}
+		for i := range accumulator {
+			accState[i] = accumulator[i].State()
+		}
+		status["acc"], _ = json.Marshal(accState)
+		status["div"] = divsr.State()
+		status["mult"] = multiplier.State()
+		status["constant"], _ = json.Marshal(constant.Stat())
 		message, _ := json.Marshal(status)
 		fmt.Fprintf(w, "data: %s\n\n", message)
 		time.Sleep(100 * time.Millisecond)

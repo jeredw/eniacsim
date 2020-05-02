@@ -20,6 +20,7 @@ body {
 }
 
 .angle-value {
+  display: none;
   position: fixed;
   bottom: 50px;
   color: #fff;
@@ -28,6 +29,7 @@ body {
 }
 
 .angle {
+  display: none;
   position: fixed;
   bottom: 0;
   -webkit-appearance: none;

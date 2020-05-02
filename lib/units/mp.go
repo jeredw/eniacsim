@@ -1,6 +1,7 @@
 package units
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -99,6 +100,29 @@ func (u *Mp) Stat() string {
 		}
 	}
 	return s
+}
+
+type mpJson struct {
+	Stage  [10]int `json:"stage"`  // A-K
+	Inff   [10]int `json:"inff"`   // A-K
+	Decade [20]int `json:"decade"` // 20 downto 1
+}
+
+func (u *Mp) State() json.RawMessage {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	s := mpJson{}
+	for i := range u.stepper {
+		s.Stage[i] = u.stepper[i].stage
+	}
+	for i := range u.decade {
+		s.Decade[i] = u.decade[i].val
+	}
+	for i := range u.stepper {
+		s.Inff[i] = u.stepper[i].inff
+	}
+	result, _ := json.Marshal(s)
+	return result
 }
 
 func (u *Mp) Reset() {
