@@ -258,6 +258,23 @@ func (u *Cycle) ackButtons() {
 	}
 }
 
+func (u *Cycle) GetSwitch(name string) (string, error) {
+  u.control.mu.Lock()
+  defer u.control.mu.Unlock()
+  if name == "op" {
+    switch u.control.newMode {
+    case OnePulse:
+      return "1p", nil
+    case OneAdd:
+      return "1a", nil
+    case Continuous:
+      return "co", nil
+    }
+    return "?", nil
+  }
+  return "?", fmt.Errorf("unknown switch %s", name)
+}
+
 func parseOp(x [2]string, defaultValue int) int {
 	switch x[0] {
 	case "op":

@@ -386,15 +386,6 @@ func doGetSwitch(command string, f []string) {
 	}
 	p := strings.Split(f[1], ".")
 	switch {
-	case p[0] == "ad":
-		if len(p) != 3 {
-			fmt.Println("Invalid adapter switch:", command)
-			return
-		}
-		err := adapters.Switch(p[1], p[2], f[2])
-		if err != nil {
-			fmt.Printf("Adapter: %s\n", err)
-		}
 	case p[0][0] == 'a':
 		if len(p) != 2 {
 			fmt.Println("Invalid accumulator switch:", command)
@@ -424,10 +415,15 @@ func doGetSwitch(command string, f []string) {
 		}
 	case p[0] == "cy":
 		if len(p) != 2 {
-			fmt.Println("Cycling switch syntax: s cy.switch value")
+			fmt.Println("Cycling switch syntax: s? cy.switch")
 			return
 		}
-		cycle.Io.Switches <- [2]string{p[1], f[2]}
+		value, err := cycle.GetSwitch(p[1])
+		if err != nil {
+			fmt.Printf("error: %s\n", err)
+		} else {
+			fmt.Printf("%s\n", value)
+		}
 	case p[0] == "d" || p[0] == "ds":
 		if len(p) != 2 {
 			fmt.Println("Divider switch syntax: s d.switch value")
