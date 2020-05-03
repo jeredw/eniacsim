@@ -84,12 +84,6 @@ function connectRotarySwitch(selector, simulatorName, settings, onChange=undefin
   let index = settings.findIndex(s => s.degrees == 0);
   const update = (newIndex) => {
     index = newIndex;
-    if (index >= settings.length) {
-      index = 0;
-    }
-    if (index < 0) {
-      index = settings.length - 1;
-    }
     const newValue = settings[index].value;
     if (onChange) {
       onChange(newValue);
@@ -103,8 +97,15 @@ function connectRotarySwitch(selector, simulatorName, settings, onChange=undefin
   rotary.addEventListener('click', (event) => {
     event.stopPropagation();
     const delta = event.shiftKey ? -1 : 1;
-    update(index + delta);
-    // TODO: tell simulator
+    let newIndex = index + delta;
+    if (newIndex >= settings.length) {
+      newIndex = 0;
+    }
+    if (newIndex < 0) {
+      newIndex = settings.length - 1;
+    }
+    update(newIndex);
+    runCommands([`s ${simulatorName} ${settings[newIndex].value}`]);
   });
   if (simulatorName) {
     simulatorSwitches[simulatorName] = (value) => {
