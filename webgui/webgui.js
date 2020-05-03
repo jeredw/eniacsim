@@ -41,18 +41,17 @@ function extractState({unit,
     (s) => s[unit][unitIndex][field][fieldIndex] == eqValue;
 }
 
-function connectNeon(selector, isTurnedOn) {
-  const neon = eniac.querySelector(selector);
+function connectNeon(element, isTurnedOn) {
   const onColor = '#ffd43a';
   const offColor = '#574400';
-  neon.style.contain = 'layout paint';
-  neon.style.fill = offColor;
+  element.style.contain = 'layout paint';
+  element.style.fill = offColor;
   neons.push((s) => {
-    neon.style.fill = isTurnedOn(s) ? onColor : offColor;
+    element.style.fill = isTurnedOn(s) ? onColor : offColor;
   });
 }
 
-function addStylesToSvg(doc) {
+function disableTextSelection(doc) {
   let style = document.createElement('style');
   doc.documentElement.appendChild(style);
   style.sheet.insertRule('svg text { user-select: none; }');
@@ -60,26 +59,33 @@ function addStylesToSvg(doc) {
 
 let adjustRotary = null;
 
-function connectRotarySwitch(selector, simulatorName, settings, onChange=undefined) {
-  const rotary = eniac.querySelector(selector);
-  const svg = rotary.ownerSVGElement;
-  rotary.style.contain = 'layout paint';
+function connectRotarySwitch(element, simulatorName, settings, onChange=undefined) {
+  const svg = element.ownerSVGElement;
+  element.style.contain = 'layout paint';
   let rotation = svg.createSVGTransform();
   let [cx, cy] = [0, 0];
-  if (!rotary.classList.contains('knub')) {
-    const wiper = rotary.querySelector('path');
+  if (element.classList.contains('cy-mode-toggle')) {
+    const base = element.querySelector('circle');
+    const box = base.getBBox();
+    [cx, cy] = [box.x + box.width / 2, box.y + box.height / 2];
+    rotation.setRotate(0, cx, cy);
+    const stick = element.querySelector('g');
+    stick.transform.baseVal.appendItem(rotation);
+    stick.style.transition = 'transform 100ms linear';
+  } else if (!element.classList.contains('knub')) {
+    const wiper = element.querySelector('path');
     const box = wiper.getBBox();
     [cx, cy] = [box.x + box.width / 2, box.y + box.height / 2];
     rotation.setRotate(0, cx, cy);
     wiper.transform.baseVal.appendItem(rotation);
     wiper.style.transition = 'transform 100ms linear';
   } else {
-    const base = rotary.querySelector('circle');
+    const base = element.querySelector('circle');
     const box = base.getBBox();
     [cx, cy] = [box.x + box.width / 2, box.y + box.height / 2];
     rotation.setRotate(0, cx, cy);
-    rotary.transform.baseVal.appendItem(rotation);
-    rotary.style.transition = 'transform 100ms linear';
+    element.transform.baseVal.appendItem(rotation);
+    element.style.transition = 'transform 100ms linear';
   }
   let index = settings.findIndex(s => s.degrees == 0);
   const update = (newIndex) => {
@@ -94,7 +100,7 @@ function connectRotarySwitch(selector, simulatorName, settings, onChange=undefin
       rotation.setRotate(degrees, cx, cy);
     };
   };
-  rotary.addEventListener('click', (event) => {
+  element.addEventListener('click', (event) => {
     event.stopPropagation();
     const delta = event.shiftKey ? -1 : 1;
     let newIndex = index + delta;
@@ -108,7 +114,9 @@ function connectRotarySwitch(selector, simulatorName, settings, onChange=undefin
     runCommands([`s ${simulatorName} ${settings[newIndex].value}`]);
   });
   if (simulatorName) {
+    let chain = simulatorSwitches[simulatorName];
     simulatorSwitches[simulatorName] = (value) => {
+      if (chain) chain(value);
       const newIndex = settings.findIndex(s => s.value == value);
       if (newIndex != -1) {
         update(newIndex);
@@ -117,14 +125,13 @@ function connectRotarySwitch(selector, simulatorName, settings, onChange=undefin
   }
 }
 
-function connectToggleSwitch(selector) {
-  const toggle = eniac.querySelector(selector);
-  const svg = toggle.ownerSVGElement;
-  const switchBody = toggle.querySelector('g');
-  const base = toggle.querySelector('circle');
+function connectToggleSwitch(element, simulatorName) {
+  const svg = element.ownerSVGElement;
+  const switchBody = element.querySelector('g');
+  const base = element.querySelector('circle');
   const box = base.getBBox();
   const [cx, cy] = [box.x + box.width / 2, box.y + box.height / 2];
-  toggle.style.contain = 'layout paint';
+  element.style.contain = 'layout paint';
   switchBody.style.transition = 'transform 100ms linear';
   let translate = svg.createSVGTransform();
   let untranslate = svg.createSVGTransform();
@@ -135,23 +142,22 @@ function connectToggleSwitch(selector) {
   switchBody.transform.baseVal.appendItem(translate);
   switchBody.transform.baseVal.appendItem(scale);
   switchBody.transform.baseVal.appendItem(untranslate);
-  toggle.dataset.value = 'on';
-  toggle.addEventListener('click', (event) => {
+  let value = 'on';
+  element.addEventListener('click', (event) => {
     event.stopPropagation();
-    if (toggle.dataset.value == 'on') {
-      toggle.dataset.value = 'off';
+    if (value == 'on') {
+      value = 'off';
       scale.setScale(-1.0, 1.0);
     } else {
-      toggle.dataset.value = 'on';
+      value = 'on';
       scale.setScale(1.0, 1.0);
     }
   });
 }
 
-function connectButton(selector, simulatorName) {
-  const button = eniac.querySelector(selector);
-  const svg = button.ownerSVGElement;
-  const box = button.getBBox();
+function connectButton(element, simulatorName) {
+  const svg = element.ownerSVGElement;
+  const box = element.getBBox();
   const [cx, cy] = [box.x + box.width / 2, box.y + box.height / 2];
   let translate = svg.createSVGTransform();
   let untranslate = svg.createSVGTransform();
@@ -159,18 +165,15 @@ function connectButton(selector, simulatorName) {
   translate.setTranslate(cx, cy);
   scale.setScale(1.0, 1.0);
   untranslate.setTranslate(-cx, -cy);
-  button.transform.baseVal.appendItem(translate);
-  button.transform.baseVal.appendItem(scale);
-  button.transform.baseVal.appendItem(untranslate);
-  button.dataset.value = 'off';
-  button.addEventListener('mousedown', (event) => {
+  element.transform.baseVal.appendItem(translate);
+  element.transform.baseVal.appendItem(scale);
+  element.transform.baseVal.appendItem(untranslate);
+  element.addEventListener('mousedown', (event) => {
     event.stopPropagation();
-    button.dataset.value = 'on';
     scale.setScale(0.8, 0.8);
   });
-  button.addEventListener('mouseup', (event) => {
+  element.addEventListener('mouseup', (event) => {
     event.stopPropagation();
-    button.dataset.value = 'off';
     scale.setScale(1.0, 1.0);
     if (simulatorName) {
       runCommands([`b ${simulatorName}`]);
@@ -212,7 +215,8 @@ function connectInitiateElements() {
     }
     rotateNeedle1(Math.random() * 73);
   };
-  connectRotarySwitch('#initiate-dcv1', '', [
+  const dcv1 = eniac.querySelector('#initiate-dcv1');
+  connectRotarySwitch(dcv1, '', [
     {value: 'A', degrees: -150},
     {value: 'B', degrees: -110},
     {value: 'C', degrees: -80},
@@ -222,7 +226,8 @@ function connectInitiateElements() {
     {value: 'G', degrees: 20},
     {value: 'H', degrees: 54},
   ], showRandomTrace);
-  connectRotarySwitch('#initiate-dcv2', '', [
+  const dcv2 = eniac.querySelector('#initiate-dcv2');
+  connectRotarySwitch(dcv2, '', [
     {value: '1', degrees: -185},
     {value: '2', degrees: -152},
     {value: '3', degrees: -116},
@@ -236,7 +241,8 @@ function connectInitiateElements() {
     {value: '11', degrees: 117},
   ], showRandomTrace);
   const rotateNeedle2 = makeNeedleRotateable('#initiate-vm2-needle');
-  connectRotarySwitch('#initiate-acv', '', [
+  const acv = eniac.querySelector('#initiate-acv');
+  connectRotarySwitch(acv, '', [
     {value: 'VAB', degrees: -115},
     {value: 'VBC', degrees: -61},
     {value: 'VCA', degrees: 0},
@@ -251,7 +257,8 @@ function connectCyclingElements() {
       trace.style.visibility = trace == selected ? '' : 'hidden';
     }
   };
-  connectRotarySwitch('#cycling-osc', '', [
+  const osc = eniac.querySelector('#cycling-osc');
+  connectRotarySwitch(osc, '', [
     {value: 'ext', degrees: -205},
     {value: 'cpp', degrees: -180},
     {value: '10p', degrees: -150},
@@ -269,15 +276,16 @@ function connectCyclingElements() {
 
 function configureSwitches(config) {
   for (const [selector, s] of Object.entries(config)) {
+    const element = eniac.querySelector(selector);
     switch (s.type) {
     case 'rotary':
-      connectRotarySwitch(selector, s.simulatorName, s.settings);
+      connectRotarySwitch(element, s.simulatorName, s.settings);
       break;
     case 'toggle':
-      connectToggleSwitch(selector);
+      connectToggleSwitch(element);
       break;
     case 'button':
-      connectButton(selector, s.simulatorName);
+      connectButton(element, s.simulatorName);
       break;
     }
   }
@@ -285,7 +293,8 @@ function configureSwitches(config) {
 
 function configureNeons(config) {
   for (const [selector, predicate] of Object.entries(config)) {
-    connectNeon(selector, extractState(predicate));
+    const neon = eniac.querySelector(selector);
+    connectNeon(neon, extractState(predicate));
   }
 }
 
@@ -336,13 +345,29 @@ async function setSwitchesToSimulatorValues() {
   }
 }
 
+function connectController() {
+  const wrapper = document.querySelector('#pcs');
+  const doc = wrapper.contentDocument;
+  disableTextSelection(doc);
+  connectRotarySwitch(doc.querySelector('#cy-mode-toggle'), 'cy.op', [
+    {value: '1a', degrees: 0},
+    {value: '1p', degrees: 90},
+    {value: 'co', degrees: 180},
+  ]);
+  connectButton(doc.querySelector('#initial-clear'), 'c');
+  connectButton(doc.querySelector('#reader-start'), 'r');
+  connectButton(doc.querySelector('#initial-pulse'), 'i');
+  connectButton(doc.querySelector('#single-step'), 'p');
+}
+
 window.onload = (event) => {
   const wrapper = document.querySelector('#eniac');
   const wrapperDoc = wrapper.contentDocument;
-  addStylesToSvg(wrapperDoc);
+  disableTextSelection(wrapperDoc);
   eniac = wrapperDoc.querySelector('#eniac');
   defaultViewBox = eniac.getAttribute('viewBox');
 
+  connectController();
   fetchConfig('switches.json')
     .then(configureSwitches)
     .then(setSwitchesToSimulatorValues);

@@ -19,6 +19,13 @@ body {
   cursor: default;
 }
 
+.pcs {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  height: 40vh;
+}
+
 .angle-value {
   display: none;
   position: fixed;
