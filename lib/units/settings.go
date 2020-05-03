@@ -266,3 +266,17 @@ func prodSettings() []IntSwitchSetting {
 		{"ASC", 6},
 	}
 }
+
+func printSettings() []BoolSwitchSetting {
+	return []BoolSwitchSetting{
+		{"P", true}, {"p", true},
+		{"0", false},
+	}
+}
+
+func couplingSettings() []BoolSwitchSetting {
+	return []BoolSwitchSetting{
+		{"C", true}, {"c", true},
+		{"0", false},
+	}
+}

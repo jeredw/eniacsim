@@ -398,7 +398,7 @@ func doGetSwitch(command string, f []string) {
 		}
 		value, err := accumulator[unit-1].GetSwitch(p[1])
 		if err != nil {
-			fmt.Printf("error: %s\n", err)
+			fmt.Printf("Accumulator %d: %s\n", unit, err)
 		} else {
 			fmt.Printf("%s\n", value)
 		}
@@ -409,7 +409,7 @@ func doGetSwitch(command string, f []string) {
 		}
 		value, err := constant.GetSwitch(p[1])
 		if err != nil {
-			fmt.Printf("error: %s\n", err)
+			fmt.Printf("Constant: %s\n", err)
 		} else {
 			fmt.Printf("%s\n", value)
 		}
@@ -420,7 +420,7 @@ func doGetSwitch(command string, f []string) {
 		}
 		value, err := cycle.GetSwitch(p[1])
 		if err != nil {
-			fmt.Printf("error: %s\n", err)
+			fmt.Printf("Cycling: %s\n", err)
 		} else {
 			fmt.Printf("%s\n", value)
 		}
@@ -431,7 +431,7 @@ func doGetSwitch(command string, f []string) {
 		}
 		value, err := divsr.GetSwitch(p[1])
 		if err != nil {
-			fmt.Printf("error: %s\n", err)
+			fmt.Printf("Divider: %s\n", err)
 		} else {
 			fmt.Printf("%s\n", value)
 		}
@@ -447,7 +447,7 @@ func doGetSwitch(command string, f []string) {
 		}
 		value, err := ft[unit-1].GetSwitch(p[1])
 		if err != nil {
-			fmt.Printf("error: %s\n", err)
+			fmt.Printf("Function table %d: %s\n", unit, err)
 		} else {
 			fmt.Printf("%s\n", value)
 		}
@@ -469,18 +469,20 @@ func doGetSwitch(command string, f []string) {
 		}
 		value, err := mp.GetSwitch(p[1])
 		if err != nil {
-			fmt.Printf("error: %s\n", err)
+			fmt.Printf("Programmer: %s\n", err)
 		} else {
 			fmt.Printf("%s\n", value)
 		}
 	case p[0] == "pr":
 		if len(p) != 2 {
-			fmt.Println("Printer switch syntax: s pr.switch value")
+			fmt.Println("Printer switch syntax: s? pr.switch")
 			return
 		}
-		err := printer.Switch(p[1], f[2])
+		value, err := printer.GetSwitch(p[1])
 		if err != nil {
 			fmt.Printf("Printer: %s\n", err)
+		} else {
+			fmt.Printf("%s\n", value)
 		}
 	default:
 		fmt.Printf("unknown unit for switch: %s\n", p[0])
@@ -578,7 +580,7 @@ func doSetSwitch(command string, f []string) {
 			fmt.Println("Printer switch syntax: s pr.switch value")
 			return
 		}
-		err := printer.Switch(p[1], f[2])
+		err := printer.SetSwitch(p[1], f[2])
 		if err != nil {
 			fmt.Printf("Printer: %s\n", err)
 		}

@@ -2,6 +2,7 @@ package units
 
 import (
 	"fmt"
+	. "github.com/jeredw/eniacsim/lib"
 	"strconv"
 	"strings"
 	"sync"
@@ -147,46 +148,49 @@ func toIBMCard(sign byte, digits string) string {
 	}
 }
 
-func (u *Printer) Switch(name, value string) error {
-	u.mu.Lock()
-	defer u.mu.Unlock()
+func (u *Printer) lookupSwitch(name string) (Switch, error) {
 	if !strings.ContainsRune(name, '-') {
 		field, _ := strconv.Atoi(name)
 		if !(field >= 1 && field <= 16) {
-			return fmt.Errorf("invalid switch %s", name)
+			return nil, fmt.Errorf("invalid switch %s", name)
 		}
-		switch value {
-		case "p", "P":
-			u.printing[field-1] = true
-		case "0":
-			u.printing[field-1] = false
-		default:
-			return fmt.Errorf("invalid switch %s setting %s", name, value)
-		}
-	} else {
-		f := strings.Split(name, "-")
-		if len(f) != 2 {
-			return fmt.Errorf("invalid switch %s", name)
-		}
-		field1, _ := strconv.Atoi(f[0])
-		field2, _ := strconv.Atoi(f[1])
-		if !(field1 >= 1 && field1 <= 16) {
-			return fmt.Errorf("invalid switch %s", name)
-		}
-		if field1 == 16 && field2 == 1 {
-			return fmt.Errorf("16-1 switch is not implemented", name)
-		}
-		if field2 != field1+1 {
-			return fmt.Errorf("invalid switch %s", name)
-		}
-		switch value {
-		case "c", "C":
-			u.coupling[field1-1] = true
-		case "0":
-			u.coupling[field1-1] = false
-		default:
-			return fmt.Errorf("invalid switch %s setting %s", name, value)
-		}
+		return &BoolSwitch{name, &u.printing[field-1], printSettings()}, nil
 	}
-	return nil
+
+	f := strings.Split(name, "-")
+	if len(f) != 2 {
+		return nil, fmt.Errorf("invalid switch %s", name)
+	}
+	field1, _ := strconv.Atoi(f[0])
+	field2, _ := strconv.Atoi(f[1])
+	if !(field1 >= 1 && field1 <= 16) {
+		return nil, fmt.Errorf("invalid switch %s", name)
+	}
+	if field1 == 16 && field2 == 1 {
+		return nil, fmt.Errorf("16-1 switch is not implemented", name)
+	}
+	if field2 != field1+1 {
+		return nil, fmt.Errorf("invalid switch %s", name)
+	}
+	return &BoolSwitch{name, &u.coupling[field1-1], couplingSettings()}, nil
+}
+
+func (u *Printer) SetSwitch(name, value string) error {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	sw, err := u.lookupSwitch(name)
+	if err != nil {
+		return err
+	}
+	return sw.Set(value)
+}
+
+func (u *Printer) GetSwitch(name string) (string, error) {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	sw, err := u.lookupSwitch(name)
+	if err != nil {
+		return "", err
+	}
+	return sw.Get(), nil
 }
