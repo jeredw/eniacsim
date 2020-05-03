@@ -23417,7 +23417,8 @@
         "type": "rotary"
     },
     "#cycling-p": {
-        "type": "button"
+        "type": "button",
+        "simulatorName": "p"
     },
     "#div-an1": {
         "settings": [
@@ -30495,16 +30496,19 @@
         "type": "rotary"
     },
     "#initiate-clear": {
-        "type": "button"
+        "type": "button",
+        "simulatorName": "c"
     },
     "#initiate-door": {
         "type": "button"
     },
     "#initiate-pulse": {
-        "type": "button"
+        "type": "button",
+        "simulatorName": "i"
     },
     "#initiate-rs": {
-        "type": "button"
+        "type": "button",
+        "simulatorName": "r"
     },
     "#initiate-start": {
         "type": "button"

@@ -148,7 +148,7 @@ function connectToggleSwitch(selector) {
   });
 }
 
-function connectButton(selector) {
+function connectButton(selector, simulatorName) {
   const button = eniac.querySelector(selector);
   const svg = button.ownerSVGElement;
   const box = button.getBBox();
@@ -172,6 +172,9 @@ function connectButton(selector) {
     event.stopPropagation();
     button.dataset.value = 'off';
     scale.setScale(1.0, 1.0);
+    if (simulatorName) {
+      runCommands([`b ${simulatorName}`]);
+    }
   });
 }
 
@@ -274,7 +277,7 @@ function configureSwitches(config) {
       connectToggleSwitch(selector);
       break;
     case 'button':
-      connectButton(selector);
+      connectButton(selector, s.simulatorName);
       break;
     }
   }
