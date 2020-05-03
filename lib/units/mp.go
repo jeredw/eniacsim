@@ -3,7 +3,6 @@ package units
 import (
 	"encoding/json"
 	"fmt"
-	"strconv"
 	"strings"
 	"sync"
 	"unicode"
@@ -240,42 +239,6 @@ func (s *associatorSwitch) Set(value string) error {
 	return nil
 }
 
-type decadeSwitch struct {
-	name string
-	data *int
-}
-
-func (s *decadeSwitch) Set(value string) error {
-	n, _ := strconv.Atoi(value)
-	if !(n >= 0 && n <= 9) {
-		return fmt.Errorf("invalid decade limit %s %s\n", s.name, value)
-	}
-	*s.data = n
-	return nil
-}
-
-func (s *decadeSwitch) Get() string {
-	return fmt.Sprintf("%d", *s.data)
-}
-
-type clearSwitch struct {
-	name string
-	data *int
-}
-
-func (s *clearSwitch) Set(value string) error {
-	n, _ := strconv.Atoi(value)
-	if !(n >= 1 && n <= 6) {
-		return fmt.Errorf("invalid clear stage %s\n", value)
-	}
-	*s.data = n - 1
-	return nil
-}
-
-func (s *clearSwitch) Get() string {
-	return fmt.Sprintf("%d", 1+*s.data)
-}
-
 func (u *Mp) lookupSwitch(name string) (Switch, error) {
 	if len(name) == 0 {
 		return nil, fmt.Errorf("invalid switch")
@@ -285,21 +248,21 @@ func (u *Mp) lookupSwitch(name string) (Switch, error) {
 	case 'a', 'A':
 		switch name {
 		case "a20", "A20":
-			return &associatorSwitch{name: name, left: "a", right: "b", data: &u.associator[0]}, nil
+			return &associatorSwitch{name, "a", "b", &u.associator[0]}, nil
 		case "a18", "A18":
-			return &associatorSwitch{name: name, left: "b", right: "c", data: &u.associator[1]}, nil
+			return &associatorSwitch{name, "b", "c", &u.associator[1]}, nil
 		case "a14", "A14":
-			return &associatorSwitch{name: name, left: "c", right: "d", data: &u.associator[2]}, nil
+			return &associatorSwitch{name, "c", "d", &u.associator[2]}, nil
 		case "a12", "A12":
-			return &associatorSwitch{name: name, left: "d", right: "e", data: &u.associator[3]}, nil
+			return &associatorSwitch{name, "d", "e", &u.associator[3]}, nil
 		case "a10", "A10":
-			return &associatorSwitch{name: name, left: "f", right: "g", data: &u.associator[4]}, nil
+			return &associatorSwitch{name, "f", "g", &u.associator[4]}, nil
 		case "a8", "A8":
-			return &associatorSwitch{name: name, left: "g", right: "h", data: &u.associator[5]}, nil
+			return &associatorSwitch{name, "g", "h", &u.associator[5]}, nil
 		case "a4", "A4":
-			return &associatorSwitch{name: name, left: "h", right: "j", data: &u.associator[6]}, nil
+			return &associatorSwitch{name, "h", "j", &u.associator[6]}, nil
 		case "a2", "A2":
-			return &associatorSwitch{name: name, left: "j", right: "k", data: &u.associator[7]}, nil
+			return &associatorSwitch{name, "j", "k", &u.associator[7]}, nil
 		default:
 			return nil, fmt.Errorf("invalid associator switch %s", name)
 		}
@@ -311,7 +274,7 @@ func (u *Mp) lookupSwitch(name string) (Switch, error) {
 		if !(s >= 1 && s <= 6) {
 			return nil, fmt.Errorf("invalid decade stage %s", name)
 		}
-		return &decadeSwitch{name: name, data: &u.decade[20-d].limit[s-1]}, nil
+		return &IntSwitch{name, &u.decade[20-d].limit[s-1], mpDecadeSettings()}, nil
 	case 'c', 'C':
 		if len(name) < 2 {
 			return nil, fmt.Errorf("invalid stepper %s\n", name)
@@ -320,7 +283,7 @@ func (u *Mp) lookupSwitch(name string) (Switch, error) {
 		if s == -1 {
 			return nil, fmt.Errorf("invalid stepper %s\n", name)
 		}
-		return &clearSwitch{name: name, data: &u.stepper[s].csw}, nil
+		return &IntSwitch{name, &u.stepper[s].csw, mpClearSettings()}, nil
 	}
 	return nil, fmt.Errorf("invalid switch %s", name)
 }

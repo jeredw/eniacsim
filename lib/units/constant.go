@@ -160,51 +160,6 @@ func (s *selSwitch) Set(value string) error {
 	return nil
 }
 
-type signSwitch struct {
-	name string
-	data *byte
-}
-
-func (s *signSwitch) Set(value string) error {
-	switch value {
-	case "P", "p":
-		*s.data = 0
-	case "M", "m":
-		*s.data = 1
-	default:
-		return fmt.Errorf("invalid switch %s setting %s", s.name, value)
-	}
-	return nil
-}
-
-func (s *signSwitch) Get() string {
-	switch *s.data {
-	case 0:
-		return "P"
-	case 1:
-		return "M"
-	}
-	return "?"
-}
-
-type digitSwitch struct {
-	name string
-	data *byte
-}
-
-func (s *digitSwitch) Set(value string) error {
-	n, _ := strconv.Atoi(value)
-	if !(n >= 0 && n <= 9) {
-		return fmt.Errorf("invalid switch %s setting %s", s.name, value)
-	}
-	*s.data = byte(n)
-	return nil
-}
-
-func (s *digitSwitch) Get() string {
-	return fmt.Sprintf("%d", int(*s.data))
-}
-
 func (u *Constant) lookupSwitch(name string) (Switch, error) {
 	if len(name) < 2 {
 		return nil, fmt.Errorf("invalid switch")
@@ -215,31 +170,31 @@ func (u *Constant) lookupSwitch(name string) (Switch, error) {
 		if !(prog >= 1 && prog <= 30) {
 			return nil, fmt.Errorf("invalid switch %s", name)
 		}
-		return &selSwitch{name: name, prog: prog, data: &u.sel[prog-1]}, nil
+		return &selSwitch{name, prog, &u.sel[prog-1]}, nil
 	case 'j', 'J':
 		if name[1] == 'l' {
-			return &signSwitch{name: name, data: &u.signj[0]}, nil
+			return &ByteSwitch{name, &u.signj[0], constantSignSettings()}, nil
 		}
 		if name[1] == 'r' {
-			return &signSwitch{name: name, data: &u.signj[1]}, nil
+			return &ByteSwitch{name, &u.signj[1], constantSignSettings()}, nil
 		}
 		digit, _ := strconv.Atoi(name[1:])
 		if !(digit >= 1 && digit <= 10) {
 			return nil, fmt.Errorf("invalid switch %s", name)
 		}
-		return &digitSwitch{name: name, data: &u.j[digit-1]}, nil
+		return &ByteSwitch{name, &u.j[digit-1], constantDigitSettings()}, nil
 	case 'k', 'K':
 		if name[1] == 'l' {
-			return &signSwitch{name: name, data: &u.signk[0]}, nil
+			return &ByteSwitch{name, &u.signk[0], constantSignSettings()}, nil
 		}
 		if name[1] == 'r' {
-			return &signSwitch{name: name, data: &u.signk[1]}, nil
+			return &ByteSwitch{name, &u.signk[1], constantSignSettings()}, nil
 		}
 		digit, _ := strconv.Atoi(name[1:])
 		if !(digit >= 1 && digit <= 10) {
 			return nil, fmt.Errorf("invalid switch %s", name)
 		}
-		return &digitSwitch{name: name, data: &u.k[digit-1]}, nil
+		return &ByteSwitch{name, &u.k[digit-1], constantDigitSettings()}, nil
 	}
 	return nil, fmt.Errorf("invalid switch %s", name)
 }
