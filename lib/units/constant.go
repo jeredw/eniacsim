@@ -115,7 +115,7 @@ type selSwitch struct {
 }
 
 func (s *selSwitch) Get() string {
-	constants := "ABCDEFGHJK"
+	constants := "abcdefghjk"
 	i := 2 * (s.prog - 1) / 6
 	switch *s.data {
 	case 0:

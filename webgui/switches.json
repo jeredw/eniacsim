@@ -22936,7 +22936,7 @@
                 "value": "9"
             }
         ],
-        "simulatorName": "c.j1",
+        "simulatorName": "c.k1",
         "type": "rotary"
     },
     "#ct2-k10": {
@@ -22982,7 +22982,7 @@
                 "value": "9"
             }
         ],
-        "simulatorName": "c.j10",
+        "simulatorName": "c.k10",
         "type": "rotary"
     },
     "#ct2-k2": {
@@ -23028,7 +23028,7 @@
                 "value": "9"
             }
         ],
-        "simulatorName": "c.j2",
+        "simulatorName": "c.k2",
         "type": "rotary"
     },
     "#ct2-k3": {
@@ -23074,7 +23074,7 @@
                 "value": "9"
             }
         ],
-        "simulatorName": "c.j3",
+        "simulatorName": "c.k3",
         "type": "rotary"
     },
     "#ct2-k4": {
@@ -23120,7 +23120,7 @@
                 "value": "9"
             }
         ],
-        "simulatorName": "c.j4",
+        "simulatorName": "c.k4",
         "type": "rotary"
     },
     "#ct2-k5": {
@@ -23166,7 +23166,7 @@
                 "value": "9"
             }
         ],
-        "simulatorName": "c.j5",
+        "simulatorName": "c.k5",
         "type": "rotary"
     },
     "#ct2-k6": {
@@ -23212,7 +23212,7 @@
                 "value": "9"
             }
         ],
-        "simulatorName": "c.j6",
+        "simulatorName": "c.k6",
         "type": "rotary"
     },
     "#ct2-k7": {
@@ -23258,7 +23258,7 @@
                 "value": "9"
             }
         ],
-        "simulatorName": "c.j7",
+        "simulatorName": "c.k7",
         "type": "rotary"
     },
     "#ct2-k8": {
@@ -23304,7 +23304,7 @@
                 "value": "9"
             }
         ],
-        "simulatorName": "c.j8",
+        "simulatorName": "c.k8",
         "type": "rotary"
     },
     "#ct2-k9": {
@@ -23350,7 +23350,7 @@
                 "value": "9"
             }
         ],
-        "simulatorName": "c.j9",
+        "simulatorName": "c.k9",
         "type": "rotary"
     },
     "#ct2-kl": {
