@@ -3,6 +3,7 @@ let eniac = null;
 let defaultViewBox = '';
 let neons = [];
 let machineState = {};
+let simulatorSwitches = {};
 
 source.addEventListener('message', (event) => {
   machineState = JSON.parse(event.data);
@@ -81,11 +82,8 @@ function connectRotarySwitch(selector, simulatorName, settings, onChange=undefin
     rotary.style.transition = 'transform 100ms linear';
   }
   let index = settings.findIndex(s => s.degrees == 0);
-  rotary.dataset.value = settings[index].value;
-  rotary.addEventListener('click', (event) => {
-    event.stopPropagation();
-    const delta = event.metaKey ? -1 : 1;
-    index += delta;
+  const update = (newIndex) => {
+    index = newIndex;
     if (index >= settings.length) {
       index = 0;
     }
@@ -93,7 +91,6 @@ function connectRotarySwitch(selector, simulatorName, settings, onChange=undefin
       index = settings.length - 1;
     }
     const newValue = settings[index].value;
-    rotary.dataset.value = newValue;
     if (onChange) {
       onChange(newValue);
     }
@@ -102,7 +99,21 @@ function connectRotarySwitch(selector, simulatorName, settings, onChange=undefin
     adjustRotary = (degrees) => {
       rotation.setRotate(degrees, cx, cy);
     };
+  };
+  rotary.addEventListener('click', (event) => {
+    event.stopPropagation();
+    const delta = event.shiftKey ? -1 : 1;
+    update(index + delta);
+    // TODO: tell simulator
   });
+  if (simulatorName) {
+    simulatorSwitches[simulatorName] = (value) => {
+      const newIndex = settings.findIndex(s => s.value == value);
+      if (newIndex != -1) {
+        update(newIndex);
+      }
+    };
+  }
 }
 
 function connectToggleSwitch(selector) {
@@ -252,17 +263,6 @@ function connectCyclingElements() {
   ], showPulseTrace);
 }
 
-function configure(file, fn) {
-  fetch(file).then((response) => {
-    if (response.status != 200) {
-      console.error(file, response.status);
-      return;
-    }
-    response.json().then((config) => fn(config))
-      .catch((e) => console.error(e));
-  }).catch((e) => console.error(e));
-}
-
 function configureSwitches(config) {
   for (const [selector, s] of Object.entries(config)) {
     switch (s.type) {
@@ -291,6 +291,47 @@ function configurePanels(config) {
   }
 }
 
+async function fetchConfig(file) {
+  let response = await fetch(file);
+  if (response.status != 200) {
+    console.error(file, response.status);
+    return;
+  }
+  return await response.json();
+}
+
+async function runCommands(commands) {
+  let response = await fetch('/command', {
+    method: 'post',
+    headers: {
+      'Content-type': 'application/json; charset=UTF-8',
+    },
+    body: JSON.stringify({"commands": commands})
+  });
+  if (response.status != 200) {
+    console.error(response.status);
+    return;
+  }
+  let data = await response.json();
+  return data.outputs;
+}
+
+async function setSwitchesToSimulatorValues() {
+  let switches = [];
+  let commands = [];
+  for (const switchName of Object.keys(simulatorSwitches)) {
+    switches.push(switchName);
+    commands.push(`s? ${switchName}`);
+  }
+  let outputs = await runCommands(commands);
+  for (let i = 0; i < outputs.length; i++) {
+    const switchName = switches[i];
+    const value = outputs[i].trim();
+    const update = simulatorSwitches[switchName];
+    update(value.trim());
+  }
+}
+
 window.onload = (event) => {
   const wrapper = document.querySelector('#eniac');
   const wrapperDoc = wrapper.contentDocument;
@@ -298,9 +339,11 @@ window.onload = (event) => {
   eniac = wrapperDoc.querySelector('#eniac');
   defaultViewBox = eniac.getAttribute('viewBox');
 
-  configure('switches.json', configureSwitches);
-  configure('neons.json', configureNeons);
-  configure('panels.json', configurePanels);
+  fetchConfig('switches.json')
+    .then(configureSwitches)
+    .then(setSwitchesToSimulatorValues);
+  fetchConfig('neons.json').then(configureNeons);
+  fetchConfig('panels.json').then(configurePanels);
   connectInitiateElements();
   connectCyclingElements();
 

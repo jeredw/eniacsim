@@ -76,24 +76,24 @@ func ctlstation() {
 				if diff&0x70 != 0 {
 					switch newstate & 0x70 {
 					case 0x10:
-						doCommand("s cy.op 1a")
+						doCommand(os.Stdout, "s cy.op 1a")
 					case 0x20:
-						doCommand("s cy.op 1p")
+						doCommand(os.Stdout, "s cy.op 1p")
 					case 0x60:
-						doCommand("s cy.op co")
+						doCommand(os.Stdout, "s cy.op co")
 					}
 				}
 				if diff&0x01 != 0 && newstate&0x01 != 0 {
-					doCommand("b c")
+					doCommand(os.Stdout, "b c")
 				}
 				if diff&0x02 != 0 && newstate&0x02 != 0 {
-					doCommand("b r")
+					doCommand(os.Stdout, "b r")
 				}
 				if diff&0x04 != 0 && newstate&0x04 != 0 {
-					doCommand("b i")
+					doCommand(os.Stdout, "b i")
 				}
 				if diff&0x08 != 0 && newstate&0x08 != 0 {
-					doCommand("b p")
+					doCommand(os.Stdout, "b p")
 				}
 				curstate = newstate
 			}

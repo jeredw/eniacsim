@@ -146,13 +146,13 @@ func main() {
 	if flag.NArg() >= 1 {
 		// Seriously ugly hack to give other goprocs time to get initialized
 		time.Sleep(100 * time.Millisecond)
-		doCommand("l " + flag.Arg(0))
+		doCommand(os.Stdout, "l "+flag.Arg(0))
 	}
 
 	if *testCycles > 0 {
 		cycle.Io.TestButton.Push <- 1
 		<-cycle.Io.TestButton.Done
-		doDumpAll()
+		doDumpAll(os.Stdout)
 		return
 	}
 
@@ -162,7 +162,7 @@ func main() {
 	}
 	prompt()
 	for sc.Scan() {
-		if doCommand(sc.Text()) < 0 {
+		if doCommand(os.Stdout, sc.Text()) < 0 {
 			break
 		}
 		prompt()

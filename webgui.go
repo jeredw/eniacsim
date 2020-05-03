@@ -1,11 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
-	"strings"
 	"time"
 )
 
@@ -18,29 +17,13 @@ func webGui() {
 	http.HandleFunc("/panels.json", serveFile("webgui/panels.json"))
 	http.HandleFunc("/switches.json", serveFile("webgui/switches.json"))
 	http.HandleFunc("/events", streamEvents)
-	http.HandleFunc("/button", pushButton)
+	http.HandleFunc("/command", postCommand)
 	http.ListenAndServe(":8000", nil)
 }
 
 func serveFile(path string) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
-		data, err := ioutil.ReadFile(path)
-		if err != nil {
-			panic(err)
-		}
-		s := string(data)
-		http.ServeContent(w, req, path, time.Now(), strings.NewReader(s))
-	}
-}
-
-func cacheAndServeFile(path string) func(http.ResponseWriter, *http.Request) {
-	data, err := ioutil.ReadFile(path)
-	if err != nil {
-		panic(err)
-	}
-	s := string(data)
-	return func(w http.ResponseWriter, req *http.Request) {
-		http.ServeContent(w, req, path, time.Now(), strings.NewReader(s))
+		http.ServeFile(w, req, path)
 	}
 }
 
@@ -78,5 +61,35 @@ func streamEvents(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func pushButton(w http.ResponseWriter, req *http.Request) {
+type commandRequest struct {
+	Commands []string `json:"commands"`
+}
+
+type commandResponse struct {
+	Outputs []string `json:"outputs"`
+}
+
+func postCommand(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		fmt.Fprintf(w, "Invalid HTTP method")
+		return
+	}
+
+	reqData := commandRequest{}
+	err := json.NewDecoder(req.Body).Decode(&reqData)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	respData := commandResponse{Outputs: make([]string, 0, len(reqData.Commands))}
+	for i := range reqData.Commands {
+		var buf bytes.Buffer
+		doCommand(&buf, reqData.Commands[i])
+		respData.Outputs = append(respData.Outputs, buf.String())
+	}
+
+	output, _ := json.Marshal(respData)
+	w.Write(output)
 }

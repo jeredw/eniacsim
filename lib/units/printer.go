@@ -167,7 +167,7 @@ func (u *Printer) lookupSwitch(name string) (Switch, error) {
 		return nil, fmt.Errorf("invalid switch %s", name)
 	}
 	if field1 == 16 && field2 == 1 {
-		return nil, fmt.Errorf("16-1 switch is not implemented", name)
+		return nil, fmt.Errorf("16-1 switch is not implemented")
 	}
 	if field2 != field1+1 {
 		return nil, fmt.Errorf("invalid switch %s", name)

@@ -128,11 +128,11 @@ func guicmd(sc *bufio.Scanner, gpipe io.Writer) {
 			drawfixed(gpipe)
 		} else if len(s) > 2 && s[:2] == "l " {
 			fmt.Fprintln(gpipe, "destroy .mlib")
-			doCommand(s)
+			doCommand(os.Stdout, s)
 		} else if s == "update" {
 			guistate.upd <- 1
 		} else {
-			doCommand(s)
+			doCommand(os.Stdout, s)
 		}
 	}
 }

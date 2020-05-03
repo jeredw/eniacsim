@@ -30551,7 +30551,7 @@
                 "value": "d"
             }
         ],
-        "simulatorName": "p.a16",
+        "simulatorName": "p.a14",
         "type": "rotary"
     },
     "#mp1-assoc-de": {
@@ -30565,7 +30565,7 @@
                 "value": "e"
             }
         ],
-        "simulatorName": "p.a14",
+        "simulatorName": "p.a12",
         "type": "rotary"
     },
     "#mp1-ca": {
@@ -30595,7 +30595,7 @@
                 "value": "6"
             }
         ],
-        "simulatorName": "p.ca",
+        "simulatorName": "p.cA",
         "type": "rotary"
     },
     "#mp1-cb": {
@@ -30625,7 +30625,7 @@
                 "value": "6"
             }
         ],
-        "simulatorName": "p.cb",
+        "simulatorName": "p.cB",
         "type": "rotary"
     },
     "#mp1-cc": {
@@ -30655,7 +30655,7 @@
                 "value": "6"
             }
         ],
-        "simulatorName": "p.cc",
+        "simulatorName": "p.cC",
         "type": "rotary"
     },
     "#mp1-cd": {
@@ -30685,7 +30685,7 @@
                 "value": "6"
             }
         ],
-        "simulatorName": "p.cd",
+        "simulatorName": "p.cD",
         "type": "rotary"
     },
     "#mp1-ce": {
@@ -30715,7 +30715,7 @@
                 "value": "6"
             }
         ],
-        "simulatorName": "p.ce",
+        "simulatorName": "p.cE",
         "type": "rotary"
     },
     "#mp1-d11s1": {
@@ -33520,7 +33520,7 @@
                 "value": "j"
             }
         ],
-        "simulatorName": "p.a6",
+        "simulatorName": "p.a4",
         "type": "rotary"
     },
     "#mp2-assoc-jk": {
@@ -33534,7 +33534,7 @@
                 "value": "k"
             }
         ],
-        "simulatorName": "p.a4",
+        "simulatorName": "p.a2",
         "type": "rotary"
     },
     "#mp2-cf": {
@@ -33564,7 +33564,7 @@
                 "value": "6"
             }
         ],
-        "simulatorName": "p.cf",
+        "simulatorName": "p.cF",
         "type": "rotary"
     },
     "#mp2-cg": {
@@ -33594,7 +33594,7 @@
                 "value": "6"
             }
         ],
-        "simulatorName": "p.cg",
+        "simulatorName": "p.cG",
         "type": "rotary"
     },
     "#mp2-ch": {
@@ -33624,7 +33624,7 @@
                 "value": "6"
             }
         ],
-        "simulatorName": "p.ch",
+        "simulatorName": "p.cH",
         "type": "rotary"
     },
     "#mp2-cj": {
@@ -33654,7 +33654,7 @@
                 "value": "6"
             }
         ],
-        "simulatorName": "p.cj",
+        "simulatorName": "p.cJ",
         "type": "rotary"
     },
     "#mp2-ck": {
@@ -33684,7 +33684,7 @@
                 "value": "6"
             }
         ],
-        "simulatorName": "p.ck",
+        "simulatorName": "p.cK",
         "type": "rotary"
     },
     "#mp2-d10s1": {
@@ -41933,7 +41933,7 @@
                 "value": "C"
             }
         ],
-        "simulatorName": "pr.16-1",
+        "simulatorName": "",
         "type": "rotary"
     },
     "#pr3-9-10": {
