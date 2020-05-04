@@ -12,6 +12,7 @@ body {
   display: flex;
   align-items: center;
 /* justify-content: center; */
+  position: relative;
 }
 
 .eniac {
@@ -24,6 +25,15 @@ body {
   bottom: 0;
   right: 0;
   height: 40vh;
+}
+
+.trays {
+  height: 100vh;
+  cursor: default;
+  position: absolute;
+  pointer-events: none;
+  top: 0;
+  left: 0;
 }
 
 .angle-value {

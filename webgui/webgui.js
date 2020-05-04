@@ -102,7 +102,7 @@ function connectRotarySwitch(element, simulatorName, settings, onChange=undefine
   };
   element.addEventListener('click', (event) => {
     event.stopPropagation();
-    const delta = event.shiftKey ? -1 : 1;
+    const delta = event.metaKey ? -1 : 1;
     let newIndex = index + delta;
     if (newIndex >= settings.length) {
       newIndex = 0;
@@ -389,14 +389,24 @@ window.onload = (event) => {
   });
 }
 
+let oldScroll = 0;
 function viewElementSelector(name) {
   let elem = eniac.querySelector(name);
   let box = transformedBoundingBox(elem);
   eniac.setAttribute('viewBox', `${box.x} ${box.y} ${box.width} ${box.height}`);
+  const trays = document.querySelector('.trays');
+  trays.style.visibility = 'hidden';
+  oldScroll = document.scrollingElement.scrollLeft;
+  document.scrollingElement.scrollLeft = 0;
+  document.querySelector('.vis').style.overflow = 'hidden';
 }
 
 function viewDefault() {
   eniac.setAttribute('viewBox', defaultViewBox);
+  const trays = document.querySelector('.trays');
+  trays.style.visibility = '';
+  document.querySelector('.vis').style.overflow = '';
+  document.scrollingElement.scrollLeft = oldScroll;
 }
 
 function getTransformToElement(elem, toElement) {
