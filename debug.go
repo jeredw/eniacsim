@@ -12,7 +12,7 @@ type Debugger struct {
 
 type bp struct {
 	n      int
-	ch     chan Pulse
+	wire   Wire
 	what   string
 	update chan int
 }
@@ -24,7 +24,7 @@ func NewDebugger() *Debugger {
 func (u *Debugger) Stat() string {
 	var s string
 	for n, bp := range u.bps {
-		if bp.ch != nil {
+		if bp.wire.Ch != nil {
 			s += fmt.Sprintf("bp%d: %s\n", n, bp.what)
 		} else {
 			s += fmt.Sprintf("bp%d: -\n", n)
@@ -33,7 +33,7 @@ func (u *Debugger) Stat() string {
 	return s
 }
 
-func (u *Debugger) Plug(name string, ch chan Pulse, what string) error {
+func (u *Debugger) Plug(name string, wire Wire, what string) error {
 	if len(name) < 3 {
 		return fmt.Errorf("invalid connection %s", name)
 	}
@@ -47,7 +47,7 @@ func (u *Debugger) Plug(name string, ch chan Pulse, what string) error {
 	if u.bps[n].update != nil {
 		u.bps[n].update <- 1
 	}
-	u.bps[n] = bp{n, ch, what, make(chan int)}
+	u.bps[n] = bp{n, wire, what, make(chan int)}
 	go awaitBreakpoint(&u.bps[n])
 	return nil
 }
@@ -57,7 +57,7 @@ func (u *Debugger) Reset() {
 		if b.update != nil {
 			b.update <- 1
 		}
-		u.bps[n] = bp{n, nil, "", nil}
+		u.bps[n] = bp{n, Wire{}, "", nil}
 	}
 }
 
@@ -68,7 +68,7 @@ func awaitBreakpoint(b *bp) {
 		select {
 		case <-b.update:
 			return
-		case p = <-b.ch:
+		case p = <-b.wire.Ch:
 		}
 		if p.Val != 0 {
 			fmt.Printf("triggered bp%d %s\n", b.n, b.what)

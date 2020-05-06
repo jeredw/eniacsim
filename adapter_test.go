@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func send(digits [11]int, ch chan Pulse, resp chan int) {
+func send(digits [11]int, wire Wire, resp chan int) {
 	for j := 1; j <= 9; j++ {
 		val := 0
 		for i := 0; i < 11; i++ {
@@ -14,16 +14,16 @@ func send(digits [11]int, ch chan Pulse, resp chan int) {
 			}
 		}
 		if val != 0 {
-			ch <- Pulse{val, nil}
+			wire.Ch <- Pulse{val, nil}
 		}
 	}
-	ch <- Pulse{0, resp}
+	wire.Ch <- Pulse{0, resp}
 }
 
-func receive(digits *[11]int, ch chan Pulse, resp chan int, done chan int) {
+func receive(digits *[11]int, wire Wire, resp chan int, done chan int) {
 	for {
 		select {
-		case p := <-ch:
+		case p := <-wire.Ch:
 			for i := 0; i < 11; i++ {
 				if p.Val&(1<<i) != 0 {
 					digits[10-i]++
@@ -40,8 +40,8 @@ func testShifter(digits [11]int, amount int) [11]int {
 	sent := make(chan int)
 	done := make(chan int)
 	s := shifter{
-		in:     make(chan Pulse),
-		out:    make(chan Pulse),
+		in:     *NewWire("*", "i"),
+		out:    *NewWire("o", "*"),
 		amount: amount,
 	}
 	go s.run()
@@ -56,8 +56,8 @@ func testDeleter(digits [11]int, digit int) [11]int {
 	sent := make(chan int)
 	done := make(chan int)
 	d := deleter{
-		in:    make(chan Pulse),
-		out:   make(chan Pulse),
+		in:    *NewWire("*", "i"),
+		out:   *NewWire("o", "*"),
 		digit: digit,
 	}
 	go d.run()
@@ -72,8 +72,8 @@ func testPermuter(digits [11]int, order [11]int) [11]int {
 	sent := make(chan int)
 	done := make(chan int)
 	p := permuter{
-		in:    make(chan Pulse),
-		out:   make(chan Pulse),
+		in:    *NewWire("*", "i"),
+		out:   *NewWire("o", "*"),
 		order: order,
 	}
 	go p.run()

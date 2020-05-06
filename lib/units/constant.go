@@ -18,10 +18,10 @@ type Constant struct {
 	signj        [2]byte
 	k            [10]byte
 	signk        [2]byte
-	out          chan Pulse
-	pin          [30]chan Pulse
+	out          Wire
+	pin          [30]Wire
 	inff1, inff2 [30]bool
-	pout         [30]chan Pulse
+	pout         [30]Wire
 
 	val     []byte
 	sign    byte
@@ -57,10 +57,10 @@ func (u *Constant) Reset() {
 	defer u.mu.Unlock()
 	for i := 0; i < 30; i++ {
 		u.sel[i] = 0
-		u.pin[i] = nil
+		u.pin[i] = Wire{}
 		u.inff1[i] = false
 		u.inff2[i] = false
-		u.pout[i] = nil
+		u.pout[i] = Wire{}
 	}
 	for i := 0; i < 8; i++ {
 		for j := 0; j < 10; j++ {
@@ -77,32 +77,31 @@ func (u *Constant) Reset() {
 	u.signj[1] = 0
 	u.signk[0] = 0
 	u.signk[1] = 0
-	u.out = nil
+	u.out = Wire{}
 }
 
-func (u *Constant) Plug(jack string, ch chan Pulse, output bool) error {
+func (u *Constant) Plug(jack string, wire Wire) error {
 	u.rewiring <- 1
 	<-u.waitingForRewiring
 	defer func() { u.rewiring <- 1 }()
 	u.mu.Lock()
 	defer u.mu.Unlock()
-	name := "c." + jack
 	if jack == "o" {
-		SafePlug(name, &u.out, ch, output)
+		Plug(&u.out, wire)
 	} else {
 		var prog int
 		var ilk rune
 		fmt.Sscanf(jack, "%d%c", &prog, &ilk)
 		if !(prog >= 1 && prog <= 30) {
-			return fmt.Errorf("invalid jack %s", name)
+			return fmt.Errorf("invalid jack %s", jack)
 		}
 		switch ilk {
 		case 'i':
-			SafePlug(name, &u.pin[prog-1], ch, output)
+			Plug(&u.pin[prog-1], wire)
 		case 'o':
-			SafePlug(name, &u.pout[prog-1], ch, output)
+			Plug(&u.pout[prog-1], wire)
 		default:
-			return fmt.Errorf("invalid jack %s", name)
+			return fmt.Errorf("invalid jack %s", jack)
 		}
 	}
 	return nil
@@ -240,11 +239,11 @@ func (u *Constant) procfield(i int, f string) {
 	for j := bank * 6; j < bank*6+6; j++ {
 		switch u.sel[j] {
 		case 0, 1:
-			if i%2 == 0 && u.pin[j] != nil {
+			if i%2 == 0 && u.pin[j].Ch != nil {
 				tendig = false
 			}
 		case 3, 4:
-			if i%2 == 1 && u.pin[j] != nil {
+			if i%2 == 1 && u.pin[j].Ch != nil {
 				tendig = false
 			}
 		}
@@ -456,123 +455,123 @@ func (u *Constant) Run() {
 		case <-u.rewiring:
 			u.waitingForRewiring <- 1
 			<-u.rewiring
-		case p = <-u.pin[0]:
+		case p = <-u.pin[0].Ch:
 			if p.Val == 1 {
 				u.trigger(0)
 			}
-		case p = <-u.pin[1]:
+		case p = <-u.pin[1].Ch:
 			if p.Val == 1 {
 				u.trigger(1)
 			}
-		case p = <-u.pin[2]:
+		case p = <-u.pin[2].Ch:
 			if p.Val == 1 {
 				u.trigger(2)
 			}
-		case p = <-u.pin[3]:
+		case p = <-u.pin[3].Ch:
 			if p.Val == 1 {
 				u.trigger(3)
 			}
-		case p = <-u.pin[4]:
+		case p = <-u.pin[4].Ch:
 			if p.Val == 1 {
 				u.trigger(4)
 			}
-		case p = <-u.pin[5]:
+		case p = <-u.pin[5].Ch:
 			if p.Val == 1 {
 				u.trigger(5)
 			}
-		case p = <-u.pin[6]:
+		case p = <-u.pin[6].Ch:
 			if p.Val == 1 {
 				u.trigger(6)
 			}
-		case p = <-u.pin[7]:
+		case p = <-u.pin[7].Ch:
 			if p.Val == 1 {
 				u.trigger(7)
 			}
-		case p = <-u.pin[8]:
+		case p = <-u.pin[8].Ch:
 			if p.Val == 1 {
 				u.trigger(8)
 			}
-		case p = <-u.pin[9]:
+		case p = <-u.pin[9].Ch:
 			if p.Val == 1 {
 				u.trigger(9)
 			}
-		case p = <-u.pin[10]:
+		case p = <-u.pin[10].Ch:
 			if p.Val == 1 {
 				u.trigger(10)
 			}
-		case p = <-u.pin[11]:
+		case p = <-u.pin[11].Ch:
 			if p.Val == 1 {
 				u.trigger(11)
 			}
-		case p = <-u.pin[12]:
+		case p = <-u.pin[12].Ch:
 			if p.Val == 1 {
 				u.trigger(12)
 			}
-		case p = <-u.pin[13]:
+		case p = <-u.pin[13].Ch:
 			if p.Val == 1 {
 				u.trigger(13)
 			}
-		case p = <-u.pin[14]:
+		case p = <-u.pin[14].Ch:
 			if p.Val == 1 {
 				u.trigger(14)
 			}
-		case p = <-u.pin[15]:
+		case p = <-u.pin[15].Ch:
 			if p.Val == 1 {
 				u.trigger(15)
 			}
-		case p = <-u.pin[16]:
+		case p = <-u.pin[16].Ch:
 			if p.Val == 1 {
 				u.trigger(16)
 			}
-		case p = <-u.pin[17]:
+		case p = <-u.pin[17].Ch:
 			if p.Val == 1 {
 				u.trigger(17)
 			}
-		case p = <-u.pin[18]:
+		case p = <-u.pin[18].Ch:
 			if p.Val == 1 {
 				u.trigger(18)
 			}
-		case p = <-u.pin[19]:
+		case p = <-u.pin[19].Ch:
 			if p.Val == 1 {
 				u.trigger(19)
 			}
-		case p = <-u.pin[20]:
+		case p = <-u.pin[20].Ch:
 			if p.Val == 1 {
 				u.trigger(20)
 			}
-		case p = <-u.pin[21]:
+		case p = <-u.pin[21].Ch:
 			if p.Val == 1 {
 				u.trigger(21)
 			}
-		case p = <-u.pin[22]:
+		case p = <-u.pin[22].Ch:
 			if p.Val == 1 {
 				u.trigger(22)
 			}
-		case p = <-u.pin[23]:
+		case p = <-u.pin[23].Ch:
 			if p.Val == 1 {
 				u.trigger(23)
 			}
-		case p = <-u.pin[24]:
+		case p = <-u.pin[24].Ch:
 			if p.Val == 1 {
 				u.trigger(24)
 			}
-		case p = <-u.pin[25]:
+		case p = <-u.pin[25].Ch:
 			if p.Val == 1 {
 				u.trigger(25)
 			}
-		case p = <-u.pin[26]:
+		case p = <-u.pin[26].Ch:
 			if p.Val == 1 {
 				u.trigger(26)
 			}
-		case p = <-u.pin[27]:
+		case p = <-u.pin[27].Ch:
 			if p.Val == 1 {
 				u.trigger(27)
 			}
-		case p = <-u.pin[28]:
+		case p = <-u.pin[28].Ch:
 			if p.Val == 1 {
 				u.trigger(28)
 			}
-		case p = <-u.pin[29]:
+		case p = <-u.pin[29].Ch:
 			if p.Val == 1 {
 				u.trigger(29)
 			}

@@ -61,8 +61,8 @@ type Accumulator struct {
 	Io AccumulatorConn
 
 	unit                int
-	α, β, γ, δ, ε, A, S chan Pulse
-	ctlterm             [20]chan Pulse
+	α, β, γ, δ, ε, A, S Wire
+	ctlterm             [20]Wire
 	inff1, inff2        [12]bool
 	opsw                [12]byte
 	clrsw               [12]bool
@@ -183,13 +183,13 @@ func (u *Accumulator) Reset() {
 	u.rewiring <- 1
 	<-u.waitingForRewiring
 	u.mu.Lock()
-	u.α = nil
-	u.β = nil
-	u.γ = nil
-	u.δ = nil
-	u.ε = nil
+	u.α = Wire{}
+	u.β = Wire{}
+	u.γ = Wire{}
+	u.δ = Wire{}
+	u.ε = Wire{}
 	for i := 0; i < 12; i++ {
-		u.ctlterm[i] = nil
+		u.ctlterm[i] = Wire{}
 		u.inff1[i] = false
 		u.inff2[i] = false
 		u.opsw[i] = 0
@@ -286,28 +286,28 @@ func Interconnect(units [20]*Accumulator, p1 []string, p2 []string) error {
 	return nil
 }
 
-func (u *Accumulator) Plug(jack string, ch chan Pulse, output bool) error {
+func (u *Accumulator) Plug(jack string, wire Wire) error {
 	u.rewiring <- 1
 	<-u.waitingForRewiring
 	defer func() { u.rewiring <- 1 }()
 	u.mu.Lock()
 	defer u.mu.Unlock()
-	name := "a" + strconv.Itoa(u.unit+1) + "." + jack
+
 	switch {
 	case jack == "α", jack == "a", jack == "alpha":
-		SafePlug(name, &u.α, ch, output)
+		Plug(&u.α, wire)
 	case jack == "β", jack == "b", jack == "beta":
-		SafePlug(name, &u.β, ch, output)
+		Plug(&u.β, wire)
 	case jack == "γ", jack == "g", jack == "gamma":
-		SafePlug(name, &u.γ, ch, output)
+		Plug(&u.γ, wire)
 	case jack == "δ", jack == "d", jack == "delta":
-		SafePlug(name, &u.δ, ch, output)
+		Plug(&u.δ, wire)
 	case jack == "ε", jack == "e", jack == "epsilon":
-		SafePlug(name, &u.ε, ch, output)
+		Plug(&u.ε, wire)
 	case jack == "A":
-		SafePlug(name, &u.A, ch, output)
+		Plug(&u.A, wire)
 	case jack == "S":
-		SafePlug(name, &u.S, ch, output)
+		Plug(&u.S, wire)
 	case jack[0] == 'I':
 	default:
 		jacks := [20]string{
@@ -316,7 +316,7 @@ func (u *Accumulator) Plug(jack string, ch chan Pulse, output bool) error {
 		}
 		for i, j := range jacks {
 			if j == jack {
-				u.ctlterm[i] = Tee(u.ctlterm[i], ch)
+				u.ctlterm[i] = Tee(u.ctlterm[i], wire)
 				return nil
 			}
 		}
@@ -581,7 +581,7 @@ func (u *Accumulator) dotenp() {
 func (u *Accumulator) doninep() {
 	curprog := u.st1()
 	if curprog&(stA|stAS) != 0 {
-		if u.A != nil {
+		if u.A.Ch != nil {
 			n := 0
 			for i := 0; i < 10; i++ {
 				if u.decff[i] {
@@ -597,7 +597,7 @@ func (u *Accumulator) doninep() {
 		}
 	}
 	if curprog&(stAS|stS) != 0 {
-		if u.S != nil {
+		if u.S.Ch != nil {
 			n := 0
 			for i := 0; i < 10; i++ {
 				if !u.decff[i] {
@@ -628,7 +628,7 @@ func (u *Accumulator) doonepp() {
 			}
 		}
 	}
-	if curprog&(stAS|stS) != 0 && u.S != nil {
+	if curprog&(stAS|stS) != 0 && u.S.Ch != nil {
 		if ((u.lbuddy < 0 || u.lbuddy == u.unit) && u.rbuddy == u.unit && u.sigfig > 0) ||
 			(u.rbuddy != u.unit && u.sigfig < 10) ||
 			(u.lbuddy != u.unit && u.lbuddy >= 0 && u.plbuddy.sigfig == 10 && u.sigfig > 0) ||
@@ -697,81 +697,81 @@ func (u *Accumulator) Run() {
 		case <-u.rewiring:
 			u.waitingForRewiring <- 1
 			<-u.rewiring
-		case p = <-u.α:
+		case p = <-u.α.Ch:
 			u.mu.Lock()
 			if u.st1()&stα != 0 {
 				u.receive(p.Val)
 			}
 			u.mu.Unlock()
-		case p = <-u.β:
+		case p = <-u.β.Ch:
 			u.mu.Lock()
 			if u.st1()&stβ != 0 {
 				u.receive(p.Val)
 			}
 			u.mu.Unlock()
-		case p = <-u.γ:
+		case p = <-u.γ.Ch:
 			u.mu.Lock()
 			if u.st1()&stγ != 0 {
 				u.receive(p.Val)
 			}
 			u.mu.Unlock()
-		case p = <-u.δ:
+		case p = <-u.δ.Ch:
 			u.mu.Lock()
 			if u.st1()&stδ != 0 {
 				u.receive(p.Val)
 			}
 			u.mu.Unlock()
-		case p = <-u.ε:
+		case p = <-u.ε.Ch:
 			u.mu.Lock()
 			if u.st1()&stε != 0 {
 				u.receive(p.Val)
 			}
 			u.mu.Unlock()
-		case p = <-u.ctlterm[0]:
+		case p = <-u.ctlterm[0].Ch:
 			if p.Val == 1 {
 				u.trigger(0)
 			}
-		case p = <-u.ctlterm[1]:
+		case p = <-u.ctlterm[1].Ch:
 			if p.Val == 1 {
 				u.trigger(1)
 			}
-		case p = <-u.ctlterm[2]:
+		case p = <-u.ctlterm[2].Ch:
 			if p.Val == 1 {
 				u.trigger(2)
 			}
-		case p = <-u.ctlterm[3]:
+		case p = <-u.ctlterm[3].Ch:
 			if p.Val == 1 {
 				u.trigger(3)
 			}
-		case p = <-u.ctlterm[4]:
+		case p = <-u.ctlterm[4].Ch:
 			if p.Val == 1 {
 				u.trigger(4)
 			}
-		case p = <-u.ctlterm[6]:
+		case p = <-u.ctlterm[6].Ch:
 			if p.Val == 1 {
 				u.trigger(5)
 			}
-		case p = <-u.ctlterm[8]:
+		case p = <-u.ctlterm[8].Ch:
 			if p.Val == 1 {
 				u.trigger(6)
 			}
-		case p = <-u.ctlterm[10]:
+		case p = <-u.ctlterm[10].Ch:
 			if p.Val == 1 {
 				u.trigger(7)
 			}
-		case p = <-u.ctlterm[12]:
+		case p = <-u.ctlterm[12].Ch:
 			if p.Val == 1 {
 				u.trigger(8)
 			}
-		case p = <-u.ctlterm[14]:
+		case p = <-u.ctlterm[14].Ch:
 			if p.Val == 1 {
 				u.trigger(9)
 			}
-		case p = <-u.ctlterm[16]:
+		case p = <-u.ctlterm[16].Ch:
 			if p.Val == 1 {
 				u.trigger(10)
 			}
-		case p = <-u.ctlterm[18]:
+		case p = <-u.ctlterm[18].Ch:
 			if p.Val == 1 {
 				u.trigger(11)
 			}

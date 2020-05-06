@@ -203,17 +203,17 @@ func doPlug(w io.Writer, command string, f []string) {
 		}
 		return
 	}
-	ch := make(chan Pulse)
-	doPlugSide(w, 0, command, f, p1, ch)
-	doPlugSide(w, 1, command, f, p2, ch)
+	wire := NewWire(f[1], f[2])
+	doPlugSide(w, 0, command, f, p1, *wire)
+	doPlugSide(w, 1, command, f, p2, *wire)
 }
 
-func doPlugSide(w io.Writer, side int, command string, f []string, p []string, ch chan Pulse) {
+func doPlugSide(w io.Writer, side int, command string, f []string, p []string, wire Wire) {
 	output := side == 1
 	switch {
 	case p[0] == "ad":
 		if len(p) == 3 {
-			err := adapters.Plug(p[1], p[2], "", ch, output)
+			err := adapters.Plug(p[1], p[2], "", wire, output)
 			if err != nil {
 				fmt.Fprintf(w, "Adapter: %s\n", err)
 			}
@@ -223,7 +223,7 @@ func doPlugSide(w io.Writer, side int, command string, f []string, p []string, c
 			fmt.Fprintln(w, "Adapter jumper syntax: ad.<type>.<id>.param")
 			return
 		}
-		err := adapters.Plug(p[1], p[2], p[3], ch, output)
+		err := adapters.Plug(p[1], p[2], p[3], wire, output)
 		if err != nil {
 			fmt.Fprintf(w, "Adapter: %s\n", err)
 		}
@@ -237,7 +237,7 @@ func doPlugSide(w io.Writer, side int, command string, f []string, p []string, c
 			fmt.Fprintf(w, "Invalid accumulator %s\n", p[0][1:])
 			return
 		}
-		err := accumulator[unit-1].Plug(p[1], ch, output)
+		err := accumulator[unit-1].Plug(p[1], wire)
 		if err != nil {
 			fmt.Fprintf(w, "Accumulator %d: %s\n", unit, err)
 		}
@@ -246,7 +246,7 @@ func doPlugSide(w io.Writer, side int, command string, f []string, p []string, c
 			fmt.Fprintln(w, "Invalid constant jumper:", command)
 			return
 		}
-		err := constant.Plug(p[1], ch, output)
+		err := constant.Plug(p[1], wire)
 		if err != nil {
 			fmt.Fprintf(w, "Constant: %s\n", err)
 		}
@@ -255,7 +255,7 @@ func doPlugSide(w io.Writer, side int, command string, f []string, p []string, c
 			fmt.Fprintln(w, "Divider jumper syntax: d.terminal")
 			return
 		}
-		err := divsr.Plug(p[1], ch, output)
+		err := divsr.Plug(p[1], wire)
 		if err != nil {
 			fmt.Fprintf(w, "Divider: %s\n", err)
 		}
@@ -265,7 +265,7 @@ func doPlugSide(w io.Writer, side int, command string, f []string, p []string, c
 				fmt.Fprintln(w, "Debugger jumper syntax: debug.bpn")
 				return
 			}
-			err := debugger.Plug(p[1], ch, f[1])
+			err := debugger.Plug(p[1], wire, f[1])
 			if err != nil {
 				fmt.Fprintf(w, "Debugger: %s\n", err)
 			}
@@ -280,7 +280,7 @@ func doPlugSide(w io.Writer, side int, command string, f []string, p []string, c
 			fmt.Fprintf(w, "Invalid function table %s\n", p[0][1:])
 			return
 		}
-		err := ft[unit-1].Plug(p[1], ch, output)
+		err := ft[unit-1].Plug(p[1], wire)
 		if err != nil {
 			fmt.Fprintf(w, "Function table %d: %s\n", unit, err)
 		}
@@ -289,7 +289,7 @@ func doPlugSide(w io.Writer, side int, command string, f []string, p []string, c
 			fmt.Fprintln(w, "Initiator jumper syntax: i.terminal")
 			return
 		}
-		err := initiate.Plug(p[1], ch, output)
+		err := initiate.Plug(p[1], wire)
 		if err != nil {
 			fmt.Fprintf(w, "Initiate: %s\n", err)
 		}
@@ -298,17 +298,17 @@ func doPlugSide(w io.Writer, side int, command string, f []string, p []string, c
 			fmt.Fprintln(w, "Multiplier jumper syntax: m.terminal")
 			return
 		}
-		err := multiplier.Plug(p[1], ch, output)
+		err := multiplier.Plug(p[1], wire)
 		if err != nil {
 			fmt.Fprintf(w, "Multiplier: %s\n", err)
 		}
 	case p[0] == "p":
-		err := mp.Plug(p[1], ch, output)
+		err := mp.Plug(p[1], wire)
 		if err != nil {
 			fmt.Fprintf(w, "Programmer: %s\n", err)
 		}
 	case unicode.IsDigit(rune(p[0][0])):
-		err := trays.Plug(p[0], ch, output)
+		err := trays.Plug(p[0], wire, output)
 		if err != nil {
 			fmt.Fprintf(w, "Trays: %s\n", err)
 		}

@@ -1,9 +1,5 @@
 package lib
 
-import (
-	"fmt"
-)
-
 func ToBin(b bool) string {
 	if b {
 		return "1"
@@ -13,11 +9,4 @@ func ToBin(b bool) string {
 
 func MsToAddCycles(ms int) int {
 	return ms * 5000 / 1000
-}
-
-func SafePlug(jackName string, jack *chan Pulse, ch chan Pulse, output bool) {
-	if *jack != nil && output {
-		fmt.Printf("warning: multiple connections on output %s\n", jackName)
-	}
-	*jack = ch
 }

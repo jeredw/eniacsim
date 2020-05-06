@@ -13,10 +13,10 @@ import (
 type Multiplier struct {
 	Io MultiplierConn
 
-	multin, multout                                       [24]chan Pulse
-	R, D                                                  [5]chan Pulse
-	A, S, AS, AC, SC, ASC, RS, DS, F                      chan Pulse
-	lhppI, lhppII, rhppI, rhppII                          chan Pulse
+	multin, multout                                       [24]Wire
+	R, D                                                  [5]Wire
+	A, S, AS, AC, SC, ASC, RS, DS, F                      Wire
+	lhppI, lhppII, rhppI, rhppII                          Wire
 	stage                                                 int
 	multff                                                [24]bool
 	iersw, iercl, icandsw, icandcl, sigsw, placsw, prodsw [24]int
@@ -154,8 +154,8 @@ func (u *Multiplier) Reset() {
 	u.rewiring <- 1
 	<-u.waitingForRewiring
 	for i := 0; i < 24; i++ {
-		u.multin[i] = nil
-		u.multout[i] = nil
+		u.multin[i] = Wire{}
+		u.multout[i] = Wire{}
 		u.multff[i] = false
 		u.iersw[i] = 0
 		u.iercl[i] = 0
@@ -166,22 +166,22 @@ func (u *Multiplier) Reset() {
 		u.prodsw[i] = 0
 	}
 	for i := 0; i < 5; i++ {
-		u.R[i] = nil
-		u.D[i] = nil
+		u.R[i] = Wire{}
+		u.D[i] = Wire{}
 	}
-	u.A = nil
-	u.S = nil
-	u.AS = nil
-	u.AC = nil
-	u.SC = nil
-	u.ASC = nil
-	u.RS = nil
-	u.DS = nil
-	u.F = nil
-	u.lhppI = nil
-	u.lhppII = nil
-	u.rhppI = nil
-	u.rhppII = nil
+	u.A = Wire{}
+	u.S = Wire{}
+	u.AS = Wire{}
+	u.AC = Wire{}
+	u.SC = Wire{}
+	u.ASC = Wire{}
+	u.RS = Wire{}
+	u.DS = Wire{}
+	u.F = Wire{}
+	u.lhppI = Wire{}
+	u.lhppII = Wire{}
+	u.rhppI = Wire{}
+	u.rhppII = Wire{}
 	u.stage = 0
 	u.reset1ff = false
 	u.reset3ff = false
@@ -192,7 +192,7 @@ func (u *Multiplier) Reset() {
 	u.rewiring <- 1
 }
 
-func (u *Multiplier) Plug(jack string, ch chan Pulse, output bool) error {
+func (u *Multiplier) Plug(jack string, wire Wire) error {
 	if len(jack) == 0 {
 		return fmt.Errorf("invalid jack")
 	}
@@ -201,54 +201,53 @@ func (u *Multiplier) Plug(jack string, ch chan Pulse, output bool) error {
 	defer func() { u.rewiring <- 1 }()
 	u.mu.Lock()
 	defer u.mu.Unlock()
-	name := "m." + jack
 	switch jack {
 	case "Rα", "Ra", "rα", "ra":
-		SafePlug(name, &u.R[0], ch, output)
+		Plug(&u.R[0], wire)
 	case "Rβ", "Rb", "rβ", "rb":
-		SafePlug(name, &u.R[1], ch, output)
+		Plug(&u.R[1], wire)
 	case "Rγ", "Rg", "rγ", "rg":
-		SafePlug(name, &u.R[2], ch, output)
+		Plug(&u.R[2], wire)
 	case "Rδ", "Rd", "rδ", "rd":
-		SafePlug(name, &u.R[3], ch, output)
+		Plug(&u.R[3], wire)
 	case "Rε", "Re", "rε", "re":
-		SafePlug(name, &u.R[4], ch, output)
+		Plug(&u.R[4], wire)
 	case "Dα", "Da", "dα", "da":
-		SafePlug(name, &u.D[0], ch, output)
+		Plug(&u.D[0], wire)
 	case "Dβ", "Db", "dβ", "db":
-		SafePlug(name, &u.D[1], ch, output)
+		Plug(&u.D[1], wire)
 	case "Dγ", "Dg", "dγ", "dg":
-		SafePlug(name, &u.D[2], ch, output)
+		Plug(&u.D[2], wire)
 	case "Dδ", "Dd", "dδ", "dd":
-		SafePlug(name, &u.D[3], ch, output)
+		Plug(&u.D[3], wire)
 	case "Dε", "De", "dε", "de":
-		SafePlug(name, &u.D[4], ch, output)
+		Plug(&u.D[4], wire)
 	case "A", "a":
-		SafePlug(name, &u.A, ch, output)
+		Plug(&u.A, wire)
 	case "S", "s":
-		SafePlug(name, &u.S, ch, output)
+		Plug(&u.S, wire)
 	case "AS", "as":
-		SafePlug(name, &u.AS, ch, output)
+		Plug(&u.AS, wire)
 	case "AC", "ac":
-		SafePlug(name, &u.AC, ch, output)
+		Plug(&u.AC, wire)
 	case "SC", "sc":
-		SafePlug(name, &u.SC, ch, output)
+		Plug(&u.SC, wire)
 	case "ASC", "asc":
-		SafePlug(name, &u.ASC, ch, output)
+		Plug(&u.ASC, wire)
 	case "RS", "rs":
-		SafePlug(name, &u.RS, ch, output)
+		Plug(&u.RS, wire)
 	case "DS", "ds":
-		SafePlug(name, &u.DS, ch, output)
+		Plug(&u.DS, wire)
 	case "F", "f":
-		SafePlug(name, &u.F, ch, output)
+		Plug(&u.F, wire)
 	case "LHPPI", "lhppi", "lhppI":
-		SafePlug(name, &u.lhppI, ch, output)
+		Plug(&u.lhppI, wire)
 	case "LHPPII", "lhppii", "lhppII":
-		SafePlug(name, &u.lhppII, ch, output)
+		Plug(&u.lhppII, wire)
 	case "RHPPI", "rhppi", "rhppI":
-		SafePlug(name, &u.rhppI, ch, output)
+		Plug(&u.rhppI, wire)
 	case "RHPPII", "rhppii", "rhppII":
-		SafePlug(name, &u.rhppII, ch, output)
+		Plug(&u.rhppII, wire)
 	default:
 		prog, err := strconv.Atoi(jack[:len(jack)-1])
 		if err != nil {
@@ -259,9 +258,9 @@ func (u *Multiplier) Plug(jack string, ch chan Pulse, output bool) error {
 		}
 		switch jack[len(jack)-1] {
 		case 'i':
-			SafePlug(name, &u.multin[prog-1], ch, output)
+			Plug(&u.multin[prog-1], wire)
 		case 'o':
-			SafePlug(name, &u.multout[prog-1], ch, output)
+			Plug(&u.multout[prog-1], wire)
 		default:
 			return fmt.Errorf("invalid jack %s", jack)
 		}
@@ -344,28 +343,28 @@ func (u *Multiplier) GetSwitch(name string) (string, error) {
 }
 
 func (u *Multiplier) shiftprod(lhpp, rhpp int, resp1, resp2, resp3, resp4 chan int) {
-	if u.lhppI != nil && lhpp != 0 {
-		u.lhppI <- Pulse{lhpp >> uint(u.stage-2), resp1}
+	if u.lhppI.Ch != nil && lhpp != 0 {
+		u.lhppI.Ch <- Pulse{lhpp >> uint(u.stage-2), resp1}
 	}
-	if u.lhppII != nil && lhpp != 0 {
-		u.lhppII <- Pulse{(lhpp << uint(12-u.stage)) & 0x3ff, resp2}
+	if u.lhppII.Ch != nil && lhpp != 0 {
+		u.lhppII.Ch <- Pulse{(lhpp << uint(12-u.stage)) & 0x3ff, resp2}
 	}
-	if u.rhppI != nil && rhpp != 0 {
-		u.rhppI <- Pulse{rhpp >> uint(u.stage-1), resp3}
+	if u.rhppI.Ch != nil && rhpp != 0 {
+		u.rhppI.Ch <- Pulse{rhpp >> uint(u.stage-1), resp3}
 	}
-	if u.rhppII != nil && rhpp != 0 {
-		u.rhppII <- Pulse{(rhpp << uint(11-u.stage)) & 0x3ff, resp4}
+	if u.rhppII.Ch != nil && rhpp != 0 {
+		u.rhppII.Ch <- Pulse{(rhpp << uint(11-u.stage)) & 0x3ff, resp4}
 	}
-	if u.lhppI != nil && lhpp != 0 {
+	if u.lhppI.Ch != nil && lhpp != 0 {
 		<-resp1
 	}
-	if u.lhppII != nil && lhpp != 0 {
+	if u.lhppII.Ch != nil && lhpp != 0 {
 		<-resp2
 	}
-	if u.rhppI != nil && rhpp != 0 {
+	if u.rhppI.Ch != nil && rhpp != 0 {
 		<-resp3
 	}
-	if u.rhppII != nil && rhpp != 0 {
+	if u.rhppII.Ch != nil && rhpp != 0 {
 		<-resp4
 	}
 }
@@ -456,15 +455,15 @@ func (u *Multiplier) clock(c Pulse, resp1, resp2, resp3, resp4 chan int) {
 				u.sigfig = u.sigsw[i]
 			}
 		}
-		if u.sigfig == 0 && u.lhppII != nil {
+		if u.sigfig == 0 && u.lhppII.Ch != nil {
 			Handshake(1<<10, u.lhppII, resp1)
-		} else if u.sigfig > 0 && u.sigfig < 9 && u.lhppI != nil {
+		} else if u.sigfig > 0 && u.sigfig < 9 && u.lhppI.Ch != nil {
 			Handshake(1<<uint(u.sigfig-1), u.lhppI, resp1)
 		}
 	case c.Val&Fourp != 0 && u.stage == 1:
-		if u.sigfig == 0 && u.lhppII != nil {
+		if u.sigfig == 0 && u.lhppII.Ch != nil {
 			Handshake(1<<10, u.lhppII, resp1)
-		} else if u.sigfig > 0 && u.sigfig < 9 && u.lhppI != nil {
+		} else if u.sigfig > 0 && u.sigfig < 9 && u.lhppI.Ch != nil {
 			Handshake(1<<uint(u.sigfig-1), u.lhppI, resp1)
 		}
 	case c.Val&Onep != 0 && u.stage >= 2 && u.stage < 12:
@@ -558,16 +557,16 @@ func (u *Multiplier) multargs(prog int) {
 	resp2 := make(chan int)
 	ier := u.iersw[prog]
 	icand := u.icandsw[prog]
-	if ier < 5 && u.R[ier] != nil {
-		u.R[ier] <- Pulse{1, resp1}
+	if ier < 5 && u.R[ier].Ch != nil {
+		u.R[ier].Ch <- Pulse{1, resp1}
 	}
-	if icand < 5 && u.D[icand] != nil {
-		u.D[icand] <- Pulse{1, resp2}
+	if icand < 5 && u.D[icand].Ch != nil {
+		u.D[icand].Ch <- Pulse{1, resp2}
 	}
-	if ier < 5 && u.R[ier] != nil {
+	if ier < 5 && u.R[ier].Ch != nil {
 		<-resp1
 	}
-	if icand < 5 && u.D[icand] != nil {
+	if icand < 5 && u.D[icand].Ch != nil {
 		<-resp2
 	}
 	u.multff[prog] = true
@@ -583,53 +582,53 @@ func (u *Multiplier) Run() {
 		case <-u.rewiring:
 			u.waitingForRewiring <- 1
 			<-u.rewiring
-		case p = <-u.multin[0]:
+		case p = <-u.multin[0].Ch:
 			u.multargs(0)
-		case p = <-u.multin[1]:
+		case p = <-u.multin[1].Ch:
 			u.multargs(1)
-		case p = <-u.multin[2]:
+		case p = <-u.multin[2].Ch:
 			u.multargs(2)
-		case p = <-u.multin[3]:
+		case p = <-u.multin[3].Ch:
 			u.multargs(3)
-		case p = <-u.multin[4]:
+		case p = <-u.multin[4].Ch:
 			u.multargs(4)
-		case p = <-u.multin[5]:
+		case p = <-u.multin[5].Ch:
 			u.multargs(5)
-		case p = <-u.multin[6]:
+		case p = <-u.multin[6].Ch:
 			u.multargs(6)
-		case p = <-u.multin[7]:
+		case p = <-u.multin[7].Ch:
 			u.multargs(7)
-		case p = <-u.multin[8]:
+		case p = <-u.multin[8].Ch:
 			u.multargs(8)
-		case p = <-u.multin[9]:
+		case p = <-u.multin[9].Ch:
 			u.multargs(9)
-		case p = <-u.multin[10]:
+		case p = <-u.multin[10].Ch:
 			u.multargs(10)
-		case p = <-u.multin[11]:
+		case p = <-u.multin[11].Ch:
 			u.multargs(11)
-		case p = <-u.multin[12]:
+		case p = <-u.multin[12].Ch:
 			u.multargs(12)
-		case p = <-u.multin[13]:
+		case p = <-u.multin[13].Ch:
 			u.multargs(13)
-		case p = <-u.multin[14]:
+		case p = <-u.multin[14].Ch:
 			u.multargs(14)
-		case p = <-u.multin[15]:
+		case p = <-u.multin[15].Ch:
 			u.multargs(15)
-		case p = <-u.multin[16]:
+		case p = <-u.multin[16].Ch:
 			u.multargs(16)
-		case p = <-u.multin[17]:
+		case p = <-u.multin[17].Ch:
 			u.multargs(17)
-		case p = <-u.multin[18]:
+		case p = <-u.multin[18].Ch:
 			u.multargs(18)
-		case p = <-u.multin[19]:
+		case p = <-u.multin[19].Ch:
 			u.multargs(19)
-		case p = <-u.multin[20]:
+		case p = <-u.multin[20].Ch:
 			u.multargs(20)
-		case p = <-u.multin[21]:
+		case p = <-u.multin[21].Ch:
 			u.multargs(21)
-		case p = <-u.multin[22]:
+		case p = <-u.multin[22].Ch:
 			u.multargs(22)
-		case p = <-u.multin[23]:
+		case p = <-u.multin[23].Ch:
 			u.multargs(23)
 		}
 		if p.Resp != nil {

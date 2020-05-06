@@ -36,8 +36,8 @@ const (
 type Divsr struct {
 	Io DivsrConn
 
-	progin, progout, ilock                                                     [8]chan Pulse
-	answer                                                                     chan Pulse
+	progin, progout, ilock                                                     [8]Wire
+	answer                                                                     Wire
 	numarg, denarg, roundoff, places, ilocksw, anssw                           [8]int
 	numcl, dencl                                                               [8]bool
 	preff, progff                                                              [8]bool
@@ -238,9 +238,9 @@ func (u *Divsr) Reset() {
 	u.rewiring <- 1
 	<-u.waitingForRewiring
 	for i := 0; i < 8; i++ {
-		u.progin[i] = nil
-		u.progout[i] = nil
-		u.ilock[i] = nil
+		u.progin[i] = Wire{}
+		u.progout[i] = Wire{}
+		u.ilock[i] = Wire{}
 		u.numarg[i] = 0
 		u.numcl[i] = false
 		u.denarg[i] = 0
@@ -252,7 +252,7 @@ func (u *Divsr) Reset() {
 		u.preff[i] = false
 		u.progff[i] = false
 	}
-	u.answer = nil
+	u.answer = Wire{}
 	u.divff = false
 	u.ilockff = false
 	u.ans1 = false
@@ -308,16 +308,15 @@ func (u *Divsr) intclear() {
 	u.dβ = false
 }
 
-func (u *Divsr) Plug(jack string, ch chan Pulse, output bool) error {
+func (u *Divsr) Plug(jack string, wire Wire) error {
 	u.rewiring <- 1
 	<-u.waitingForRewiring
 	defer func() { u.rewiring <- 1 }()
 	u.mu.Lock()
 	defer u.mu.Unlock()
 
-	name := "d." + jack
 	if jack == "ans" || jack == "ANS" {
-		SafePlug(name, &u.answer, ch, output)
+		Plug(&u.answer, wire)
 	} else {
 		var prog int
 		var ilk rune
@@ -327,11 +326,11 @@ func (u *Divsr) Plug(jack string, ch chan Pulse, output bool) error {
 		}
 		switch ilk {
 		case 'i':
-			SafePlug(name, &u.progin[prog-1], ch, output)
+			Plug(&u.progin[prog-1], wire)
 		case 'o':
-			SafePlug(name, &u.progout[prog-1], ch, output)
+			Plug(&u.progout[prog-1], wire)
 		case 'l':
-			SafePlug(name, &u.ilock[prog-1], ch, output)
+			Plug(&u.ilock[prog-1], wire)
 		default:
 			return fmt.Errorf("invalid jack %s", jack)
 		}
@@ -794,37 +793,37 @@ func (u *Divsr) readInputs() {
 		case <-u.rewiring:
 			u.waitingForRewiring <- 1
 			<-u.rewiring
-		case p = <-u.progin[0]:
+		case p = <-u.progin[0].Ch:
 			u.divargs(0)
-		case p = <-u.progin[1]:
+		case p = <-u.progin[1].Ch:
 			u.divargs(1)
-		case p = <-u.progin[2]:
+		case p = <-u.progin[2].Ch:
 			u.divargs(2)
-		case p = <-u.progin[3]:
+		case p = <-u.progin[3].Ch:
 			u.divargs(3)
-		case p = <-u.progin[4]:
+		case p = <-u.progin[4].Ch:
 			u.divargs(4)
-		case p = <-u.progin[5]:
+		case p = <-u.progin[5].Ch:
 			u.divargs(5)
-		case p = <-u.progin[6]:
+		case p = <-u.progin[6].Ch:
 			u.divargs(6)
-		case p = <-u.progin[7]:
+		case p = <-u.progin[7].Ch:
 			u.divargs(7)
-		case p = <-u.ilock[0]:
+		case p = <-u.ilock[0].Ch:
 			u.interlock()
-		case p = <-u.ilock[1]:
+		case p = <-u.ilock[1].Ch:
 			u.interlock()
-		case p = <-u.ilock[2]:
+		case p = <-u.ilock[2].Ch:
 			u.interlock()
-		case p = <-u.ilock[3]:
+		case p = <-u.ilock[3].Ch:
 			u.interlock()
-		case p = <-u.ilock[4]:
+		case p = <-u.ilock[4].Ch:
 			u.interlock()
-		case p = <-u.ilock[5]:
+		case p = <-u.ilock[5].Ch:
 			u.interlock()
-		case p = <-u.ilock[6]:
+		case p = <-u.ilock[6].Ch:
 			u.interlock()
-		case p = <-u.ilock[7]:
+		case p = <-u.ilock[7].Ch:
 			u.interlock()
 		}
 		if p.Resp != nil {

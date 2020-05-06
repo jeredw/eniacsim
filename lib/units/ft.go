@@ -11,7 +11,7 @@ import (
 
 // Simulates an ENIAC function table unit.
 type Ft struct {
-	jack [27]chan Pulse
+	jack [27]Wire
 
 	unit int
 
@@ -114,7 +114,7 @@ func (u *Ft) Reset() {
 	u.mu.Lock()
 	defer u.mu.Unlock()
 	for i := range u.jack {
-		u.jack[i] = nil
+		u.jack[i] = Wire{}
 	}
 	for i := range u.inff1 {
 		u.inff1[i] = false
@@ -148,25 +148,24 @@ func (u *Ft) Reset() {
 	u.px4119 = false
 }
 
-func (u *Ft) Plug(jack string, ch chan Pulse, output bool) error {
+func (u *Ft) Plug(jack string, wire Wire) error {
 	u.rewiring <- 1
 	<-u.waitingForRewiring
 	defer func() { u.rewiring <- 1 }()
 	u.mu.Lock()
 	defer u.mu.Unlock()
 
-	name := "ft" + strconv.Itoa(u.unit+1) + "." + jack
 	switch jack {
 	case "arg", "ARG":
-		SafePlug(name, &u.jack[0], ch, output)
+		Plug(&u.jack[0], wire)
 	case "A":
-		SafePlug(name, &u.jack[1], ch, output)
+		Plug(&u.jack[1], wire)
 	case "B":
-		SafePlug(name, &u.jack[2], ch, output)
+		Plug(&u.jack[2], wire)
 	case "NC":
-		SafePlug(name, &u.jack[3], ch, output)
+		Plug(&u.jack[3], wire)
 	case "C":
-		SafePlug(name, &u.jack[4], ch, output)
+		Plug(&u.jack[4], wire)
 	default:
 		jacks := [22]string{
 			"1i", "1o", "2i", "2o", "3i", "3o", "4i", "4o",
@@ -175,11 +174,11 @@ func (u *Ft) Plug(jack string, ch chan Pulse, output bool) error {
 		}
 		for i, j := range jacks {
 			if j == jack {
-				SafePlug(name, &u.jack[i+5], ch, output)
+				Plug(&u.jack[i+5], wire)
 				return nil
 			}
 		}
-		return fmt.Errorf("invalid jack %s", name)
+		return fmt.Errorf("invalid jack %s", jack)
 	}
 	return nil
 }
@@ -679,29 +678,29 @@ func (u *Ft) Run() {
 		case <-u.rewiring:
 			u.waitingForRewiring <- 1
 			<-u.rewiring
-		case p = <-u.jack[5]:
+		case p = <-u.jack[5].Ch:
 			u.trigger(0)
-		case p = <-u.jack[7]:
+		case p = <-u.jack[7].Ch:
 			u.trigger(1)
-		case p = <-u.jack[9]:
+		case p = <-u.jack[9].Ch:
 			u.trigger(2)
-		case p = <-u.jack[11]:
+		case p = <-u.jack[11].Ch:
 			u.trigger(3)
-		case p = <-u.jack[13]:
+		case p = <-u.jack[13].Ch:
 			u.trigger(4)
-		case p = <-u.jack[15]:
+		case p = <-u.jack[15].Ch:
 			u.trigger(5)
-		case p = <-u.jack[17]:
+		case p = <-u.jack[17].Ch:
 			u.trigger(6)
-		case p = <-u.jack[19]:
+		case p = <-u.jack[19].Ch:
 			u.trigger(7)
-		case p = <-u.jack[21]:
+		case p = <-u.jack[21].Ch:
 			u.trigger(8)
-		case p = <-u.jack[23]:
+		case p = <-u.jack[23].Ch:
 			u.trigger(9)
-		case p = <-u.jack[25]:
+		case p = <-u.jack[25].Ch:
 			u.trigger(10)
-		case p = <-u.jack[0]:
+		case p = <-u.jack[0].Ch:
 			u.mu.Lock()
 			if u.gateh42 {
 				if p.Val&0x01 != 0 {

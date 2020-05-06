@@ -25,8 +25,8 @@ type Mp struct {
 
 type mpStepper struct {
 	stage      int // Stage counter (0..5)
-	di, i, cdi chan Pulse
-	o          [6]chan Pulse
+	di, i, cdi Wire
+	o          [6]Wire
 	csw        int
 	inff       int
 	kludge     bool
@@ -46,10 +46,10 @@ func (s *mpStepper) increment() {
 }
 
 type mpDecade struct {
-	val   int        // Counter (one digit)
-	carry bool       // Carry out from counter
-	di    chan Pulse // Advance counter
-	limit [6]int     // Per-stage max value for counter
+	val   int    // Counter (one digit)
+	carry bool   // Carry out from counter
+	di    Wire   // Advance counter
+	limit [6]int // Per-stage max value for counter
 }
 
 func (d *mpDecade) increment() {
@@ -129,17 +129,17 @@ func (u *Mp) Reset() {
 	<-u.waitingForRewiring
 	u.mu.Lock()
 	for i := range u.decade {
-		u.decade[i].di = nil
+		u.decade[i].di = Wire{}
 		for j := range u.decade[i].limit {
 			u.decade[i].limit[j] = 0
 		}
 	}
 	for i := range u.stepper {
-		u.stepper[i].di = nil
-		u.stepper[i].i = nil
-		u.stepper[i].cdi = nil
+		u.stepper[i].di = Wire{}
+		u.stepper[i].i = Wire{}
+		u.stepper[i].cdi = Wire{}
 		for j := range u.stepper[i].o {
-			u.stepper[i].o[j] = nil
+			u.stepper[i].o[j] = Wire{}
 		}
 		u.stepper[i].csw = 0
 		u.stepper[i].kludge = false
@@ -167,7 +167,7 @@ func (u *Mp) Clear() {
 }
 
 // Plug connects channel ch to the specified jack.
-func (u *Mp) Plug(jack string, ch chan Pulse, output bool) error {
+func (u *Mp) Plug(jack string, wire Wire) error {
 	if len(jack) == 0 {
 		return fmt.Errorf("invalid jack")
 	}
@@ -177,13 +177,12 @@ func (u *Mp) Plug(jack string, ch chan Pulse, output bool) error {
 	u.mu.Lock()
 	defer u.mu.Unlock()
 	var n int
-	name := "p." + jack
 	if unicode.IsDigit(rune(jack[0])) {
 		fmt.Sscanf(jack, "%ddi", &n)
 		if !(n >= 1 && n <= 20) {
 			return fmt.Errorf("invalid decade %s", jack)
 		}
-		SafePlug(name, &u.decade[20-n].di, ch, output)
+		Plug(&u.decade[20-n].di, wire)
 	} else {
 		s := stepperNameToIndex(jack[0])
 		if s == -1 {
@@ -194,11 +193,11 @@ func (u *Mp) Plug(jack string, ch chan Pulse, output bool) error {
 		}
 		switch jack[1:] {
 		case "di":
-			SafePlug(name, &u.stepper[s].di, ch, output)
+			Plug(&u.stepper[s].di, wire)
 		case "i":
-			SafePlug(name, &u.stepper[s].i, ch, output)
+			Plug(&u.stepper[s].i, wire)
 		case "cdi":
-			SafePlug(name, &u.stepper[s].cdi, ch, output)
+			Plug(&u.stepper[s].cdi, wire)
 		default:
 			if len(jack) < 3 {
 				return fmt.Errorf("invalid jack %s", jack)
@@ -208,7 +207,7 @@ func (u *Mp) Plug(jack string, ch chan Pulse, output bool) error {
 				return fmt.Errorf("invalid output %s", jack)
 			}
 			u.outputMu.Lock()
-			SafePlug(name, &u.stepper[s].o[n-1], ch, output)
+			Plug(&u.stepper[s].o[n-1], wire)
 			u.outputMu.Unlock()
 		}
 	}
@@ -491,203 +490,203 @@ func (u *Mp) Run() {
 		case <-u.rewiring:
 			u.waitingForRewiring <- 1
 			<-u.rewiring
-		case p = <-u.decade[0].di:
+		case p = <-u.decade[0].di.Ch:
 			u.mu.Lock()
 			u.decade[0].increment()
 			u.mu.Unlock()
-		case p = <-u.decade[1].di:
+		case p = <-u.decade[1].di.Ch:
 			u.mu.Lock()
 			u.decade[1].increment()
 			u.mu.Unlock()
-		case p = <-u.decade[2].di:
+		case p = <-u.decade[2].di.Ch:
 			u.mu.Lock()
 			u.decade[2].increment()
 			u.mu.Unlock()
-		case p = <-u.decade[3].di:
+		case p = <-u.decade[3].di.Ch:
 			u.mu.Lock()
 			u.decade[3].increment()
 			u.mu.Unlock()
-		case p = <-u.decade[4].di:
+		case p = <-u.decade[4].di.Ch:
 			u.mu.Lock()
 			u.decade[4].increment()
 			u.mu.Unlock()
-		case p = <-u.decade[5].di:
+		case p = <-u.decade[5].di.Ch:
 			u.mu.Lock()
 			u.decade[5].increment()
 			u.mu.Unlock()
-		case p = <-u.decade[6].di:
+		case p = <-u.decade[6].di.Ch:
 			u.mu.Lock()
 			u.decade[6].increment()
 			u.mu.Unlock()
-		case p = <-u.decade[7].di:
+		case p = <-u.decade[7].di.Ch:
 			u.mu.Lock()
 			u.decade[7].increment()
 			u.mu.Unlock()
-		case p = <-u.decade[8].di:
+		case p = <-u.decade[8].di.Ch:
 			u.mu.Lock()
 			u.decade[8].increment()
 			u.mu.Unlock()
-		case p = <-u.decade[9].di:
+		case p = <-u.decade[9].di.Ch:
 			u.mu.Lock()
 			u.decade[9].increment()
 			u.mu.Unlock()
-		case p = <-u.decade[10].di:
+		case p = <-u.decade[10].di.Ch:
 			u.mu.Lock()
 			u.decade[10].increment()
 			u.mu.Unlock()
-		case p = <-u.decade[11].di:
+		case p = <-u.decade[11].di.Ch:
 			u.mu.Lock()
 			u.decade[11].increment()
 			u.mu.Unlock()
-		case p = <-u.decade[12].di:
+		case p = <-u.decade[12].di.Ch:
 			u.mu.Lock()
 			u.decade[12].increment()
 			u.mu.Unlock()
-		case p = <-u.decade[13].di:
+		case p = <-u.decade[13].di.Ch:
 			u.mu.Lock()
 			u.decade[13].increment()
 			u.mu.Unlock()
-		case p = <-u.decade[14].di:
+		case p = <-u.decade[14].di.Ch:
 			u.mu.Lock()
 			u.decade[14].increment()
 			u.mu.Unlock()
-		case p = <-u.decade[15].di:
+		case p = <-u.decade[15].di.Ch:
 			u.mu.Lock()
 			u.decade[15].increment()
 			u.mu.Unlock()
-		case p = <-u.decade[16].di:
+		case p = <-u.decade[16].di.Ch:
 			u.mu.Lock()
 			u.decade[16].increment()
 			u.mu.Unlock()
-		case p = <-u.decade[17].di:
+		case p = <-u.decade[17].di.Ch:
 			u.mu.Lock()
 			u.decade[17].increment()
 			u.mu.Unlock()
-		case p = <-u.decade[18].di:
+		case p = <-u.decade[18].di.Ch:
 			u.mu.Lock()
 			u.decade[18].increment()
 			u.mu.Unlock()
-		case p = <-u.decade[19].di:
+		case p = <-u.decade[19].di.Ch:
 			u.mu.Lock()
 			u.decade[19].increment()
 			u.mu.Unlock()
-		case p = <-u.stepper[0].di:
+		case p = <-u.stepper[0].di.Ch:
 			u.mu.Lock()
 			u.stepper[0].increment()
 			u.mu.Unlock()
-		case p = <-u.stepper[0].i:
+		case p = <-u.stepper[0].i.Ch:
 			u.mu.Lock()
 			u.stepper[0].inff = 1
 			u.mu.Unlock()
-		case p = <-u.stepper[0].cdi:
+		case p = <-u.stepper[0].cdi.Ch:
 			u.mu.Lock()
 			u.stepper[0].stage = 0
 			u.mu.Unlock()
-		case p = <-u.stepper[1].di:
+		case p = <-u.stepper[1].di.Ch:
 			u.mu.Lock()
 			u.stepper[1].increment()
 			u.mu.Unlock()
-		case p = <-u.stepper[1].i:
+		case p = <-u.stepper[1].i.Ch:
 			u.mu.Lock()
 			u.stepper[1].inff = 1
 			u.mu.Unlock()
-		case p = <-u.stepper[1].cdi:
+		case p = <-u.stepper[1].cdi.Ch:
 			u.mu.Lock()
 			u.stepper[1].stage = 0
 			u.mu.Unlock()
-		case p = <-u.stepper[2].di:
+		case p = <-u.stepper[2].di.Ch:
 			u.mu.Lock()
 			u.stepper[2].increment()
 			u.mu.Unlock()
-		case p = <-u.stepper[2].i:
+		case p = <-u.stepper[2].i.Ch:
 			u.mu.Lock()
 			u.stepper[2].inff = 1
 			u.mu.Unlock()
-		case p = <-u.stepper[2].cdi:
+		case p = <-u.stepper[2].cdi.Ch:
 			u.mu.Lock()
 			u.stepper[2].stage = 0
 			u.mu.Unlock()
-		case p = <-u.stepper[3].di:
+		case p = <-u.stepper[3].di.Ch:
 			u.mu.Lock()
 			u.stepper[3].increment()
 			u.mu.Unlock()
-		case p = <-u.stepper[3].i:
+		case p = <-u.stepper[3].i.Ch:
 			u.mu.Lock()
 			u.stepper[3].inff = 1
 			u.mu.Unlock()
-		case p = <-u.stepper[3].cdi:
+		case p = <-u.stepper[3].cdi.Ch:
 			u.mu.Lock()
 			u.stepper[3].stage = 0
 			u.mu.Unlock()
-		case p = <-u.stepper[4].di:
+		case p = <-u.stepper[4].di.Ch:
 			u.mu.Lock()
 			u.stepper[4].increment()
 			u.mu.Unlock()
-		case p = <-u.stepper[4].i:
+		case p = <-u.stepper[4].i.Ch:
 			u.mu.Lock()
 			u.stepper[4].inff = 1
 			u.mu.Unlock()
-		case p = <-u.stepper[4].cdi:
+		case p = <-u.stepper[4].cdi.Ch:
 			u.mu.Lock()
 			u.stepper[4].stage = 0
 			u.mu.Unlock()
-		case p = <-u.stepper[5].di:
+		case p = <-u.stepper[5].di.Ch:
 			u.mu.Lock()
 			u.stepper[5].increment()
 			u.mu.Unlock()
-		case p = <-u.stepper[5].i:
+		case p = <-u.stepper[5].i.Ch:
 			u.mu.Lock()
 			u.stepper[5].inff = 1
 			u.mu.Unlock()
-		case p = <-u.stepper[5].cdi:
+		case p = <-u.stepper[5].cdi.Ch:
 			u.mu.Lock()
 			u.stepper[5].stage = 0
 			u.mu.Unlock()
-		case p = <-u.stepper[6].di:
+		case p = <-u.stepper[6].di.Ch:
 			u.mu.Lock()
 			u.stepper[6].increment()
 			u.mu.Unlock()
-		case p = <-u.stepper[6].i:
+		case p = <-u.stepper[6].i.Ch:
 			u.mu.Lock()
 			u.stepper[6].inff = 1
 			u.mu.Unlock()
-		case p = <-u.stepper[6].cdi:
+		case p = <-u.stepper[6].cdi.Ch:
 			u.mu.Lock()
 			u.stepper[6].stage = 0
 			u.mu.Unlock()
-		case p = <-u.stepper[7].di:
+		case p = <-u.stepper[7].di.Ch:
 			u.mu.Lock()
 			u.stepper[7].increment()
 			u.mu.Unlock()
-		case p = <-u.stepper[7].i:
+		case p = <-u.stepper[7].i.Ch:
 			u.mu.Lock()
 			u.stepper[7].inff = 1
 			u.mu.Unlock()
-		case p = <-u.stepper[7].cdi:
+		case p = <-u.stepper[7].cdi.Ch:
 			u.mu.Lock()
 			u.stepper[7].stage = 0
 			u.mu.Unlock()
-		case p = <-u.stepper[8].di:
+		case p = <-u.stepper[8].di.Ch:
 			u.mu.Lock()
 			u.stepper[8].increment()
 			u.mu.Unlock()
-		case p = <-u.stepper[8].i:
+		case p = <-u.stepper[8].i.Ch:
 			u.mu.Lock()
 			u.stepper[8].inff = 1
 			u.mu.Unlock()
-		case p = <-u.stepper[8].cdi:
+		case p = <-u.stepper[8].cdi.Ch:
 			u.mu.Lock()
 			u.stepper[8].stage = 0
 			u.mu.Unlock()
-		case p = <-u.stepper[9].di:
+		case p = <-u.stepper[9].di.Ch:
 			u.mu.Lock()
 			u.stepper[9].increment()
 			u.mu.Unlock()
-		case p = <-u.stepper[9].i:
+		case p = <-u.stepper[9].i.Ch:
 			u.mu.Lock()
 			u.stepper[9].inff = 1
 			u.mu.Unlock()
-		case p = <-u.stepper[9].cdi:
+		case p = <-u.stepper[9].cdi.Ch:
 			u.mu.Lock()
 			u.stepper[9].stage = 0
 			u.mu.Unlock()

@@ -20,8 +20,8 @@ type Trays struct {
 
 // trunk relays messages from N sender channels to M receiver channels.
 type trunk struct {
-	sender   [16]chan Pulse
-	receiver []chan Pulse
+	sender   [16]Wire
+	receiver []Wire
 	started  bool
 
 	rewiring           chan int
@@ -43,7 +43,7 @@ func (t *Trays) Reset() {
 	}
 }
 
-func (t *Trays) Plug(name string, ch chan Pulse, output bool) error {
+func (t *Trays) Plug(name string, wire Wire, output bool) error {
 	dash := strings.IndexByte(name, '-')
 	if dash == -1 {
 		tray, _ := strconv.Atoi(name)
@@ -52,9 +52,9 @@ func (t *Trays) Plug(name string, ch chan Pulse, output bool) error {
 		}
 		trunk := &t.data[tray-1]
 		if output {
-			return trunk.addSender(ch)
+			return trunk.addSender(wire)
 		} else {
-			return trunk.addReceiver(ch)
+			return trunk.addReceiver(wire)
 		}
 	} else {
 		tray, _ := strconv.Atoi(name[:dash])
@@ -70,9 +70,9 @@ func (t *Trays) Plug(name string, ch chan Pulse, output bool) error {
 		}
 		trunk := &t.program[tray-1][line-1]
 		if output {
-			return trunk.addSender(ch)
+			return trunk.addSender(wire)
 		} else {
-			return trunk.addReceiver(ch)
+			return trunk.addReceiver(wire)
 		}
 	}
 	return nil
@@ -80,7 +80,7 @@ func (t *Trays) Plug(name string, ch chan Pulse, output bool) error {
 
 func (t *trunk) reset() {
 	for i, _ := range t.sender {
-		t.sender[i] = nil
+		t.sender[i] = Wire{}
 	}
 	t.receiver = nil
 	t.started = false
@@ -104,32 +104,32 @@ func (t *trunk) run() {
 			t.waitingForRewiring <- 1
 			<-t.rewiring
 			continue
-		case x = <-t.sender[0]:
-		case x = <-t.sender[1]:
-		case x = <-t.sender[2]:
-		case x = <-t.sender[3]:
-		case x = <-t.sender[4]:
-		case x = <-t.sender[5]:
-		case x = <-t.sender[6]:
-		case x = <-t.sender[7]:
-		case x = <-t.sender[8]:
-		case x = <-t.sender[9]:
-		case x = <-t.sender[10]:
-		case x = <-t.sender[11]:
-		case x = <-t.sender[12]:
-		case x = <-t.sender[13]:
-		case x = <-t.sender[14]:
-		case x = <-t.sender[15]:
+		case x = <-t.sender[0].Ch:
+		case x = <-t.sender[1].Ch:
+		case x = <-t.sender[2].Ch:
+		case x = <-t.sender[3].Ch:
+		case x = <-t.sender[4].Ch:
+		case x = <-t.sender[5].Ch:
+		case x = <-t.sender[6].Ch:
+		case x = <-t.sender[7].Ch:
+		case x = <-t.sender[8].Ch:
+		case x = <-t.sender[9].Ch:
+		case x = <-t.sender[10].Ch:
+		case x = <-t.sender[11].Ch:
+		case x = <-t.sender[12].Ch:
+		case x = <-t.sender[13].Ch:
+		case x = <-t.sender[14].Ch:
+		case x = <-t.sender[15].Ch:
 		}
 		p.Val = x.Val
 		if x.Val != 0 {
 			needresp := 0
-			for _, c := range t.receiver {
-				if c != nil {
+			for _, wire := range t.receiver {
+				if wire.Ch != nil {
 				pulseloop:
 					for {
 						select {
-						case c <- p:
+						case wire.Ch <- p:
 							needresp++
 							break pulseloop
 						case <-p.Resp:
@@ -149,18 +149,18 @@ func (t *trunk) run() {
 	}
 }
 
-func (t *trunk) addSender(ch chan Pulse) error {
+func (t *trunk) addSender(wire Wire) error {
 	if !t.started {
 		t.rewiring = make(chan int)
 		t.waitingForRewiring = make(chan int)
 		go t.run()
 		t.started = true
 	}
-	for i, c := range t.sender {
-		if c == nil {
+	for i, w := range t.sender {
+		if w.Ch == nil {
 			t.rewiring <- 1
 			<-t.waitingForRewiring
-			t.sender[i] = ch
+			t.sender[i] = wire
 			t.rewiring <- 1
 			return nil
 		}
@@ -168,18 +168,18 @@ func (t *trunk) addSender(ch chan Pulse) error {
 	return fmt.Errorf("too many senders")
 }
 
-func (t *trunk) addReceiver(ch chan Pulse) error {
+func (t *trunk) addReceiver(wire Wire) error {
 	if t.receiver == nil {
-		t.receiver = make([]chan Pulse, 0, 20)
+		t.receiver = make([]Wire, 0, 20)
 	}
-	for i, c := range t.receiver {
-		if c == nil {
-			t.receiver[i] = ch
+	for i, w := range t.receiver {
+		if w.Ch == nil {
+			t.receiver[i] = wire
 			return nil
 		}
 	}
 	if len(t.receiver) != cap(t.receiver) {
-		t.receiver = append(t.receiver, ch)
+		t.receiver = append(t.receiver, wire)
 		return nil
 	}
 	return fmt.Errorf("too many receivers")

@@ -17,7 +17,7 @@ type Initiate struct {
 	lastPrint                       int
 	rdff, rdilock, rdsync, rdfinish bool
 	lastCardRead                    int
-	jack                            [18]chan Pulse
+	jack                            [18]Wire
 	clrff                           [6]bool
 
 	cardScanner *bufio.Scanner
@@ -96,7 +96,7 @@ func (u *Initiate) Reset() {
 	u.rdsync = false
 	u.rdfinish = false
 	for i := 0; i < 18; i++ {
-		u.jack[i] = nil
+		u.jack[i] = Wire{}
 	}
 	for i := 0; i < 6; i++ {
 		u.clrff[i] = false
@@ -105,14 +105,13 @@ func (u *Initiate) Reset() {
 	u.rewiring <- 1
 }
 
-func (u *Initiate) Plug(jack string, ch chan Pulse, output bool) error {
+func (u *Initiate) Plug(jack string, wire Wire) error {
 	u.rewiring <- 1
 	<-u.waitingForRewiring
 	defer func() { u.rewiring <- 1 }()
 	u.mu.Lock()
 	defer u.mu.Unlock()
 
-	name := "i." + jack
 	if len(jack) == 0 {
 		return fmt.Errorf("invalid jack")
 	}
@@ -127,23 +126,23 @@ func (u *Initiate) Plug(jack string, ch chan Pulse, output bool) error {
 		}
 		switch jack[1] {
 		case 'i':
-			SafePlug(name, &u.jack[2*(set-1)], ch, output)
+			Plug(&u.jack[2*(set-1)], wire)
 		case 'o':
-			SafePlug(name, &u.jack[2*(set-1)+1], ch, output)
+			Plug(&u.jack[2*(set-1)+1], wire)
 		default:
 			return fmt.Errorf("invalid jack %s", jack)
 		}
 	case 'i', 'I':
-		SafePlug(name, &u.jack[17], ch, output)
+		Plug(&u.jack[17], wire)
 	case 'p', 'P':
 		if len(jack) < 2 {
 			return fmt.Errorf("invalid jack %s", jack)
 		}
 		switch jack[1] {
 		case 'i':
-			SafePlug(name, &u.jack[15], ch, output)
+			Plug(&u.jack[15], wire)
 		case 'o':
-			SafePlug(name, &u.jack[16], ch, output)
+			Plug(&u.jack[16], wire)
 		default:
 			return fmt.Errorf("invalid jack %s", jack)
 		}
@@ -153,11 +152,11 @@ func (u *Initiate) Plug(jack string, ch chan Pulse, output bool) error {
 		}
 		switch jack[1] {
 		case 'l':
-			SafePlug(name, &u.jack[12], ch, output)
+			Plug(&u.jack[12], wire)
 		case 'i':
-			SafePlug(name, &u.jack[13], ch, output)
+			Plug(&u.jack[13], wire)
 		case 'o':
-			SafePlug(name, &u.jack[14], ch, output)
+			Plug(&u.jack[14], wire)
 		default:
 			return fmt.Errorf("invalid jack %s", jack)
 		}
@@ -275,15 +274,15 @@ func (u *Initiate) readInputs() {
 		case <-u.rewiring:
 			u.waitingForRewiring <- 1
 			<-u.rewiring
-		case p = <-u.jack[12]:
+		case p = <-u.jack[12].Ch:
 			u.mu.Lock()
 			u.rdilock = true
 			u.mu.Unlock()
-		case p = <-u.jack[13]:
+		case p = <-u.jack[13].Ch:
 			u.mu.Lock()
 			u.rdff = true
 			u.mu.Unlock()
-		case p = <-u.jack[15]:
+		case p = <-u.jack[15].Ch:
 			u.mu.Lock()
 			if !u.printPhase1 {
 				u.prff = true
@@ -293,27 +292,27 @@ func (u *Initiate) readInputs() {
 				}
 			}
 			u.mu.Unlock()
-		case p = <-u.jack[0]:
+		case p = <-u.jack[0].Ch:
 			u.mu.Lock()
 			u.clrff[0] = true
 			u.mu.Unlock()
-		case p = <-u.jack[2]:
+		case p = <-u.jack[2].Ch:
 			u.mu.Lock()
 			u.clrff[1] = true
 			u.mu.Unlock()
-		case p = <-u.jack[4]:
+		case p = <-u.jack[4].Ch:
 			u.mu.Lock()
 			u.clrff[2] = true
 			u.mu.Unlock()
-		case p = <-u.jack[6]:
+		case p = <-u.jack[6].Ch:
 			u.mu.Lock()
 			u.clrff[3] = true
 			u.mu.Unlock()
-		case p = <-u.jack[8]:
+		case p = <-u.jack[8].Ch:
 			u.mu.Lock()
 			u.clrff[4] = true
 			u.mu.Unlock()
-		case p = <-u.jack[10]:
+		case p = <-u.jack[10].Ch:
 			u.mu.Lock()
 			u.clrff[5] = true
 			u.mu.Unlock()
