@@ -286,43 +286,64 @@ func Interconnect(units [20]*Accumulator, p1 []string, p2 []string) error {
 	return nil
 }
 
+func (u *Accumulator) lookupJack(jack string) (*Wire, bool, error) {
+	switch {
+	case jack == "α", jack == "a", jack == "alpha":
+		return &u.α, false, nil
+	case jack == "β", jack == "b", jack == "beta":
+		return &u.β, false, nil
+	case jack == "γ", jack == "g", jack == "gamma":
+		return &u.γ, false, nil
+	case jack == "δ", jack == "d", jack == "delta":
+		return &u.δ, false, nil
+	case jack == "ε", jack == "e", jack == "epsilon":
+		return &u.ε, false, nil
+	case jack == "A":
+		return &u.A, false, nil
+	case jack == "S":
+		return &u.S, false, nil
+	}
+	jacks := [20]string{
+		"1i", "2i", "3i", "4i", "5i", "5o", "6i", "6o", "7i", "7o",
+		"8i", "8o", "9i", "9o", "10i", "10o", "11i", "11o", "12i", "12o",
+	}
+	for i, j := range jacks {
+		if j == jack {
+			return &u.ctlterm[i], true, nil
+		}
+	}
+	return nil, false, fmt.Errorf("invalid jack: %s", jack)
+}
+
 func (u *Accumulator) Plug(jack string, wire Wire) error {
 	u.rewiring <- 1
 	<-u.waitingForRewiring
 	defer func() { u.rewiring <- 1 }()
 	u.mu.Lock()
 	defer u.mu.Unlock()
-
-	switch {
-	case jack == "α", jack == "a", jack == "alpha":
-		Plug(&u.α, wire)
-	case jack == "β", jack == "b", jack == "beta":
-		Plug(&u.β, wire)
-	case jack == "γ", jack == "g", jack == "gamma":
-		Plug(&u.γ, wire)
-	case jack == "δ", jack == "d", jack == "delta":
-		Plug(&u.δ, wire)
-	case jack == "ε", jack == "e", jack == "epsilon":
-		Plug(&u.ε, wire)
-	case jack == "A":
-		Plug(&u.A, wire)
-	case jack == "S":
-		Plug(&u.S, wire)
-	case jack[0] == 'I':
-	default:
-		jacks := [20]string{
-			"1i", "2i", "3i", "4i", "5i", "5o", "6i", "6o", "7i", "7o",
-			"8i", "8o", "9i", "9o", "10i", "10o", "11i", "11o", "12i", "12o",
-		}
-		for i, j := range jacks {
-			if j == jack {
-				u.ctlterm[i] = Tee(u.ctlterm[i], wire)
-				return nil
-			}
-		}
-		return fmt.Errorf("invalid jack: %s", jack)
+	p, teed, err := u.lookupJack(jack)
+	if err != nil {
+		return err
+	}
+	if teed {
+		*p = Tee(*p, wire)
+	} else {
+		Plug(p, wire)
 	}
 	return nil
+}
+
+func (u *Accumulator) GetPlug(jack string) (Wire, error) {
+	u.rewiring <- 1
+	<-u.waitingForRewiring
+	defer func() { u.rewiring <- 1 }()
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	p, _, err := u.lookupJack(jack)
+	if err != nil {
+		return Wire{}, err
+	}
+	return *p, nil
 }
 
 func (u *Accumulator) lookupSwitch(name string) (Switch, error) {

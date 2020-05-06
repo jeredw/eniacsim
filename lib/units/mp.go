@@ -19,8 +19,7 @@ type Mp struct {
 	rewiring           chan int // main thread signals starting/done with rewiring
 	waitingForRewiring chan int // Run signals waiting for rewiring
 
-	mu       sync.Mutex
-	outputMu sync.Mutex
+	mu sync.Mutex
 }
 
 type mpStepper struct {
@@ -166,52 +165,69 @@ func (u *Mp) Clear() {
 	}
 }
 
-// Plug connects channel ch to the specified jack.
-func (u *Mp) Plug(jack string, wire Wire) error {
+func (u *Mp) lookupPlug(jack string) (*Wire, error) {
 	if len(jack) == 0 {
-		return fmt.Errorf("invalid jack")
+		return nil, fmt.Errorf("invalid jack")
 	}
+	var n int
+	if unicode.IsDigit(rune(jack[0])) {
+		fmt.Sscanf(jack, "%ddi", &n)
+		if !(n >= 1 && n <= 20) {
+			return nil, fmt.Errorf("invalid decade %s", jack)
+		}
+		return &u.decade[20-n].di, nil
+	}
+
+	s := stepperNameToIndex(jack[0])
+	if s == -1 {
+		return nil, fmt.Errorf("invalid stepper %s", jack)
+	}
+	if len(jack) < 2 {
+		return nil, fmt.Errorf("invalid stepper input %s", jack)
+	}
+	switch jack[1:] {
+	case "di":
+		return &u.stepper[s].di, nil
+	case "i":
+		return &u.stepper[s].i, nil
+	case "cdi":
+		return &u.stepper[s].cdi, nil
+	}
+	if len(jack) < 3 {
+		return nil, fmt.Errorf("invalid jack %s", jack)
+	}
+	fmt.Sscanf(jack[1:], "%do", &n)
+	if !(n >= 1 && n <= 6) {
+		return nil, fmt.Errorf("invalid output %s", jack)
+	}
+	return &u.stepper[s].o[n-1], nil
+}
+
+func (u *Mp) Plug(jack string, wire Wire) error {
 	u.rewiring <- 1
 	<-u.waitingForRewiring
 	defer func() { u.rewiring <- 1 }()
 	u.mu.Lock()
 	defer u.mu.Unlock()
-	var n int
-	if unicode.IsDigit(rune(jack[0])) {
-		fmt.Sscanf(jack, "%ddi", &n)
-		if !(n >= 1 && n <= 20) {
-			return fmt.Errorf("invalid decade %s", jack)
-		}
-		Plug(&u.decade[20-n].di, wire)
-	} else {
-		s := stepperNameToIndex(jack[0])
-		if s == -1 {
-			return fmt.Errorf("invalid stepper %s", jack)
-		}
-		if len(jack) < 2 {
-			return fmt.Errorf("invalid stepper input %s", jack)
-		}
-		switch jack[1:] {
-		case "di":
-			Plug(&u.stepper[s].di, wire)
-		case "i":
-			Plug(&u.stepper[s].i, wire)
-		case "cdi":
-			Plug(&u.stepper[s].cdi, wire)
-		default:
-			if len(jack) < 3 {
-				return fmt.Errorf("invalid jack %s", jack)
-			}
-			fmt.Sscanf(jack[1:], "%do", &n)
-			if !(n >= 1 && n <= 6) {
-				return fmt.Errorf("invalid output %s", jack)
-			}
-			u.outputMu.Lock()
-			Plug(&u.stepper[s].o[n-1], wire)
-			u.outputMu.Unlock()
-		}
+	p, err := u.lookupPlug(jack)
+	if err != nil {
+		return err
 	}
+	Plug(p, wire)
 	return nil
+}
+
+func (u *Mp) GetPlug(jack string) (Wire, error) {
+	u.rewiring <- 1
+	<-u.waitingForRewiring
+	defer func() { u.rewiring <- 1 }()
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	p, err := u.lookupPlug(jack)
+	if err != nil {
+		return Wire{}, err
+	}
+	return *p, nil
 }
 
 type associatorSwitch struct {
@@ -452,12 +468,10 @@ func (u *Mp) clock(p Pulse, resp chan int) {
 				u.incrementDecades(i)
 				u.stepper[i].inff = 0
 				// This stage output could trigger another mp input, so have to release mu.
-				// But don't let the main thread rewire output during this time.
-				u.outputMu.Lock()
+				// Live with a potential data race from rewiring stepper here.
 				u.mu.Unlock()
 				Handshake(1, u.stepper[i].o[stageBeforeIncrementing], resp)
 				u.mu.Lock()
-				u.outputMu.Unlock()
 			}
 		}
 	} else if cyc&Tenp != 0 {

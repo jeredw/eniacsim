@@ -146,6 +146,36 @@ func (a *Adapters) Plug(ilk, id, param string, wire Wire, output bool) error {
 	return nil
 }
 
+func (a *Adapters) GetPlug(ilk, id, param string) ([]Wire, error) {
+	wires := []Wire{}
+	i, _ := strconv.Atoi(id)
+	if !(i >= 1 && i <= 40) {
+		return wires, fmt.Errorf("invalid id %s", id)
+	}
+	switch ilk {
+	case "dp":
+		wires = append(wires, a.dp[i].in)
+		for j := range a.dp[i].out {
+			wires = append(wires, a.dp[i].out[j])
+		}
+	case "s":
+		wires = append(wires, a.shift[i].in)
+		wires = append(wires, a.shift[i].out)
+	case "d":
+		wires = append(wires, a.del[i].in)
+		wires = append(wires, a.del[i].out)
+	case "sd":
+		wires = append(wires, a.sd[i].in)
+		wires = append(wires, a.sd[i].out)
+	case "permute":
+		wires = append(wires, a.permute[i].in)
+		wires = append(wires, a.permute[i].out)
+	default:
+		return wires, fmt.Errorf("invalid type %s", ilk)
+	}
+	return wires, nil
+}
+
 type digitProgram struct {
 	in  Wire
 	out [11]Wire

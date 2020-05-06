@@ -22,14 +22,17 @@ func NewWire(source, sink string) *Wire {
 }
 
 func (w Wire) ToString() string {
-	return fmt.Sprintf("[%s->%s]", w.Source, w.Sink)
+	if w.Ch == nil {
+		return "unconnected"
+	}
+	return fmt.Sprintf("%s %s", w.Source, w.Sink)
 }
 
 // Plug connects wire to jack, warning first if this replaces another
 // connection.
 func Plug(jack *Wire, wire Wire) {
 	if jack.Ch != nil {
-		fmt.Printf("warning: connection %s replacing %s\n", wire, *jack)
+		fmt.Printf("warning: connection %s replacing %s\n", wire.ToString(), jack.ToString())
 	}
 	*jack = wire
 }

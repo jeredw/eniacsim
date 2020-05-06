@@ -43,39 +43,57 @@ func (t *Trays) Reset() {
 	}
 }
 
-func (t *Trays) Plug(name string, wire Wire, output bool) error {
+func (t *Trays) lookupTrunk(name string) (*trunk, error) {
 	dash := strings.IndexByte(name, '-')
 	if dash == -1 {
 		tray, _ := strconv.Atoi(name)
 		if !(tray >= 1 && tray <= 20) {
-			return fmt.Errorf("invalid data trunk %s", name)
+			return nil, fmt.Errorf("invalid data trunk %s", name)
 		}
-		trunk := &t.data[tray-1]
-		if output {
-			return trunk.addSender(wire)
-		} else {
-			return trunk.addReceiver(wire)
-		}
-	} else {
-		tray, _ := strconv.Atoi(name[:dash])
-		if !(tray >= 1 && tray <= 11) {
-			return fmt.Errorf("invalid program trunk %s", name)
-		}
-		if len(name) <= dash+1 {
-			return fmt.Errorf("invalid program trunk %s", name)
-		}
-		line, _ := strconv.Atoi(name[dash+1:])
-		if !(line >= 1 && line <= 11) {
-			return fmt.Errorf("invalid program trunk %s", name)
-		}
-		trunk := &t.program[tray-1][line-1]
-		if output {
-			return trunk.addSender(wire)
-		} else {
-			return trunk.addReceiver(wire)
+		return &t.data[tray-1], nil
+	}
+	tray, _ := strconv.Atoi(name[:dash])
+	if !(tray >= 1 && tray <= 11) {
+		return nil, fmt.Errorf("invalid program trunk %s", name)
+	}
+	if len(name) <= dash+1 {
+		return nil, fmt.Errorf("invalid program trunk %s", name)
+	}
+	line, _ := strconv.Atoi(name[dash+1:])
+	if !(line >= 1 && line <= 11) {
+		return nil, fmt.Errorf("invalid program trunk %s", name)
+	}
+	return &t.program[tray-1][line-1], nil
+}
+
+func (t *Trays) Plug(name string, wire Wire, output bool) error {
+	trunk, err := t.lookupTrunk(name)
+	if err != nil {
+		return err
+	}
+	if output {
+		return trunk.addSender(wire)
+	}
+	return trunk.addReceiver(wire)
+}
+
+func (t *Trays) GetPlug(name string) ([]Wire, error) {
+	wires := []Wire{}
+	trunk, err := t.lookupTrunk(name)
+	if err != nil {
+		return wires, err
+	}
+	for i := range trunk.sender {
+		if trunk.sender[i].Ch != nil {
+			wires = append(wires, trunk.sender[i])
 		}
 	}
-	return nil
+	for i := range trunk.receiver {
+		if trunk.receiver[i].Ch != nil {
+			wires = append(wires, trunk.receiver[i])
+		}
+	}
+	return wires, nil
 }
 
 func (t *trunk) reset() {

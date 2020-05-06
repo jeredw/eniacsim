@@ -308,34 +308,52 @@ func (u *Divsr) intclear() {
 	u.dβ = false
 }
 
+func (u *Divsr) lookupPlug(jack string) (*Wire, error) {
+	if jack == "ans" || jack == "ANS" {
+		return &u.answer, nil
+	}
+	var prog int
+	var ilk rune
+	fmt.Sscanf(jack, "%d%c", &prog, &ilk)
+	if !(prog >= 1 && prog <= 8) {
+		return nil, fmt.Errorf("invalid jack %s", jack)
+	}
+	switch ilk {
+	case 'i':
+		return &u.progin[prog-1], nil
+	case 'o':
+		return &u.progout[prog-1], nil
+	case 'l':
+		return &u.ilock[prog-1], nil
+	}
+	return nil, fmt.Errorf("invalid jack %s", jack)
+}
+
 func (u *Divsr) Plug(jack string, wire Wire) error {
 	u.rewiring <- 1
 	<-u.waitingForRewiring
 	defer func() { u.rewiring <- 1 }()
 	u.mu.Lock()
 	defer u.mu.Unlock()
-
-	if jack == "ans" || jack == "ANS" {
-		Plug(&u.answer, wire)
-	} else {
-		var prog int
-		var ilk rune
-		fmt.Sscanf(jack, "%d%c", &prog, &ilk)
-		if !(prog >= 1 && prog <= 8) {
-			return fmt.Errorf("invalid jack %s", jack)
-		}
-		switch ilk {
-		case 'i':
-			Plug(&u.progin[prog-1], wire)
-		case 'o':
-			Plug(&u.progout[prog-1], wire)
-		case 'l':
-			Plug(&u.ilock[prog-1], wire)
-		default:
-			return fmt.Errorf("invalid jack %s", jack)
-		}
+	p, err := u.lookupPlug(jack)
+	if err != nil {
+		return err
 	}
+	Plug(p, wire)
 	return nil
+}
+
+func (u *Divsr) GetPlug(jack string) (Wire, error) {
+	u.rewiring <- 1
+	<-u.waitingForRewiring
+	defer func() { u.rewiring <- 1 }()
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	p, err := u.lookupPlug(jack)
+	if err != nil {
+		return Wire{}, err
+	}
+	return *p, nil
 }
 
 func (u *Divsr) lookupSwitch(name string) (Switch, error) {

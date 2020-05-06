@@ -148,39 +148,57 @@ func (u *Ft) Reset() {
 	u.px4119 = false
 }
 
+func (u *Ft) lookupJack(jack string) (*Wire, error) {
+	switch jack {
+	case "arg", "ARG":
+		return &u.jack[0], nil
+	case "A":
+		return &u.jack[1], nil
+	case "B":
+		return &u.jack[2], nil
+	case "NC":
+		return &u.jack[3], nil
+	case "C":
+		return &u.jack[4], nil
+	}
+	jacks := [22]string{
+		"1i", "1o", "2i", "2o", "3i", "3o", "4i", "4o",
+		"5i", "5o", "6i", "6o", "7i", "7o", "8i", "8o", "9i", "9o",
+		"10i", "10o", "11i", "11o",
+	}
+	for i, j := range jacks {
+		if j == jack {
+			return &u.jack[i+5], nil
+		}
+	}
+	return nil, fmt.Errorf("invalid jack %s", jack)
+}
+
 func (u *Ft) Plug(jack string, wire Wire) error {
 	u.rewiring <- 1
 	<-u.waitingForRewiring
 	defer func() { u.rewiring <- 1 }()
 	u.mu.Lock()
 	defer u.mu.Unlock()
-
-	switch jack {
-	case "arg", "ARG":
-		Plug(&u.jack[0], wire)
-	case "A":
-		Plug(&u.jack[1], wire)
-	case "B":
-		Plug(&u.jack[2], wire)
-	case "NC":
-		Plug(&u.jack[3], wire)
-	case "C":
-		Plug(&u.jack[4], wire)
-	default:
-		jacks := [22]string{
-			"1i", "1o", "2i", "2o", "3i", "3o", "4i", "4o",
-			"5i", "5o", "6i", "6o", "7i", "7o", "8i", "8o", "9i", "9o",
-			"10i", "10o", "11i", "11o",
-		}
-		for i, j := range jacks {
-			if j == jack {
-				Plug(&u.jack[i+5], wire)
-				return nil
-			}
-		}
-		return fmt.Errorf("invalid jack %s", jack)
+	p, err := u.lookupJack(jack)
+	if err != nil {
+		return err
 	}
+	Plug(p, wire)
 	return nil
+}
+
+func (u *Ft) GetPlug(jack string) (Wire, error) {
+	u.rewiring <- 1
+	<-u.waitingForRewiring
+	defer func() { u.rewiring <- 1 }()
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	p, err := u.lookupJack(jack)
+	if err != nil {
+		return Wire{}, err
+	}
+	return *p, nil
 }
 
 func (u *Ft) lookupSwitch(name string) (Switch, error) {

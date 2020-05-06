@@ -105,65 +105,84 @@ func (u *Initiate) Reset() {
 	u.rewiring <- 1
 }
 
+func (u *Initiate) lookupPlug(jack string) (*Wire, error) {
+	if len(jack) == 0 {
+		return nil, fmt.Errorf("invalid jack")
+	}
+	switch jack[0] {
+	case 'c', 'C':
+		if len(jack) < 3 {
+			return nil, fmt.Errorf("invalid jack %s", jack)
+		}
+		set, _ := strconv.Atoi(jack[2:])
+		if !(set >= 1 && set <= 6) {
+			return nil, fmt.Errorf("invalid jack %s", jack)
+		}
+		switch jack[1] {
+		case 'i':
+			return &u.jack[2*(set-1)], nil
+		case 'o':
+			return &u.jack[2*(set-1)+1], nil
+		default:
+			return nil, fmt.Errorf("invalid jack %s", jack)
+		}
+	case 'i', 'I':
+		return &u.jack[17], nil
+	case 'p', 'P':
+		if len(jack) < 2 {
+			return nil, fmt.Errorf("invalid jack %s", jack)
+		}
+		switch jack[1] {
+		case 'i':
+			return &u.jack[15], nil
+		case 'o':
+			return &u.jack[16], nil
+		default:
+			return nil, fmt.Errorf("invalid jack %s", jack)
+		}
+	case 'r', 'R':
+		if len(jack) < 2 {
+			return nil, fmt.Errorf("invalid jack %s", jack)
+		}
+		switch jack[1] {
+		case 'l':
+			return &u.jack[12], nil
+		case 'i':
+			return &u.jack[13], nil
+		case 'o':
+			return &u.jack[14], nil
+		default:
+			return nil, fmt.Errorf("invalid jack %s", jack)
+		}
+	}
+	return nil, fmt.Errorf("invalid jack %s", jack)
+}
+
 func (u *Initiate) Plug(jack string, wire Wire) error {
 	u.rewiring <- 1
 	<-u.waitingForRewiring
 	defer func() { u.rewiring <- 1 }()
 	u.mu.Lock()
 	defer u.mu.Unlock()
-
-	if len(jack) == 0 {
-		return fmt.Errorf("invalid jack")
+	p, err := u.lookupPlug(jack)
+	if err != nil {
+		return err
 	}
-	switch jack[0] {
-	case 'c', 'C':
-		if len(jack) < 3 {
-			return fmt.Errorf("invalid jack %s", jack)
-		}
-		set, _ := strconv.Atoi(jack[2:])
-		if !(set >= 1 && set <= 6) {
-			return fmt.Errorf("invalid jack %s", jack)
-		}
-		switch jack[1] {
-		case 'i':
-			Plug(&u.jack[2*(set-1)], wire)
-		case 'o':
-			Plug(&u.jack[2*(set-1)+1], wire)
-		default:
-			return fmt.Errorf("invalid jack %s", jack)
-		}
-	case 'i', 'I':
-		Plug(&u.jack[17], wire)
-	case 'p', 'P':
-		if len(jack) < 2 {
-			return fmt.Errorf("invalid jack %s", jack)
-		}
-		switch jack[1] {
-		case 'i':
-			Plug(&u.jack[15], wire)
-		case 'o':
-			Plug(&u.jack[16], wire)
-		default:
-			return fmt.Errorf("invalid jack %s", jack)
-		}
-	case 'r', 'R':
-		if len(jack) < 2 {
-			return fmt.Errorf("invalid jack %s", jack)
-		}
-		switch jack[1] {
-		case 'l':
-			Plug(&u.jack[12], wire)
-		case 'i':
-			Plug(&u.jack[13], wire)
-		case 'o':
-			Plug(&u.jack[14], wire)
-		default:
-			return fmt.Errorf("invalid jack %s", jack)
-		}
-	default:
-		return fmt.Errorf("invalid jack %s", jack)
-	}
+	Plug(p, wire)
 	return nil
+}
+
+func (u *Initiate) GetPlug(jack string) (Wire, error) {
+	u.rewiring <- 1
+	<-u.waitingForRewiring
+	defer func() { u.rewiring <- 1 }()
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	p, err := u.lookupPlug(jack)
+	if err != nil {
+		return Wire{}, err
+	}
+	return *p, nil
 }
 
 func (u *Initiate) MakeClockFunc() ClockFunc {

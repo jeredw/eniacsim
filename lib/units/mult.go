@@ -192,80 +192,99 @@ func (u *Multiplier) Reset() {
 	u.rewiring <- 1
 }
 
-func (u *Multiplier) Plug(jack string, wire Wire) error {
+func (u *Multiplier) lookupJack(jack string) (*Wire, error) {
 	if len(jack) == 0 {
-		return fmt.Errorf("invalid jack")
+		return nil, fmt.Errorf("invalid jack")
 	}
+	switch jack {
+	case "Rα", "Ra", "rα", "ra":
+		return &u.R[0], nil
+	case "Rβ", "Rb", "rβ", "rb":
+		return &u.R[1], nil
+	case "Rγ", "Rg", "rγ", "rg":
+		return &u.R[2], nil
+	case "Rδ", "Rd", "rδ", "rd":
+		return &u.R[3], nil
+	case "Rε", "Re", "rε", "re":
+		return &u.R[4], nil
+	case "Dα", "Da", "dα", "da":
+		return &u.D[0], nil
+	case "Dβ", "Db", "dβ", "db":
+		return &u.D[1], nil
+	case "Dγ", "Dg", "dγ", "dg":
+		return &u.D[2], nil
+	case "Dδ", "Dd", "dδ", "dd":
+		return &u.D[3], nil
+	case "Dε", "De", "dε", "de":
+		return &u.D[4], nil
+	case "A", "a":
+		return &u.A, nil
+	case "S", "s":
+		return &u.S, nil
+	case "AS", "as":
+		return &u.AS, nil
+	case "AC", "ac":
+		return &u.AC, nil
+	case "SC", "sc":
+		return &u.SC, nil
+	case "ASC", "asc":
+		return &u.ASC, nil
+	case "RS", "rs":
+		return &u.RS, nil
+	case "DS", "ds":
+		return &u.DS, nil
+	case "F", "f":
+		return &u.F, nil
+	case "LHPPI", "lhppi", "lhppI":
+		return &u.lhppI, nil
+	case "LHPPII", "lhppii", "lhppII":
+		return &u.lhppII, nil
+	case "RHPPI", "rhppi", "rhppI":
+		return &u.rhppI, nil
+	case "RHPPII", "rhppii", "rhppII":
+		return &u.rhppII, nil
+	}
+	prog, err := strconv.Atoi(jack[:len(jack)-1])
+	if err != nil {
+		return nil, fmt.Errorf("invalid jack %s", jack)
+	}
+	if !(prog >= 1 && prog <= 24) {
+		return nil, fmt.Errorf("invalid jack %s", jack)
+	}
+	switch jack[len(jack)-1] {
+	case 'i':
+		return &u.multin[prog-1], nil
+	case 'o':
+		return &u.multout[prog-1], nil
+	}
+	return nil, fmt.Errorf("invalid jack %s", jack)
+}
+
+func (u *Multiplier) Plug(jack string, wire Wire) error {
 	u.rewiring <- 1
 	<-u.waitingForRewiring
 	defer func() { u.rewiring <- 1 }()
 	u.mu.Lock()
 	defer u.mu.Unlock()
-	switch jack {
-	case "Rα", "Ra", "rα", "ra":
-		Plug(&u.R[0], wire)
-	case "Rβ", "Rb", "rβ", "rb":
-		Plug(&u.R[1], wire)
-	case "Rγ", "Rg", "rγ", "rg":
-		Plug(&u.R[2], wire)
-	case "Rδ", "Rd", "rδ", "rd":
-		Plug(&u.R[3], wire)
-	case "Rε", "Re", "rε", "re":
-		Plug(&u.R[4], wire)
-	case "Dα", "Da", "dα", "da":
-		Plug(&u.D[0], wire)
-	case "Dβ", "Db", "dβ", "db":
-		Plug(&u.D[1], wire)
-	case "Dγ", "Dg", "dγ", "dg":
-		Plug(&u.D[2], wire)
-	case "Dδ", "Dd", "dδ", "dd":
-		Plug(&u.D[3], wire)
-	case "Dε", "De", "dε", "de":
-		Plug(&u.D[4], wire)
-	case "A", "a":
-		Plug(&u.A, wire)
-	case "S", "s":
-		Plug(&u.S, wire)
-	case "AS", "as":
-		Plug(&u.AS, wire)
-	case "AC", "ac":
-		Plug(&u.AC, wire)
-	case "SC", "sc":
-		Plug(&u.SC, wire)
-	case "ASC", "asc":
-		Plug(&u.ASC, wire)
-	case "RS", "rs":
-		Plug(&u.RS, wire)
-	case "DS", "ds":
-		Plug(&u.DS, wire)
-	case "F", "f":
-		Plug(&u.F, wire)
-	case "LHPPI", "lhppi", "lhppI":
-		Plug(&u.lhppI, wire)
-	case "LHPPII", "lhppii", "lhppII":
-		Plug(&u.lhppII, wire)
-	case "RHPPI", "rhppi", "rhppI":
-		Plug(&u.rhppI, wire)
-	case "RHPPII", "rhppii", "rhppII":
-		Plug(&u.rhppII, wire)
-	default:
-		prog, err := strconv.Atoi(jack[:len(jack)-1])
-		if err != nil {
-			return fmt.Errorf("invalid jack %s", jack)
-		}
-		if !(prog >= 1 && prog <= 24) {
-			return fmt.Errorf("invalid jack %s", jack)
-		}
-		switch jack[len(jack)-1] {
-		case 'i':
-			Plug(&u.multin[prog-1], wire)
-		case 'o':
-			Plug(&u.multout[prog-1], wire)
-		default:
-			return fmt.Errorf("invalid jack %s", jack)
-		}
+	p, err := u.lookupJack(jack)
+	if err != nil {
+		return err
 	}
+	Plug(p, wire)
 	return nil
+}
+
+func (u *Multiplier) GetPlug(jack string) (Wire, error) {
+	u.rewiring <- 1
+	<-u.waitingForRewiring
+	defer func() { u.rewiring <- 1 }()
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	p, err := u.lookupJack(jack)
+	if err != nil {
+		return Wire{}, err
+	}
+	return *p, nil
 }
 
 func (u *Multiplier) lookupSwitch(name string) (Switch, error) {
