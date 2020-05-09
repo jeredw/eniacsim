@@ -17,6 +17,7 @@ func webGui() {
 	http.HandleFunc("/trays.svg", serveFile("webgui/trays.svg"))
 	http.HandleFunc("/neons.json", serveFile("webgui/neons.json"))
 	http.HandleFunc("/panels.json", serveFile("webgui/panels.json"))
+	http.HandleFunc("/ports.json", serveFile("webgui/ports.json"))
 	http.HandleFunc("/switches.json", serveFile("webgui/switches.json"))
 	http.HandleFunc("/events", streamEvents)
 	http.HandleFunc("/command", postCommand)
