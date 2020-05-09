@@ -3262,5 +3262,38 @@
     },
     ".dt-9": {
         "simulatorName": "9"
+    },
+    ".dt-10": {
+        "simulatorName": "10"
+    },
+    ".dt-11": {
+        "simulatorName": "11"
+    },
+    ".dt-12": {
+        "simulatorName": "12"
+    },
+    ".dt-13": {
+        "simulatorName": "13"
+    },
+    ".dt-14": {
+        "simulatorName": "14"
+    },
+    ".dt-15": {
+        "simulatorName": "15"
+    },
+    ".dt-16": {
+        "simulatorName": "16"
+    },
+    ".dt-17": {
+        "simulatorName": "17"
+    },
+    ".dt-18": {
+        "simulatorName": "18"
+    },
+    ".dt-19": {
+        "simulatorName": "19"
+    },
+    ".dt-20": {
+        "simulatorName": "20"
     }
 }
