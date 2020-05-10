@@ -5,6 +5,7 @@ let machineState = {};
 let simulatorSwitches = {};
 let simulatorPorts = {};
 let altSimulatorPorts = {};
+let scrim = null;
 
 let source = new EventSource('/events');
 source.addEventListener('message', (event) => {
@@ -514,14 +515,102 @@ async function setupWiringFromSimulator() {
   }
 }
 
+function connectPortableFunctionTables() {
+  const pftConnections = {
+    '#ft1-1 .j-ibm': {
+      name: 'function table 1',
+      pftSelector: '#pft-1-1',
+    },
+    '#ft1-2 .p-ibm': {
+      name: 'function table 1',
+      pftSelector: '#pft-1-2',
+    },
+    '#ft2-1 .j-ibm': {
+      name: 'function table 2',
+      pftSelector: '#pft-2-1',
+    },
+    '#ft2-2 .p-ibm': {
+      name: 'function table 2',
+      pftSelector: '#pft-2-2',
+    },
+    '#ft3-1 .j-ibm': {
+      name: 'function table 3',
+      pftSelector: '#pft-3-1',
+    },
+    '#ft3-2 .p-ibm': {
+      name: 'function table 3',
+      pftSelector: '#pft-3-2'
+    },
+  };
+  for (const [selector, config] of Object.entries(pftConnections)) {
+    const pftWrapper = document.querySelector(config.pftSelector);
+    const pft = pftWrapper.contentDocument;
+    disableTextSelection(pft);
+    const namePlate = pft.querySelector('.name');
+    namePlate.innerHTML = config.name.toUpperCase();
+    const jack = eniac.querySelector(selector);
+    jack.addEventListener('click', ((pft) => {
+      return (event) => {
+        event.stopPropagation();
+        pftWrapper.style.visibility = '';
+        scrim.style.visibility = '';
+      };
+    })(pft));
+  }
+  for (let ft = 1; ft <= 3; ft++) {
+    for (let row = -2; row <= 101; row++) {
+      const wrapper = `#pft-${ft}-${row < 50 ? 1 : 2}`;
+      const pftWrapper = document.querySelector(wrapper);
+      const pft = pftWrapper.contentDocument;
+      for (const bank of ['a', 'b']) {
+        for (let digit = 6; digit >= 1; digit--) {
+          const selector = `.r${row} .${bank} .d${digit}`;
+          const simulatorName = `f${ft}.R${bank.toUpperCase()}${row}L${digit}`;
+          const settings = [
+            {value: "0", degrees: 0},
+            {value: "1", degrees: 30},
+            {value: "2", degrees: 60},
+            {value: "3", degrees: 90},
+            {value: "4", degrees: 120},
+            {value: "5", degrees: 145},
+            {value: "6", degrees: 175},
+            {value: "7", degrees: 205},
+            {value: "8", degrees: 235},
+            {value: "9", degrees: 265},
+          ];
+          const element = pft.querySelector(selector);
+          connectRotarySwitch(element, simulatorName, settings);
+        }
+        const pmSelector = `.r${row} .${bank} .pm`;
+        const pmSimulatorName = `f${ft}.R${bank.toUpperCase()}${row}S`;
+        const pmSettings = [
+          {value: "P", degrees: 0},
+          {value: "M", degrees: -60},
+        ];
+        const pmElement = pft.querySelector(pmSelector);
+        connectRotarySwitch(pmElement, pmSimulatorName, pmSettings);
+      }
+    }
+  }
+}
+
 window.onload = (event) => {
   const wrapper = document.querySelector('#eniac');
   const wrapperDoc = wrapper.contentDocument;
   disableTextSelection(wrapperDoc);
   eniac = wrapperDoc.querySelector('#eniac');
   defaultViewBox = eniac.getAttribute('viewBox');
+  scrim = document.querySelector('.scrim');
+  scrim.addEventListener('click', (event) => {
+    const pfts = document.querySelectorAll('.pft');
+    for (const pft of pfts) {
+      pft.style.visibility = 'hidden';
+    }
+    scrim.style.visibility = 'hidden';
+  });
 
   connectController();
+  connectPortableFunctionTables();
   fetchConfig('switches.json')
     .then(configureSwitches)
     .then(setSwitchesToSimulatorValues);

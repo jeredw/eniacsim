@@ -27,6 +27,23 @@ body {
   height: 40vh;
 }
 
+.pft {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  height: 100vh;
+}
+
+.scrim {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  top: 0;
+  right: 0;
+  background: #000;
+  opacity: 0.8;
+}
+
 .trays {
   height: 100vh;
   cursor: default;
