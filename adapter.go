@@ -105,6 +105,7 @@ func (a *Adapters) Plug(ilk, id, param string, wire Wire, output bool) error {
 		}
 		if !a.dp[i].running && a.dp[i].in.Ch != nil {
 			go a.dp[i].run()
+			a.dp[i].running = true
 		}
 	case "s":
 		if output {
@@ -114,6 +115,7 @@ func (a *Adapters) Plug(ilk, id, param string, wire Wire, output bool) error {
 		}
 		if !a.shift[i].running && a.shift[i].in.Ch != nil {
 			go a.shift[i].run()
+			a.shift[i].running = true
 		}
 	case "d":
 		if output {
@@ -123,6 +125,7 @@ func (a *Adapters) Plug(ilk, id, param string, wire Wire, output bool) error {
 		}
 		if !a.del[i].running && a.del[i].in.Ch != nil {
 			go a.del[i].run()
+			a.del[i].running = true
 		}
 	case "sd":
 		if output {
@@ -132,6 +135,7 @@ func (a *Adapters) Plug(ilk, id, param string, wire Wire, output bool) error {
 		}
 		if !a.sd[i].running && a.sd[i].in.Ch != nil {
 			go a.sd[i].run()
+			a.sd[i].running = true
 		}
 	case "permute":
 		if output {
@@ -141,6 +145,7 @@ func (a *Adapters) Plug(ilk, id, param string, wire Wire, output bool) error {
 		}
 		if !a.permute[i].running && a.permute[i].in.Ch != nil {
 			go a.permute[i].run()
+			a.permute[i].running = true
 		}
 	default:
 		return fmt.Errorf("invalid type %s", ilk)
@@ -186,7 +191,6 @@ type digitProgram struct {
 
 // Emit program pulses when one or more digit positions activate.
 func (a *digitProgram) run() {
-	a.running = true
 	resp := make(chan int)
 	for {
 		d := <-a.in.Ch
@@ -209,7 +213,6 @@ type shifter struct {
 }
 
 func (a *shifter) run() {
-	a.running = true
 	for {
 		d := <-a.in.Ch
 		d.Val = shift(d.Val, a.amount)
@@ -243,7 +246,6 @@ type deleter struct {
 }
 
 func (a *deleter) run() {
-	a.running = true
 	for {
 		d := <-a.in.Ch
 		if a.digit >= 0 {
@@ -269,7 +271,6 @@ type specialDigit struct {
 }
 
 func (a *specialDigit) run() {
-	a.running = true
 	for {
 		d := <-a.in.Ch
 		x := d.Val >> a.digit
@@ -298,7 +299,6 @@ type permuter struct {
 }
 
 func (a *permuter) run() {
-	a.running = true
 	for {
 		d := <-a.in.Ch
 		permuted := 0
