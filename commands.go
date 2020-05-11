@@ -305,6 +305,10 @@ func doPlugSide(w io.Writer, side int, command string, f []string, p []string, w
 			fmt.Fprintf(w, "Multiplier: %s\n", err)
 		}
 	case p[0] == "p":
+		if len(p) != 2 {
+			fmt.Fprintln(w, "Programmer jumper syntax: p.terminal")
+			return
+		}
 		err := mp.Plug(p[1], wire)
 		if err != nil {
 			fmt.Fprintf(w, "Programmer: %s\n", err)
@@ -423,6 +427,10 @@ func doGetPlug(w io.Writer, command string, f []string) {
 			fmt.Fprintln(w, wire.ToString())
 		}
 	case p[0] == "p":
+		if len(p) != 2 {
+			fmt.Fprintln(w, "Programmer jumper syntax: p.terminal")
+			return
+		}
 		wire, err := mp.GetPlug(p[1])
 		if err != nil {
 			fmt.Fprintf(w, "Programmer: %s\n", err)
