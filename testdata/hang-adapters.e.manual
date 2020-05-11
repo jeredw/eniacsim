@@ -1,0 +1,13 @@
+s cy.op 1a
+# -- crashing wiring ---
+# {a-ir}=a2
+p a2.S 1                      # a2=a-ir, 1=d-irS
+p 1 ad.s.1.8                  # 1=d-irS, 1=ad-pc-shiftl8-irS
+# -- crashing program --
+p i.io a2.5i                  # a2=a-ir, 5i=t-fetch
+s a2.op5 AS                   # a2=a-ir, op5=t-fetch
+# must start here (and not at top of file) to prevent race, to ensure we hang always
+b i
+n
+n
+n

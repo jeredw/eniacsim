@@ -92,7 +92,6 @@ func (a *Adapters) Plug(ilk, id, param string, wire Wire, output bool) error {
 		if output {
 			// wire is a digit channel such as a data trunk
 			a.dp[i].in = wire
-			go a.dp[i].run()
 		} else {
 			// wire is a control channel such as a program trunk
 			if len(param) == 0 {
@@ -104,13 +103,16 @@ func (a *Adapters) Plug(ilk, id, param string, wire Wire, output bool) error {
 			}
 			a.dp[i].out[digit-1] = wire
 		}
+		if !a.dp[i].running && a.dp[i].in.Ch != nil {
+			go a.dp[i].run()
+		}
 	case "s":
 		if output {
 			a.shift[i].in = wire
 		} else {
 			a.shift[i].out = wire
 		}
-		if a.shift[i].in.Ch != nil && a.shift[i].out.Ch != nil {
+		if !a.shift[i].running && a.shift[i].in.Ch != nil {
 			go a.shift[i].run()
 		}
 	case "d":
@@ -119,7 +121,7 @@ func (a *Adapters) Plug(ilk, id, param string, wire Wire, output bool) error {
 		} else {
 			a.del[i].out = wire
 		}
-		if a.del[i].in.Ch != nil && a.del[i].out.Ch != nil {
+		if !a.del[i].running && a.del[i].in.Ch != nil {
 			go a.del[i].run()
 		}
 	case "sd":
@@ -128,7 +130,7 @@ func (a *Adapters) Plug(ilk, id, param string, wire Wire, output bool) error {
 		} else {
 			a.sd[i].out = wire
 		}
-		if a.sd[i].in.Ch != nil && a.sd[i].out.Ch != nil {
+		if !a.sd[i].running && a.sd[i].in.Ch != nil {
 			go a.sd[i].run()
 		}
 	case "permute":
@@ -137,7 +139,7 @@ func (a *Adapters) Plug(ilk, id, param string, wire Wire, output bool) error {
 		} else {
 			a.permute[i].out = wire
 		}
-		if a.permute[i].in.Ch != nil && a.permute[i].out.Ch != nil {
+		if !a.permute[i].running && a.permute[i].in.Ch != nil {
 			go a.permute[i].run()
 		}
 	default:
@@ -177,12 +179,14 @@ func (a *Adapters) GetPlug(ilk, id, param string) ([]Wire, error) {
 }
 
 type digitProgram struct {
-	in  Wire
-	out [11]Wire
+	in      Wire
+	out     [11]Wire
+	running bool
 }
 
 // Emit program pulses when one or more digit positions activate.
 func (a *digitProgram) run() {
+	a.running = true
 	resp := make(chan int)
 	for {
 		d := <-a.in.Ch
@@ -198,16 +202,18 @@ func (a *digitProgram) run() {
 }
 
 type shifter struct {
-	in     Wire
-	out    Wire
-	amount int
+	in      Wire
+	out     Wire
+	amount  int
+	running bool
 }
 
 func (a *shifter) run() {
+	a.running = true
 	for {
 		d := <-a.in.Ch
 		d.Val = shift(d.Val, a.amount)
-		if d.Val != 0 {
+		if d.Val != 0 && a.out.Ch != nil {
 			a.out.Ch <- d
 		} else if d.Resp != nil {
 			d.Resp <- 1
@@ -230,12 +236,14 @@ func shift(value int, amount int) int {
 }
 
 type deleter struct {
-	in    Wire
-	out   Wire
-	digit int
+	in      Wire
+	out     Wire
+	digit   int
+	running bool
 }
 
 func (a *deleter) run() {
+	a.running = true
 	for {
 		d := <-a.in.Ch
 		if a.digit >= 0 {
@@ -245,7 +253,7 @@ func (a *deleter) run() {
 			// Zero leftmost `digit` digits (as well as sign)
 			d.Val &= (1 << uint(10+a.digit)) - 1
 		}
-		if d.Val != 0 {
+		if d.Val != 0 && a.out.Ch != nil {
 			a.out.Ch <- d
 		} else if d.Resp != nil {
 			d.Resp <- 1
@@ -254,12 +262,14 @@ func (a *deleter) run() {
 }
 
 type specialDigit struct {
-	in    Wire
-	out   Wire
-	digit uint
+	in      Wire
+	out     Wire
+	digit   uint
+	running bool
 }
 
 func (a *specialDigit) run() {
+	a.running = true
 	for {
 		d := <-a.in.Ch
 		x := d.Val >> a.digit
@@ -281,12 +291,14 @@ func (a *specialDigit) run() {
 // ad.permute.1.11,10,9,8,7,6,5,4,3,2,1  identity
 // ad.permute.1.0,10,9,8,7,6,5,4,3,2,1   delete sign
 type permuter struct {
-	in    Wire
-	out   Wire
-	order [11]int
+	in      Wire
+	out     Wire
+	order   [11]int
+	running bool
 }
 
 func (a *permuter) run() {
+	a.running = true
 	for {
 		d := <-a.in.Ch
 		permuted := 0
