@@ -92,6 +92,8 @@ type AccumulatorConn struct {
 	Su3   func() int
 	Multl func() bool
 	Multr func() bool
+
+	TracePulse TraceFunc
 }
 
 func NewAccumulator(unit int) *Accumulator {
@@ -177,6 +179,31 @@ func (u *Accumulator) State() json.RawMessage {
 	}
 	result, _ := json.Marshal(s)
 	return result
+}
+
+func (u *Accumulator) AttachTrace(tracePulse TraceFunc) []func(TraceFunc) {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	u.Io.TracePulse = tracePulse
+	sign := fmt.Sprintf("a%d.sign", u.unit + 1)
+	value := fmt.Sprintf("a%d.value", u.unit + 1)
+	return []func(t TraceFunc){
+		func(traceReg TraceFunc) {
+			s := int64(0)
+			if u.sign {
+				s = 1
+			}
+			traceReg(sign, 1, s)
+		},
+		func(traceReg TraceFunc) {
+			var n int64
+			for i := 9; i >= 0; i-- {
+				n <<= 4
+				n += int64(u.val[i])
+			}
+			traceReg(value, 40, n)
+		},
+	}
 }
 
 func (u *Accumulator) Reset() {
@@ -286,7 +313,7 @@ func Interconnect(units [20]*Accumulator, p1 []string, p2 []string) error {
 	return nil
 }
 
-func (u *Accumulator) lookupJack(jack string) (*Wire, bool, error) {
+func (u *Accumulator) lookupPlug(jack string) (*Wire, bool, error) {
 	switch {
 	case jack == "α", jack == "a", jack == "alpha":
 		return &u.α, false, nil
@@ -321,7 +348,7 @@ func (u *Accumulator) Plug(jack string, wire Wire) error {
 	defer func() { u.rewiring <- 1 }()
 	u.mu.Lock()
 	defer u.mu.Unlock()
-	p, teed, err := u.lookupJack(jack)
+	p, teed, err := u.lookupPlug(jack)
 	if err != nil {
 		return err
 	}
@@ -339,7 +366,7 @@ func (u *Accumulator) GetPlug(jack string) (Wire, error) {
 	defer func() { u.rewiring <- 1 }()
 	u.mu.Lock()
 	defer u.mu.Unlock()
-	p, _, err := u.lookupJack(jack)
+	p, _, err := u.lookupPlug(jack)
 	if err != nil {
 		return Wire{}, err
 	}
@@ -507,6 +534,9 @@ func (u *Accumulator) docpp(cyc int) {
 				rstrep = true
 				t := (i-4)*2 + 5
 				Handshake(1, u.ctlterm[t], u.resp)
+				if u.Io.TracePulse != nil && u.ctlterm[t].Ch != nil {
+					u.Io.TracePulse(u.ctlterm[t].Source, 1, 1)
+				}
 			}
 		}
 		if rstrep {
@@ -614,6 +644,9 @@ func (u *Accumulator) doninep() {
 			}
 			if n != 0 {
 				Handshake(n, u.A, u.resp)
+				if u.Io.TracePulse != nil && u.A.Ch != nil {
+					u.Io.TracePulse(u.A.Source, 11, int64(n))
+				}
 			}
 		}
 	}
@@ -630,6 +663,9 @@ func (u *Accumulator) doninep() {
 			}
 			if n != 0 {
 				Handshake(n, u.S, u.resp)
+				if u.Io.TracePulse != nil && u.S.Ch != nil {
+					u.Io.TracePulse(u.S.Source, 11, int64(n))
+				}
 			}
 		}
 	}
@@ -655,6 +691,9 @@ func (u *Accumulator) doonepp() {
 			(u.lbuddy != u.unit && u.lbuddy >= 0 && u.plbuddy.sigfig == 10 && u.sigfig > 0) ||
 			(u.rbuddy != u.unit && u.sigfig == 10 && u.prbuddy.sigfig == 0) {
 			Handshake(1<<uint(10-u.sigfig), u.S, u.resp)
+			if u.Io.TracePulse != nil && u.S.Ch != nil {
+				u.Io.TracePulse(u.S.Source, 11, int64(1<<uint(10-u.sigfig)))
+			}
 		}
 	}
 }
@@ -722,79 +761,130 @@ func (u *Accumulator) Run() {
 			u.mu.Lock()
 			if u.st1()&stα != 0 {
 				u.receive(p.Val)
+				if u.Io.TracePulse != nil {
+					u.Io.TracePulse(u.α.Sink, 11, int64(p.Val))
+				}
 			}
 			u.mu.Unlock()
 		case p = <-u.β.Ch:
 			u.mu.Lock()
 			if u.st1()&stβ != 0 {
 				u.receive(p.Val)
+				if u.Io.TracePulse != nil {
+					u.Io.TracePulse(u.β.Sink, 11, int64(p.Val))
+				}
 			}
 			u.mu.Unlock()
 		case p = <-u.γ.Ch:
 			u.mu.Lock()
 			if u.st1()&stγ != 0 {
 				u.receive(p.Val)
+				if u.Io.TracePulse != nil {
+					u.Io.TracePulse(u.γ.Sink, 11, int64(p.Val))
+				}
 			}
 			u.mu.Unlock()
 		case p = <-u.δ.Ch:
 			u.mu.Lock()
 			if u.st1()&stδ != 0 {
 				u.receive(p.Val)
+				if u.Io.TracePulse != nil {
+					u.Io.TracePulse(u.δ.Sink, 11, int64(p.Val))
+				}
 			}
 			u.mu.Unlock()
 		case p = <-u.ε.Ch:
 			u.mu.Lock()
 			if u.st1()&stε != 0 {
 				u.receive(p.Val)
+				if u.Io.TracePulse != nil {
+					u.Io.TracePulse(u.ε.Sink, 11, int64(p.Val))
+				}
 			}
 			u.mu.Unlock()
 		case p = <-u.ctlterm[0].Ch:
 			if p.Val == 1 {
 				u.trigger(0)
+				if u.Io.TracePulse != nil {
+					u.Io.TracePulse(u.ctlterm[0].Sink, 1, int64(p.Val))
+				}
 			}
 		case p = <-u.ctlterm[1].Ch:
 			if p.Val == 1 {
 				u.trigger(1)
+				if u.Io.TracePulse != nil {
+					u.Io.TracePulse(u.ctlterm[1].Sink, 1, int64(p.Val))
+				}
 			}
 		case p = <-u.ctlterm[2].Ch:
 			if p.Val == 1 {
 				u.trigger(2)
+				if u.Io.TracePulse != nil {
+					u.Io.TracePulse(u.ctlterm[2].Sink, 1, int64(p.Val))
+				}
 			}
 		case p = <-u.ctlterm[3].Ch:
 			if p.Val == 1 {
 				u.trigger(3)
+				if u.Io.TracePulse != nil {
+					u.Io.TracePulse(u.ctlterm[3].Sink, 1, int64(p.Val))
+				}
 			}
 		case p = <-u.ctlterm[4].Ch:
 			if p.Val == 1 {
 				u.trigger(4)
+				if u.Io.TracePulse != nil {
+					u.Io.TracePulse(u.ctlterm[4].Sink, 1, int64(p.Val))
+				}
 			}
 		case p = <-u.ctlterm[6].Ch:
 			if p.Val == 1 {
 				u.trigger(5)
+				if u.Io.TracePulse != nil {
+					u.Io.TracePulse(u.ctlterm[6].Sink, 1, int64(p.Val))
+				}
 			}
 		case p = <-u.ctlterm[8].Ch:
 			if p.Val == 1 {
 				u.trigger(6)
+				if u.Io.TracePulse != nil {
+					u.Io.TracePulse(u.ctlterm[8].Sink, 1, int64(p.Val))
+				}
 			}
 		case p = <-u.ctlterm[10].Ch:
 			if p.Val == 1 {
 				u.trigger(7)
+				if u.Io.TracePulse != nil {
+					u.Io.TracePulse(u.ctlterm[10].Sink, 1, int64(p.Val))
+				}
 			}
 		case p = <-u.ctlterm[12].Ch:
 			if p.Val == 1 {
 				u.trigger(8)
+				if u.Io.TracePulse != nil {
+					u.Io.TracePulse(u.ctlterm[12].Sink, 1, int64(p.Val))
+				}
 			}
 		case p = <-u.ctlterm[14].Ch:
 			if p.Val == 1 {
 				u.trigger(9)
+				if u.Io.TracePulse != nil {
+					u.Io.TracePulse(u.ctlterm[14].Sink, 1, int64(p.Val))
+				}
 			}
 		case p = <-u.ctlterm[16].Ch:
 			if p.Val == 1 {
 				u.trigger(10)
+				if u.Io.TracePulse != nil {
+					u.Io.TracePulse(u.ctlterm[16].Sink, 1, int64(p.Val))
+				}
 			}
 		case p = <-u.ctlterm[18].Ch:
 			if p.Val == 1 {
 				u.trigger(11)
+				if u.Io.TracePulse != nil {
+					u.Io.TracePulse(u.ctlterm[18].Sink, 1, int64(p.Val))
+				}
 			}
 		}
 		if p.Resp != nil {

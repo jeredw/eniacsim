@@ -148,7 +148,7 @@ func (u *Ft) Reset() {
 	u.px4119 = false
 }
 
-func (u *Ft) lookupJack(jack string) (*Wire, error) {
+func (u *Ft) lookupPlug(jack string) (*Wire, error) {
 	switch jack {
 	case "arg", "ARG":
 		return &u.jack[0], nil
@@ -180,7 +180,7 @@ func (u *Ft) Plug(jack string, wire Wire) error {
 	defer func() { u.rewiring <- 1 }()
 	u.mu.Lock()
 	defer u.mu.Unlock()
-	p, err := u.lookupJack(jack)
+	p, err := u.lookupPlug(jack)
 	if err != nil {
 		return err
 	}
@@ -194,7 +194,7 @@ func (u *Ft) GetPlug(jack string) (Wire, error) {
 	defer func() { u.rewiring <- 1 }()
 	u.mu.Lock()
 	defer u.mu.Unlock()
-	p, err := u.lookupJack(jack)
+	p, err := u.lookupPlug(jack)
 	if err != nil {
 		return Wire{}, err
 	}

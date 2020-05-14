@@ -27,6 +27,9 @@ type CycleConn struct {
 	CycleButton Button         // Sim control to step clock
 	TestButton  Button         // Interlock for test mode
 	TestCycles  int            // How many cycles to run in test mode
+
+	TracePulse    func() // Update trace at the end of each pulse
+	TraceAddCycle func() // Update trace at the end of each add cycle
 }
 
 // Clock operating modes
@@ -164,6 +167,12 @@ func (u *Cycle) Run() {
 				u.ackButtons()
 				u.control.mu.Unlock()
 			}
+			if u.Io.TracePulse != nil {
+				u.Io.TracePulse()
+			}
+		}
+		if u.Io.TraceAddCycle != nil {
+			u.Io.TraceAddCycle()
 		}
 		u.addCycleMu.Lock()
 		u.addCycle++

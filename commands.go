@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 	"unicode"
 
 	. "github.com/jeredw/eniacsim/lib"
@@ -55,6 +56,10 @@ func doCommand(w io.Writer, command string) int {
 		doGetSwitch(w, command, f)
 	case "set":
 		doSet(w, f)
+	case "ts":
+		doTraceStart(w, f)
+	case "te":
+		doTraceEnd(w, f)
 	case "u":
 	case "dt":
 	case "pt":
@@ -738,6 +743,46 @@ func doSet(w io.Writer, f []string) {
 		return
 	}
 	accumulator[unit-1].Set(value)
+}
+
+func doTraceStart(w io.Writer, f []string) {
+	if len(f) != 2 {
+		fmt.Fprintln(w, "trace start syntax: ts p|f|pf")
+		return
+	}
+	tracePulses := strings.IndexByte(f[1], 'p') != -1
+	traceRegs := strings.IndexByte(f[1], 'f') != -1
+	if !tracePulses && !traceRegs {
+		fmt.Fprintln(w, "trace start: expecting p for pulses, f for regs")
+		return
+	}
+	log = NewTrace(tracePulses, traceRegs)
+	for i := range accumulator {
+		log.Register(accumulator[i].AttachTrace(log.tracePulse))
+	}
+	cycle.Io.TraceAddCycle = func() {
+		log.RunCallbacks()
+	}
+	cycle.Io.TracePulse = func() {
+		log.Tick()
+	}
+}
+
+func doTraceEnd(w io.Writer, f []string) {
+	if len(f) != 2 {
+		fmt.Fprintln(w, "trace end syntax: te file")
+		return
+	}
+	if log == nil {
+		fmt.Fprintln(w, "not tracing; missing ts?")
+		return
+	}
+	fd, err := os.Create(f[1])
+	if err != nil {
+		fmt.Fprintf(w, "trace end create: %s\n", err)
+		return
+	}
+	log.WriteVcd(fd, time.Now())
 }
 
 func printWires(w io.Writer, wires []Wire) {

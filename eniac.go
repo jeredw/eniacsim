@@ -24,6 +24,8 @@ var debugger *Debugger
 var trays *Trays
 var adapters *Adapters
 
+var log *trace
+
 func main() {
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [options] [configuration file]\n", os.Args[0])
@@ -150,9 +152,11 @@ func main() {
 	}
 
 	if *testCycles > 0 {
+		doTraceStart(os.Stdout, []string{"ts", "pf"})
 		cycle.Io.TestButton.Push <- 1
 		<-cycle.Io.TestButton.Done
 		doDumpAll(os.Stdout)
+		doTraceEnd(os.Stdout, []string{"te", "/tmp/test.vcd"})
 		return
 	}
 
