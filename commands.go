@@ -782,7 +782,9 @@ func doTraceEnd(w io.Writer, f []string) {
 		fmt.Fprintf(w, "trace end create: %s\n", err)
 		return
 	}
-	log.WriteVcd(fd, time.Now())
+	bw := bufio.NewWriter(fd)
+	log.WriteVcd(bw, time.Now())
+	bw.Flush()
 }
 
 func printWires(w io.Writer, wires []Wire) {
