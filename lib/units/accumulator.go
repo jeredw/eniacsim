@@ -93,6 +93,13 @@ type AccumulatorConn struct {
 	Multr func() bool
 }
 
+// Static connections to other non-accumulator units.
+type StaticWiring interface {
+	Sign() string
+	Value() string
+	Clear()
+}
+
 func NewAccumulator(unit int) *Accumulator {
 	unitDot := fmt.Sprintf("a%d.", unit+1)
 	u := &Accumulator{
@@ -158,30 +165,6 @@ func NewAccumulator(unit int) *Accumulator {
 	u.ctlterm[18] = NewInput(unitDot+"12i", programInput(11))
 	u.ctlterm[19] = NewOutput(unitDot+"12o", output(1))
 	return u
-}
-
-func (u *Accumulator) Sign() string {
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	if u.sign {
-		return "M"
-	}
-	return "P"
-}
-
-func (u *Accumulator) Value() string {
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	var s string
-	if u.sign {
-		s += "M "
-	} else {
-		s += "P "
-	}
-	for i := 9; i >= 0; i-- {
-		s += fmt.Sprintf("%d", u.val[i])
-	}
-	return s
 }
 
 func (u *Accumulator) Stat() string {
@@ -284,6 +267,30 @@ func (u *Accumulator) Reset() {
 	u.rbuddy = u.unit
 	u.mu.Unlock()
 	u.Clear()
+}
+
+func (u *Accumulator) Sign() string {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	if u.sign {
+		return "M"
+	}
+	return "P"
+}
+
+func (u *Accumulator) Value() string {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	var s string
+	if u.sign {
+		s += "M "
+	} else {
+		s += "P "
+	}
+	for i := 9; i >= 0; i-- {
+		s += fmt.Sprintf("%d", u.val[i])
+	}
+	return s
 }
 
 func (u *Accumulator) Clear() {

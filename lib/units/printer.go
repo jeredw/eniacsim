@@ -21,7 +21,7 @@ type Printer struct {
 // Connections to printer.
 type PrinterConn struct {
 	MpPrinterDecades func() string
-	AccValue         [20]func() string
+	Acc              [20]StaticWiring
 }
 
 // Reset values for coupling switches - by default group digits from the same
@@ -71,14 +71,14 @@ func (u *Printer) Print() string {
 	defer u.mu.Unlock()
 
 	mpd := u.Io.MpPrinterDecades()
-	a13 := u.Io.AccValue[13-1]()
-	a14 := u.Io.AccValue[14-1]()
-	a15 := u.Io.AccValue[15-1]()
-	a16 := u.Io.AccValue[16-1]()
-	a17 := u.Io.AccValue[17-1]()
-	a18 := u.Io.AccValue[18-1]()
-	a19 := u.Io.AccValue[19-1]()
-	a20 := u.Io.AccValue[20-1]()
+	a13 := u.Io.Acc[13-1].Value()
+	a14 := u.Io.Acc[14-1].Value()
+	a15 := u.Io.Acc[15-1].Value()
+	a16 := u.Io.Acc[16-1].Value()
+	a17 := u.Io.Acc[17-1].Value()
+	a18 := u.Io.Acc[18-1].Value()
+	a19 := u.Io.Acc[19-1].Value()
+	a20 := u.Io.Acc[20-1].Value()
 
 	// digits will contain 80 digits (5 MP decades, a13, a14, a15[lo], a16-a20)
 	// and signs will contain 16 signs for the corresponding 5-digit fields.

@@ -102,21 +102,13 @@ func main() {
 	initiate.Io.Stepping = func() bool { return cycle.Stepping() }
 	initiate.Io.ReadCard = func(s string) { constant.ReadCard(s) }
 	initiate.Io.Print = func() string { return printer.Print() }
-	divsr.Io.A2Sign = func() string { return accumulator[2].Sign() }
-	divsr.Io.A2Clear = func() { accumulator[2].Clear() }
-	divsr.Io.A4Sign = func() string { return accumulator[4].Sign() }
-	divsr.Io.A4Clear = func() { accumulator[4].Clear() }
-	multiplier.Io.A8Clear = func() { accumulator[8].Clear() }
-	multiplier.Io.A8Value = func() string { return accumulator[8].Value() }
-	multiplier.Io.A9Clear = func() { accumulator[9].Clear() }
-	multiplier.Io.A9Value = func() string { return accumulator[9].Value() }
+	divsr.Io.A2 = accumulator[2]
+	divsr.Io.A4 = accumulator[4]
+	multiplier.Io.A8 = accumulator[8]
+	multiplier.Io.A9 = accumulator[9]
 	printer.Io.MpPrinterDecades = func() string { return mp.PrinterDecades() }
 	for i := 0; i < 20; i++ {
-		printer.Io.AccValue[i] = func(i int) func() string {
-			return func() string {
-				return accumulator[i].Value()
-			}
-		}(i)
+		printer.Io.Acc[i] = accumulator[i]
 		accumulator[i].Io.Sv = func() int { return divsr.Sv() }
 		accumulator[i].Io.Su2 = func() int { return divsr.Su2() }
 		accumulator[i].Io.Su3 = func() int { return divsr.Su3() }

@@ -31,10 +31,8 @@ type Multiplier struct {
 
 // Connections to other units.
 type MultiplierConn struct {
-	A8Clear func()
-	A9Clear func()
-	A8Value func() string
-	A9Value func() string
+	A8 StaticWiring
+	A9 StaticWiring
 }
 
 type pulseset struct {
@@ -434,10 +432,10 @@ func (u *Multiplier) Clock(c Pulse) {
 			}
 		}
 		if u.iercl[which] == 1 {
-			u.Io.A8Clear()
+			u.Io.A8.Clear()
 		}
 		if u.icandcl[which] == 1 {
-			u.Io.A9Clear()
+			u.Io.A9.Clear()
 		}
 	case c&Onep != 0 && u.stage == 1:
 		u.multl = true
@@ -460,8 +458,8 @@ func (u *Multiplier) Clock(c Pulse) {
 			u.lhppI.Transmit(1 << uint(u.sigfig-1))
 		}
 	case c&Onep != 0 && u.stage >= 2 && u.stage < 12:
-		u.ier = u.Io.A8Value()
-		u.icand = u.Io.A9Value()
+		u.ier = u.Io.A8.Value()
+		u.icand = u.Io.A9.Value()
 		lhpp := 0
 		rhpp := 0
 		for i := 0; i < 10; i++ {

@@ -53,10 +53,8 @@ type Divsr struct {
 
 // Connections to dedicated accumulators.
 type DivsrConn struct {
-	A2Sign  func() string
-	A2Clear func()
-	A4Sign  func() string
-	A4Clear func()
+	A2 StaticWiring
+	A4 StaticWiring
 }
 
 func NewDivsr() *Divsr {
@@ -460,7 +458,7 @@ func (u *Divsr) samesign() bool {
 }
 
 func (u *Divsr) overflow() bool {
-	s := u.Io.A2Sign()
+	s := u.Io.A2.Sign()
 	return s[0] == 'P' && u.numrmin || s[0] == 'M' && u.numrplus
 }
 
@@ -521,10 +519,10 @@ func (u *Divsr) doGP() {
 			}
 		}
 		if u.numcl[u.curprog] {
-			u.Io.A2Clear()
+			u.Io.A2.Clear()
 		}
 		if u.dencl[u.curprog] {
-			u.Io.A4Clear()
+			u.Io.A4.Clear()
 		}
 		u.intclear()
 		return
@@ -610,11 +608,11 @@ func (u *Divsr) doGP() {
 			u.progring++
 		}
 	case 1: // Gate D6
-		s := u.Io.A2Sign()
+		s := u.Io.A2.Sign()
 		if s[0] == 'M' {
 			u.numrplus, u.numrmin = u.numrmin, u.numrplus
 		}
-		s = u.Io.A4Sign()
+		s = u.Io.A4.Sign()
 		if s[0] == 'M' {
 			u.denomff = true
 		}
