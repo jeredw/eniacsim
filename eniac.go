@@ -79,34 +79,19 @@ func main() {
 		accumulator[i] = units.NewAccumulator(i)
 	}
 
-	clockedUnits := []Clocked{
-		initiate,
-		mp,
-		divsr,
-		multiplier,
-		constant,
-	}
+	clockedUnits := []Clocked{initiate, mp, divsr, multiplier, constant}
+	clearedUnits := []Cleared{mp, divsr}
 	for i := 0; i < 20; i++ {
 		clockedUnits = append(clockedUnits, accumulator[i])
+		clearedUnits = append(clearedUnits, accumulator[i])
 	}
 	for i := 0; i < 3; i++ {
 		clockedUnits = append(clockedUnits, ft[i])
 	}
-	clearFuncs := []func(){
-		func() { mp.Clear() },
-	}
-	for i := 0; i < 20; i++ {
-		clearFuncs = append(clearFuncs, func(i int) func() {
-			return func() {
-				accumulator[i].Clear()
-			}
-		}(i))
-	}
-	clearFuncs = append(clearFuncs, func() { divsr.Clear() })
 
 	cycle.Io.Units = clockedUnits
 	cycle.Io.Clear = func() bool { return initiate.ShouldClear() }
-	initiate.Io.ClearUnits = clearFuncs
+	initiate.Io.Units = clearedUnits
 	initiate.Io.AddCycle = func() int { return cycle.AddCycle() }
 	initiate.Io.Stepping = func() bool { return cycle.Stepping() }
 	initiate.Io.ReadCard = func(s string) { constant.ReadCard(s) }
@@ -144,10 +129,10 @@ func main() {
 
 	if *testCycles > 0 {
 		doTraceStart(os.Stdout, []string{"ts", "pf"})
-		//		p := profile.Start()
+		// p := profile.Start()
 		cycle.Io.TestButton.Push <- 1
 		<-cycle.Io.TestButton.Done
-		//		p.Stop()
+		// p.Stop()
 		doDumpAll(os.Stdout)
 		doTraceEnd(os.Stdout, []string{"te", "/tmp/test.vcd"})
 		return

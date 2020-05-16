@@ -30,7 +30,7 @@ type Initiate struct {
 type InitiateConn struct {
 	InitButton Button
 	Ppunch     chan string
-	ClearUnits []func()
+	Units      []Cleared
 	ReadCard   func(string)
 	Print      func() string
 
@@ -261,8 +261,8 @@ func (u *Initiate) Run() {
 		case 4:
 			u.gate66 = 1
 		case 5:
-			for _, f := range u.Io.ClearUnits {
-				f()
+			for _, c := range u.Io.Units {
+				c.Clear()
 			}
 		case 3:
 			u.rdff = true
