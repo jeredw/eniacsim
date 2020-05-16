@@ -64,7 +64,7 @@ type Accumulator struct {
 	α, β, γ, δ, ε, A, S *Jack
 	ctlterm             [20]*Jack
 	inff1, inff2        [12]bool
-	opsw                [12]byte
+	opsw                [12]int
 	clrsw               [12]bool
 	rptsw               [8]int
 	sigfig              int
@@ -77,6 +77,7 @@ type Accumulator struct {
 	whichrp             bool
 	lbuddy, rbuddy      int
 	plbuddy, prbuddy    *Accumulator
+	su1Cache            int
 
 	tracePulse TraceFunc
 
@@ -268,7 +269,7 @@ func (u *Accumulator) Reset() {
 		u.ctlterm[i].Disconnect()
 		u.inff1[i] = false
 		u.inff2[i] = false
-		u.opsw[i] = 0
+		u.opsw[i] = stα
 		u.clrsw[i] = false
 	}
 	for i := 0; i < 8; i++ {
@@ -390,6 +391,20 @@ func (u *Accumulator) FindJack(jack string) (*Jack, error) {
 	return nil, fmt.Errorf("invalid jack: %s", jack)
 }
 
+func accOpSettings() []IntSwitchSetting {
+	return []IntSwitchSetting{
+		{"α", stα}, {"a", stα}, {"alpha", stα},
+		{"β", stβ}, {"b", stβ}, {"beta", stβ},
+		{"γ", stγ}, {"g", stγ}, {"gamma", stγ},
+		{"δ", stδ}, {"d", stδ}, {"delta", stδ},
+		{"ε", stε}, {"e", stε}, {"epsilon", stε},
+		{"0", 0}, // Must be 0 for su1().
+		{"A", stA},
+		{"AS", stAS},
+		{"S", stS},
+	}
+}
+
 func (u *Accumulator) lookupSwitch(name string) (Switch, error) {
 	if name == "sf" {
 		return &IntSwitch{name, &u.sigfig, sfSettings()}, nil
@@ -407,7 +422,7 @@ func (u *Accumulator) lookupSwitch(name string) (Switch, error) {
 	prog--
 	switch name[:2] {
 	case "op":
-		return &ByteSwitch{name, &u.opsw[prog], accOpSettings()}, nil
+		return &IntSwitch{name, &u.opsw[prog], accOpSettings()}, nil
 	case "cc":
 		return &BoolSwitch{name, &u.clrsw[prog], clearSettings()}, nil
 	case "rp":
@@ -426,6 +441,7 @@ func (u *Accumulator) SetSwitch(name, value string) error {
 	if err != nil {
 		return err
 	}
+	u.updateSu1Cache()
 	return sw.Set(value)
 }
 
@@ -448,28 +464,16 @@ func (u *Accumulator) su1() int {
 	if u.rbuddy >= 0 && u.rbuddy != u.unit {
 		x = u.prbuddy.su1()
 	}
+	return x | u.su1Cache
+}
+
+func (u *Accumulator) updateSu1Cache() {
+	x := 0
 	for i := range u.inff1 {
 		if u.inff1[i] {
-			switch u.opsw[i] {
-			case 0:
-				x |= stα
-			case 1:
-				x |= stβ
-			case 2:
-				x |= stγ
-			case 3:
-				x |= stδ
-			case 4:
-				x |= stε
-			case 6:
-				x |= stA
-			case 7:
-				x |= stAS
-			case 8:
-				x |= stS
-			}
+			x |= u.opsw[i]
 			if u.clrsw[i] {
-				if u.opsw[i] >= 5 {
+				if u.opsw[i] == 0 || u.opsw[i] >= stA {
 					if i < 4 || u.rep == int(u.rptsw[i-4]) {
 						x |= stCLR
 					}
@@ -479,7 +483,7 @@ func (u *Accumulator) su1() int {
 			}
 		}
 	}
-	return x
+	u.su1Cache = x
 }
 
 func (u *Accumulator) st1() int {
@@ -535,14 +539,17 @@ func (u *Accumulator) st2() int {
 }
 
 func (u *Accumulator) docpp(cyc Pulse) {
+	su1Dirty := false
 	for i := 0; i < 4; i++ {
 		if u.inff2[i] {
 			u.inff1[i] = false
 			u.inff2[i] = false
+			su1Dirty = true
 		}
 	}
 	if u.h50 {
 		u.rep++
+		su1Dirty = true
 		rstrep := false
 		for i := 4; i < 12; i++ {
 			if u.inff2[i] && u.rep == int(u.rptsw[i-4])+1 {
@@ -557,6 +564,9 @@ func (u *Accumulator) docpp(cyc Pulse) {
 			u.rep = 0
 			u.h50 = false
 		}
+	}
+	if su1Dirty {
+		u.updateSu1Cache()
 	}
 }
 
@@ -743,5 +753,6 @@ func (u *Accumulator) receive(value int) {
 func (u *Accumulator) trigger(input int) {
 	u.mu.Lock()
 	u.inff1[input] = true
+	u.updateSu1Cache()
 	u.mu.Unlock()
 }

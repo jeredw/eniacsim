@@ -57,20 +57,6 @@ func scSettings() []ByteSwitchSetting {
 	}
 }
 
-func accOpSettings() []ByteSwitchSetting {
-	return []ByteSwitchSetting{
-		{"α", 0}, {"a", 0}, {"alpha", 0},
-		{"β", 1}, {"b", 1}, {"beta", 1},
-		{"γ", 2}, {"g", 2}, {"gamma", 2},
-		{"δ", 3}, {"d", 3}, {"delta", 3},
-		{"ε", 4}, {"e", 4}, {"epsilon", 4},
-		{"0", 5},
-		{"A", 6},
-		{"AS", 7},
-		{"S", 8},
-	}
-}
-
 func rpSettings() []IntSwitchSetting {
 	return []IntSwitchSetting{
 		{"1", 0},

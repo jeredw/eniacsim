@@ -7,9 +7,11 @@ import (
 	"os"
 	"time"
 
+	//	"net/http"
+	//	_ "net/http/pprof"
+
 	. "github.com/jeredw/eniacsim/lib"
 	"github.com/jeredw/eniacsim/lib/units"
-	//	"github.com/pkg/profile"
 )
 
 var cycle *units.Cycle
@@ -51,6 +53,10 @@ func main() {
 	if *useControl {
 		go ctlstation()
 	}
+
+	//	go func() {
+	//		fmt.Println(http.ListenAndServe("localhost:6060", nil))
+	//	}()
 
 	trays = NewTrays()
 	adapters = NewAdapters()
@@ -129,10 +135,8 @@ func main() {
 
 	if *testCycles > 0 {
 		doTraceStart(os.Stdout, []string{"ts", "pf"})
-		// p := profile.Start()
 		cycle.Io.TestButton.Push <- 1
 		<-cycle.Io.TestButton.Done
-		// p.Stop()
 		doDumpAll(os.Stdout)
 		doTraceEnd(os.Stdout, []string{"te", "/tmp/test.vcd"})
 		return
