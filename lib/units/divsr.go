@@ -719,7 +719,7 @@ func (u *Divsr) clock(p Pulse) {
 	u.mu.Lock()
 	defer u.mu.Unlock()
 	switch {
-	case p.Val&Cpp != 0:
+	case p&Cpp != 0:
 		if u.progring == 0 {
 			u.ans1 = false
 			u.ans2 = false
@@ -735,7 +735,7 @@ func (u *Divsr) clock(p Pulse) {
 				u.doIIIP()
 			}
 		}
-	case p.Val&Rp != 0:
+	case p&Rp != 0:
 		/*
 		 * Ugly hack to avoid races
 		 */
@@ -746,21 +746,21 @@ func (u *Divsr) clock(p Pulse) {
 				u.curprog = i
 			}
 		}
-	case p.Val&Onep != 0 && u.p1 || p.Val&Twop != 0 && u.p2:
+	case p&Onep != 0 && u.p1 || p&Twop != 0 && u.p2:
 		if u.placering < 9 {
 			u.answer.Transmit(1 << uint(8-u.placering))
 		}
-	case p.Val&Onep != 0 && u.m2 || p.Val&Twopp != 0 && u.m1:
+	case p&Onep != 0 && u.m2 || p&Twopp != 0 && u.m1:
 		u.answer.Transmit(0x7ff)
-	case p.Val&Onep != 0 && u.m1 || p.Val&Twopp != 0 && u.m2:
+	case p&Onep != 0 && u.m1 || p&Twopp != 0 && u.m2:
 		if u.placering < 9 {
 			u.answer.Transmit(0x7ff ^ (1 << uint(8-u.placering)))
 		} else {
 			u.answer.Transmit(0x7ff)
 		}
-	case (p.Val&Fourp != 0 || p.Val&Twop != 0) && (u.m1 || u.m2):
+	case (p&Fourp != 0 || p&Twop != 0) && (u.m1 || u.m2):
 		u.answer.Transmit(0x7ff)
-	case p.Val&Onepp != 0:
+	case p&Onepp != 0:
 		if u.m1 || u.m2 {
 			u.answer.Transmit(1)
 		}

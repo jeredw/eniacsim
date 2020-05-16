@@ -302,7 +302,7 @@ func (u *Ft) GetSwitch(name string) (string, error) {
 	return sw.Get(), nil
 }
 
-func (u *Ft) addlookup(c int) {
+func (u *Ft) addlookup(c Pulse) {
 	a := 0
 	b := 0
 	arg := u.arg
@@ -428,7 +428,7 @@ func (u *Ft) addlookup(c int) {
 	}
 }
 
-func (u *Ft) subtrlookup(c int) {
+func (u *Ft) subtrlookup(c Pulse) {
 	a := 0
 	b := 0
 	arg := u.arg
@@ -552,13 +552,13 @@ func (u *Ft) clock(p Pulse) {
 	//  u.mu.Lock()
 	//  defer u.mu.Unlock()
 	if u.px4119 {
-		if p.Val&Cpp != 0 {
-			p.Val |= Ninep
+		if p&Cpp != 0 {
+			p |= Ninep
 		} else {
-			p.Val &= ^Ninep
+			p &= ^Ninep
 		}
 	}
-	c := p.Val
+	c := p
 	if u.gatee42 {
 		sw := u.opsw[u.prog]
 		if c&Onep != 0 && (sw == 1 || sw == 3 || sw == 6 || sw == 8) {

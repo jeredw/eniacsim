@@ -366,7 +366,7 @@ func (u *Multiplier) clock(c Pulse) {
 	//	u.mu.Lock()
 	//	defer u.mu.Unlock()
 	switch {
-	case c.Val&Cpp != 0:
+	case c&Cpp != 0:
 		if u.f44 {
 			u.stage = 1
 			u.f44 = false
@@ -425,7 +425,7 @@ func (u *Multiplier) clock(c Pulse) {
 				u.stage++
 			}
 		}
-	case c.Val&Ccg != 0 && u.stage == 13:
+	case c&Ccg != 0 && u.stage == 13:
 		which := -1
 		for i, f := range u.multff {
 			if f {
@@ -439,7 +439,7 @@ func (u *Multiplier) clock(c Pulse) {
 		if u.icandcl[which] == 1 {
 			u.Io.A9Clear()
 		}
-	case c.Val&Onep != 0 && u.stage == 1:
+	case c&Onep != 0 && u.stage == 1:
 		u.multl = true
 		u.multr = true
 		u.sigfig = -1
@@ -453,13 +453,13 @@ func (u *Multiplier) clock(c Pulse) {
 		} else if u.sigfig > 0 && u.sigfig < 9 {
 			u.lhppI.Transmit(1 << uint(u.sigfig-1))
 		}
-	case c.Val&Fourp != 0 && u.stage == 1:
+	case c&Fourp != 0 && u.stage == 1:
 		if u.sigfig == 0 && u.lhppII.Connected() {
 			u.lhppII.Transmit(1 << 10)
 		} else if u.sigfig > 0 && u.sigfig < 9 {
 			u.lhppI.Transmit(1 << uint(u.sigfig-1))
 		}
-	case c.Val&Onep != 0 && u.stage >= 2 && u.stage < 12:
+	case c&Onep != 0 && u.stage >= 2 && u.stage < 12:
 		u.ier = u.Io.A8Value()
 		u.icand = u.Io.A9Value()
 		lhpp := 0
@@ -475,7 +475,7 @@ func (u *Multiplier) clock(c Pulse) {
 			}
 		}
 		u.shiftprod(lhpp, rhpp)
-	case c.Val&Twop != 0 && u.stage >= 2 && u.stage < 12:
+	case c&Twop != 0 && u.stage >= 2 && u.stage < 12:
 		lhpp := 0
 		rhpp := 0
 		for i := 0; i < 10; i++ {
@@ -489,7 +489,7 @@ func (u *Multiplier) clock(c Pulse) {
 			}
 		}
 		u.shiftprod(lhpp, rhpp)
-	case c.Val&Twopp != 0 && u.stage >= 2 && u.stage < 12:
+	case c&Twopp != 0 && u.stage >= 2 && u.stage < 12:
 		lhpp := 0
 		rhpp := 0
 		for i := 0; i < 10; i++ {
@@ -503,7 +503,7 @@ func (u *Multiplier) clock(c Pulse) {
 			}
 		}
 		u.shiftprod(lhpp, rhpp)
-	case c.Val&Fourp != 0 && u.stage >= 2 && u.stage < 12:
+	case c&Fourp != 0 && u.stage >= 2 && u.stage < 12:
 		lhpp := 0
 		rhpp := 0
 		for i := 0; i < 10; i++ {
@@ -517,7 +517,7 @@ func (u *Multiplier) clock(c Pulse) {
 			}
 		}
 		u.shiftprod(lhpp, rhpp)
-	case c.Val&Onepp != 0 && u.stage >= 2 && u.stage < 12:
+	case c&Onepp != 0 && u.stage >= 2 && u.stage < 12:
 		minplace := 10
 		for i := 0; i < 24; i++ {
 			if u.multff[i] && u.placsw[i]+2 < minplace {
@@ -527,7 +527,7 @@ func (u *Multiplier) clock(c Pulse) {
 		if u.stage == minplace+1 && u.ier[0] == 'M' && u.icand[0] == 'M' {
 			u.rhppI.Transmit(1 << 10)
 		}
-	case c.Val&Rp != 0 && u.buffer61:
+	case c&Rp != 0 && u.buffer61:
 		u.buffer61 = false
 		u.f44 = true
 	}

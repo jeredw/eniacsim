@@ -396,11 +396,11 @@ func (u *Constant) getval(sel int) (sgn byte, val []byte, pos1pp int) {
 	return
 }
 
-var digitcons = []int{0, Onep, Twop, (Onep | Twop), Fourp, (Onep | Fourp),
+var digitcons = []Pulse{0, Onep, Twop, (Onep | Twop), Fourp, (Onep | Fourp),
 	(Twop | Fourp), (Onep | Twop | Fourp), (Twop | Twopp | Fourp),
 	(Onep | Twop | Twopp | Fourp)}
 
-func (u *Constant) clock(p Pulse) {
+func (u *Constant) clock(cyc Pulse) {
 	//	u.mu.Lock()
 	//	defer u.mu.Unlock()
 	sending := -1
@@ -411,7 +411,6 @@ func (u *Constant) clock(p Pulse) {
 			break
 		}
 	}
-	cyc := p.Val
 	if cyc&Ccg != 0 {
 		u.whichrp = false
 	} else if cyc&Rp != 0 {

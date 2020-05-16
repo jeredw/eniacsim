@@ -50,7 +50,7 @@ type controlState struct {
 // Basic sequence of pulses to generate
 // Note due to the phase shift of 9P there are 40 distinct phases per add cycle
 // though only 20 pulse times.
-var phases = []int{
+var phases = []Pulse{
 	0, Tenp, // 0
 	Onep | Ninep, Tenp, // 1
 	Twop | Ninep, Tenp, // 2
@@ -139,27 +139,22 @@ func (u *Cycle) Run() {
 	update := make(chan int)
 	go u.readControls(update)
 
-	var p Pulse
-	p.Resp = make(chan int)
 	for {
 		for u.phase = 0; u.phase < len(phases); u.phase++ {
 			u.applyControls(update)
 			if u.phase == 32 && u.Io.Clear() {
-				p.Val = Scg
 				for _, f := range u.Io.Units {
-					f(p)
+					f(Scg)
 				}
 			} else if phases[u.phase] != 0 {
-				p.Val = phases[u.phase]
 				for _, f := range u.Io.Units {
-					f(p)
+					f(phases[u.phase])
 				}
 			}
 			u.phase++
 			if phases[u.phase] != 0 {
-				p.Val = phases[u.phase]
 				for _, f := range u.Io.Units {
-					f(p)
+					f(phases[u.phase])
 				}
 			}
 			if u.mode == OnePulse {

@@ -450,10 +450,9 @@ func (u *Mp) incrementDecades(s int) {
 	}
 }
 
-func (u *Mp) clock(p Pulse) {
+func (u *Mp) clock(cyc Pulse) {
 	u.mu.Lock()
 	defer u.mu.Unlock()
-	cyc := p.Val
 	if cyc&Cpp != 0 {
 		for i := range u.stepper {
 			stageBeforeIncrementing := u.stepper[i].stage

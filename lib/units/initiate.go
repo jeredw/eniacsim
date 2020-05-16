@@ -190,8 +190,7 @@ func (u *Initiate) MakeClockFunc() ClockFunc {
 	}
 }
 
-func (u *Initiate) clock(p Pulse) {
-	cyc := p.Val
+func (u *Initiate) clock(cyc Pulse) {
 	if cyc&Cpp != 0 {
 		u.mu.Lock()
 		defer u.mu.Unlock()

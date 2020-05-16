@@ -534,7 +534,7 @@ func (u *Accumulator) st2() int {
 	return x
 }
 
-func (u *Accumulator) docpp(cyc int) {
+func (u *Accumulator) docpp(cyc Pulse) {
 	for i := 0; i < 4; i++ {
 		if u.inff2[i] {
 			u.inff1[i] = false
@@ -703,8 +703,7 @@ func (u *Accumulator) doonepp() {
 	}
 }
 
-func (u *Accumulator) clock(p Pulse) {
-	cyc := p.Val
+func (u *Accumulator) clock(cyc Pulse) {
 	switch {
 	case cyc&Cpp != 0:
 		u.docpp(cyc)
