@@ -16,32 +16,76 @@ type Adapters struct {
 }
 
 func NewAdapters() *Adapters {
-	return &Adapters{}
+	a := &Adapters{}
+	dpInput := func(i int) JackHandler {
+		return func(j *Jack, val int) {
+			a.dp[i].adapt(val)
+		}
+	}
+	shiftInput := func(i int) JackHandler {
+		return func(j *Jack, val int) {
+			a.shift[i].adapt(val)
+		}
+	}
+	delInput := func(i int) JackHandler {
+		return func(j *Jack, val int) {
+			a.del[i].adapt(val)
+		}
+	}
+	sdInput := func(i int) JackHandler {
+		return func(j *Jack, val int) {
+			a.sd[i].adapt(val)
+		}
+	}
+	permuteInput := func(i int) JackHandler {
+		return func(j *Jack, val int) {
+			a.permute[i].adapt(val)
+		}
+	}
+	for i := 0; i < 40; i++ {
+		a.dp[i].in = NewInput(fmt.Sprintf("ad.dp.i.%d", i+1), dpInput(i))
+		for j := 0; j < 11; j++ {
+			a.dp[i].out[j] = NewOutput(fmt.Sprintf("ad.dp.o.%d.%d", i+1, j+1), nil)
+		}
+		a.shift[i].in = NewInput(fmt.Sprintf("ad.s.i.%d", i+1), shiftInput(i))
+		a.shift[i].out = NewOutput(fmt.Sprintf("ad.s.o.%d", i+1), nil)
+		a.del[i].in = NewInput(fmt.Sprintf("ad.d.i.%d", i+1), delInput(i))
+		a.del[i].out = NewOutput(fmt.Sprintf("ad.d.o.%d", i+1), nil)
+		a.sd[i].in = NewInput(fmt.Sprintf("ad.sd.i.%d", i+1), sdInput(i))
+		a.sd[i].out = NewOutput(fmt.Sprintf("ad.sd.o.%d", i+1), nil)
+		a.permute[i].in = NewInput(fmt.Sprintf("ad.permute.i.%d", i+1), permuteInput(i))
+		a.permute[i].out = NewOutput(fmt.Sprintf("ad.permute.o.%d", i+1), nil)
+	}
+	return a
 }
 
 func (a *Adapters) Reset() {
 	for i := 0; i < 40; i++ {
-		a.dp[i].in = Wire{}
+		a.dp[i].in.Disconnect()
 		for j := 0; j < 11; j++ {
-			a.dp[i].out[j] = Wire{}
+			a.dp[i].out[j].Disconnect()
 		}
-		a.shift[i].in = Wire{}
-		a.shift[i].out = Wire{}
-		a.del[i].in = Wire{}
-		a.del[i].out = Wire{}
-		a.sd[i].in = Wire{}
-		a.sd[i].out = Wire{}
+		a.shift[i].in.Disconnect()
+		a.shift[i].out.Disconnect()
+		a.del[i].in.Disconnect()
+		a.del[i].out.Disconnect()
+		a.sd[i].in.Disconnect()
+		a.sd[i].out.Disconnect()
+		a.permute[i].in.Disconnect()
+		a.permute[i].out.Disconnect()
 	}
 }
 
-func (a *Adapters) Switch(ilk, id string, param string) error {
+func (a *Adapters) Switch(kind, id string, param string) error {
 	i, _ := strconv.Atoi(id)
 	if !(i >= 1 && i <= 40) {
 		return fmt.Errorf("invalid id %s", id)
 	}
-	switch ilk {
+	i--
+	switch kind {
 	case "dp":
-		return fmt.Errorf("digit adapters always specify param in p")
+		// Params make no sense here but silently ignore this for compatibility.
+		return nil
 	case "s":
 		amount, _ := strconv.Atoi(param)
 		if !(amount >= -10 && amount <= 10) {
@@ -73,154 +117,80 @@ func (a *Adapters) Switch(ilk, id string, param string) error {
 			a.permute[i].order[j] = pos
 		}
 	default:
-		return fmt.Errorf("invalid type %s", ilk)
+		return fmt.Errorf("invalid type %s", kind)
 	}
 	return nil
 }
 
-func (a *Adapters) Plug(ilk, id, param string, wire Wire, output bool) error {
+func (a *Adapters) FindJack(name string) (*Jack, error) {
+	p := strings.Split(name, ".")
+	if len(p) < 3 {
+		return nil, fmt.Errorf("invalid jack %s", name)
+	}
+	dir := p[0]
+	kind := p[1]
+	id := p[2]
 	i, _ := strconv.Atoi(id)
 	if !(i >= 1 && i <= 40) {
-		return fmt.Errorf("invalid id %s", id)
+		return nil, fmt.Errorf("invalid id %s", id)
 	}
-	if len(param) > 0 {
-		adapters.Switch(ilk, id, param)
+	i--
+	switch {
+	case kind == "dp" && dir == "i":
+		return a.dp[i].in, nil
+	case kind == "dp" && dir == "o":
+		if len(p) < 4 {
+			return nil, fmt.Errorf("invalid jack %s", name)
+		}
+		digit, _ := strconv.Atoi(p[3])
+		if !(digit >= 1 && digit <= 11) {
+			return nil, fmt.Errorf("invalid digit %s in %s", p[3], name)
+		}
+		return a.dp[i].out[digit-1], nil
+	case kind == "s" && dir == "i":
+		return a.shift[i].in, nil
+	case kind == "s" && dir == "o":
+		return a.shift[i].out, nil
+	case kind == "d" && dir == "i":
+		return a.del[i].in, nil
+	case kind == "d" && dir == "o":
+		return a.del[i].out, nil
+	case kind == "sd" && dir == "i":
+		return a.sd[i].in, nil
+	case kind == "sd" && dir == "o":
+		return a.sd[i].out, nil
+	case kind == "permute" && dir == "i":
+		return a.permute[i].in, nil
+	case kind == "permute" && dir == "o":
+		return a.permute[i].out, nil
 	}
-
-	switch ilk {
-	case "dp":
-		if output {
-			// wire is a digit channel such as a data trunk
-			a.dp[i].in = wire
-		} else {
-			// wire is a control channel such as a program trunk
-			if len(param) == 0 {
-				return fmt.Errorf("p ad.dp.<id> always requires param")
-			}
-			digit, _ := strconv.Atoi(param)
-			if !(digit >= 1 && digit <= 11) {
-				return fmt.Errorf("invalid digit %s", param)
-			}
-			a.dp[i].out[digit-1] = wire
-		}
-		if !a.dp[i].running && a.dp[i].in.Ch != nil {
-			go a.dp[i].run()
-			a.dp[i].running = true
-		}
-	case "s":
-		if output {
-			a.shift[i].in = wire
-		} else {
-			a.shift[i].out = wire
-		}
-		if !a.shift[i].running && a.shift[i].in.Ch != nil {
-			go a.shift[i].run()
-			a.shift[i].running = true
-		}
-	case "d":
-		if output {
-			a.del[i].in = wire
-		} else {
-			a.del[i].out = wire
-		}
-		if !a.del[i].running && a.del[i].in.Ch != nil {
-			go a.del[i].run()
-			a.del[i].running = true
-		}
-	case "sd":
-		if output {
-			a.sd[i].in = wire
-		} else {
-			a.sd[i].out = wire
-		}
-		if !a.sd[i].running && a.sd[i].in.Ch != nil {
-			go a.sd[i].run()
-			a.sd[i].running = true
-		}
-	case "permute":
-		if output {
-			a.permute[i].in = wire
-		} else {
-			a.permute[i].out = wire
-		}
-		if !a.permute[i].running && a.permute[i].in.Ch != nil {
-			go a.permute[i].run()
-			a.permute[i].running = true
-		}
-	default:
-		return fmt.Errorf("invalid type %s", ilk)
-	}
-	return nil
-}
-
-func (a *Adapters) GetPlug(ilk, id, param string) ([]Wire, error) {
-	wires := []Wire{}
-	i, _ := strconv.Atoi(id)
-	if !(i >= 1 && i <= 40) {
-		return wires, fmt.Errorf("invalid id %s", id)
-	}
-	switch ilk {
-	case "dp":
-		wires = append(wires, a.dp[i].in)
-		for j := range a.dp[i].out {
-			wires = append(wires, a.dp[i].out[j])
-		}
-	case "s":
-		wires = append(wires, a.shift[i].in)
-		wires = append(wires, a.shift[i].out)
-	case "d":
-		wires = append(wires, a.del[i].in)
-		wires = append(wires, a.del[i].out)
-	case "sd":
-		wires = append(wires, a.sd[i].in)
-		wires = append(wires, a.sd[i].out)
-	case "permute":
-		wires = append(wires, a.permute[i].in)
-		wires = append(wires, a.permute[i].out)
-	default:
-		return wires, fmt.Errorf("invalid type %s", ilk)
-	}
-	return wires, nil
+	return nil, fmt.Errorf("invalid type %s", kind)
 }
 
 type digitProgram struct {
-	in      Wire
-	out     [11]Wire
-	running bool
+	in  *Jack
+	out [11]*Jack
 }
 
 // Emit program pulses when one or more digit positions activate.
-func (a *digitProgram) run() {
-	resp := make(chan int)
-	for {
-		d := <-a.in.Ch
-		for i := uint(0); i < 11; i++ {
-			if d.Val&(1<<i) != 0 {
-				Handshake(1, a.out[i], resp)
-			}
-		}
-		if d.Resp != nil {
-			d.Resp <- 1
+func (a *digitProgram) adapt(val int) {
+	for i := uint(0); i < 11; i++ {
+		if val&(1<<i) != 0 {
+			a.out[i].Transmit(1)
 		}
 	}
 }
 
 type shifter struct {
-	in      Wire
-	out     Wire
-	amount  int
-	running bool
+	in     *Jack
+	out    *Jack
+	amount int
 }
 
-func (a *shifter) run() {
-	for {
-		d := <-a.in.Ch
-		d.Val = shift(d.Val, a.amount)
-		if d.Val != 0 && a.out.Ch != nil {
-			a.out.Ch <- d
-		} else if d.Resp != nil {
-			d.Resp <- 1
-		}
+func (a *shifter) adapt(val int) {
+	val = shift(val, a.amount)
+	if val != 0 {
+		a.out.Transmit(val)
 	}
 }
 
@@ -239,52 +209,40 @@ func shift(value int, amount int) int {
 }
 
 type deleter struct {
-	in      Wire
-	out     Wire
-	digit   int
-	running bool
+	in    *Jack
+	out   *Jack
+	digit int
 }
 
-func (a *deleter) run() {
-	for {
-		d := <-a.in.Ch
-		if a.digit >= 0 {
-			// Keep leftmost `digit` digits (leaving sign alone)
-			d.Val &= ^((1 << uint(10-a.digit)) - 1)
-		} else {
-			// Zero leftmost `digit` digits (as well as sign)
-			d.Val &= (1 << uint(10+a.digit)) - 1
-		}
-		if d.Val != 0 && a.out.Ch != nil {
-			a.out.Ch <- d
-		} else if d.Resp != nil {
-			d.Resp <- 1
-		}
+func (a *deleter) adapt(val int) {
+	if a.digit >= 0 {
+		// Keep leftmost `digit` digits (leaving sign alone)
+		val &= ^((1 << uint(10-a.digit)) - 1)
+	} else {
+		// Zero leftmost `digit` digits (as well as sign)
+		val &= (1 << uint(10+a.digit)) - 1
+	}
+	if val != 0 {
+		a.out.Transmit(val)
 	}
 }
 
 type specialDigit struct {
-	in      Wire
-	out     Wire
-	digit   uint
-	running bool
+	in    *Jack
+	out   *Jack
+	digit uint
 }
 
-func (a *specialDigit) run() {
-	for {
-		d := <-a.in.Ch
-		x := d.Val >> a.digit
-		mask := 0x07fc
-		if d.Val&(1<<10) != 0 {
-			d.Val = x | mask
-		} else {
-			d.Val = x & ^mask
-		}
-		if d.Val != 0 && a.out.Ch != nil {
-			a.out.Ch <- d
-		} else if d.Resp != nil {
-			d.Resp <- 1
-		}
+func (a *specialDigit) adapt(val int) {
+	x := val >> a.digit
+	mask := 0x07fc
+	if val&(1<<10) != 0 {
+		val = x | mask
+	} else {
+		val = x & ^mask
+	}
+	if val != 0 {
+		a.out.Transmit(val)
 	}
 }
 
@@ -292,27 +250,21 @@ func (a *specialDigit) run() {
 // ad.permute.1.11,10,9,8,7,6,5,4,3,2,1  identity
 // ad.permute.1.0,10,9,8,7,6,5,4,3,2,1   delete sign
 type permuter struct {
-	in      Wire
-	out     Wire
-	order   [11]int
-	running bool
+	in    *Jack
+	out   *Jack
+	order [11]int
 }
 
-func (a *permuter) run() {
-	for {
-		d := <-a.in.Ch
-		permuted := 0
-		for i := 0; i < 11; i++ {
-			digit := a.order[i]
-			if digit != 0 && d.Val&(1<<(digit-1)) != 0 {
-				permuted |= 1 << (10 - i)
-			}
+func (a *permuter) adapt(val int) {
+	permuted := 0
+	for i := 0; i < 11; i++ {
+		digit := a.order[i]
+		if digit != 0 && val&(1<<(digit-1)) != 0 {
+			permuted |= 1 << (10 - i)
 		}
-		d.Val = permuted
-		if d.Val != 0 && a.out.Ch != nil {
-			a.out.Ch <- d
-		} else if d.Resp != nil {
-			d.Resp <- 1
-		}
+	}
+	val = permuted
+	if val != 0 {
+		a.out.Transmit(val)
 	}
 }

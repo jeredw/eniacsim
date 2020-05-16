@@ -16,16 +16,13 @@ type Mp struct {
 	decade     [20]mpDecade  // Decade counters (#20 down to #1)
 	associator [8]byte       // Stepper to decade associations
 
-	rewiring           chan int // main thread signals starting/done with rewiring
-	waitingForRewiring chan int // Run signals waiting for rewiring
-
 	mu sync.Mutex
 }
 
 type mpStepper struct {
 	stage      int // Stage counter (0..5)
-	di, i, cdi Wire
-	o          [6]Wire
+	di, i, cdi *Jack
+	o          [6]*Jack
 	csw        int
 	inff       int
 	kludge     bool
@@ -47,7 +44,7 @@ func (s *mpStepper) increment() {
 type mpDecade struct {
 	val   int    // Counter (one digit)
 	carry bool   // Carry out from counter
-	di    Wire   // Advance counter
+	di    *Jack  // Advance counter
 	limit [6]int // Per-stage max value for counter
 }
 
@@ -62,11 +59,48 @@ func (d *mpDecade) increment() {
 var associatorResets [8]byte = [8]byte{'A', 'B', 'C', 'D', 'F', 'G', 'H', 'J'}
 
 func NewMp() *Mp {
-	return &Mp{
-		rewiring:           make(chan int),
-		waitingForRewiring: make(chan int),
-		associator:         associatorResets,
+	u := &Mp{associator: associatorResets}
+	decadeIncrement := func(d int) JackHandler {
+		return func(*Jack, int) {
+			u.mu.Lock()
+			u.decade[d].increment()
+			u.mu.Unlock()
+		}
 	}
+	for i := 0; i < 20; i++ {
+		u.decade[i].di = NewInput(fmt.Sprintf("p.%ddi", i+1), decadeIncrement(i))
+	}
+	stepperIncrement := func(s int) JackHandler {
+		return func(*Jack, int) {
+			u.mu.Lock()
+			u.stepper[s].increment()
+			u.mu.Unlock()
+		}
+	}
+	stepperInput := func(s int) JackHandler {
+		return func(*Jack, int) {
+			u.mu.Lock()
+			u.stepper[s].inff = 1
+			u.mu.Unlock()
+		}
+	}
+	stepperClear := func(s int) JackHandler {
+		return func(*Jack, int) {
+			u.mu.Lock()
+			u.stepper[s].stage = 0
+			u.mu.Unlock()
+		}
+	}
+	for i := 0; i < 10; i++ {
+		stepper := stepperIndexToName(i)
+		u.stepper[i].di = NewInput(fmt.Sprintf("p.%cdi", stepper), stepperIncrement(i))
+		u.stepper[i].i = NewInput(fmt.Sprintf("p.%ci", stepper), stepperInput(i))
+		u.stepper[i].cdi = NewInput(fmt.Sprintf("p.%ccdi", stepper), stepperClear(i))
+		for j := 0; j < 6; j++ {
+			u.stepper[i].o[j] = NewOutput(fmt.Sprintf("p.%c%do", stepper, j+1), nil)
+		}
+	}
+	return u
 }
 
 func (u *Mp) PrinterDecades() string {
@@ -124,21 +158,19 @@ func (u *Mp) State() json.RawMessage {
 }
 
 func (u *Mp) Reset() {
-	u.rewiring <- 1
-	<-u.waitingForRewiring
 	u.mu.Lock()
 	for i := range u.decade {
-		u.decade[i].di = Wire{}
+		u.decade[i].di.Disconnect()
 		for j := range u.decade[i].limit {
 			u.decade[i].limit[j] = 0
 		}
 	}
 	for i := range u.stepper {
-		u.stepper[i].di = Wire{}
-		u.stepper[i].i = Wire{}
-		u.stepper[i].cdi = Wire{}
+		u.stepper[i].di.Disconnect()
+		u.stepper[i].i.Disconnect()
+		u.stepper[i].cdi.Disconnect()
 		for j := range u.stepper[i].o {
-			u.stepper[i].o[j] = Wire{}
+			u.stepper[i].o[j].Disconnect()
 		}
 		u.stepper[i].csw = 0
 		u.stepper[i].kludge = false
@@ -148,7 +180,6 @@ func (u *Mp) Reset() {
 	}
 	u.mu.Unlock()
 	u.Clear()
-	u.rewiring <- 1
 }
 
 // Clear resets decades and stepper stage counters.
@@ -165,7 +196,7 @@ func (u *Mp) Clear() {
 	}
 }
 
-func (u *Mp) lookupPlug(jack string) (*Wire, error) {
+func (u *Mp) FindJack(jack string) (*Jack, error) {
 	if len(jack) == 0 {
 		return nil, fmt.Errorf("invalid jack")
 	}
@@ -175,7 +206,7 @@ func (u *Mp) lookupPlug(jack string) (*Wire, error) {
 		if !(n >= 1 && n <= 20) {
 			return nil, fmt.Errorf("invalid decade %s", jack)
 		}
-		return &u.decade[20-n].di, nil
+		return u.decade[20-n].di, nil
 	}
 
 	s := stepperNameToIndex(jack[0])
@@ -187,11 +218,11 @@ func (u *Mp) lookupPlug(jack string) (*Wire, error) {
 	}
 	switch jack[1:] {
 	case "di":
-		return &u.stepper[s].di, nil
+		return u.stepper[s].di, nil
 	case "i":
-		return &u.stepper[s].i, nil
+		return u.stepper[s].i, nil
 	case "cdi":
-		return &u.stepper[s].cdi, nil
+		return u.stepper[s].cdi, nil
 	}
 	if len(jack) < 3 {
 		return nil, fmt.Errorf("invalid jack %s", jack)
@@ -200,34 +231,7 @@ func (u *Mp) lookupPlug(jack string) (*Wire, error) {
 	if !(n >= 1 && n <= 6) {
 		return nil, fmt.Errorf("invalid output %s", jack)
 	}
-	return &u.stepper[s].o[n-1], nil
-}
-
-func (u *Mp) Plug(jack string, wire Wire) error {
-	u.rewiring <- 1
-	<-u.waitingForRewiring
-	defer func() { u.rewiring <- 1 }()
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	p, err := u.lookupPlug(jack)
-	if err != nil {
-		return err
-	}
-	Plug(p, wire)
-	return nil
-}
-
-func (u *Mp) GetPlug(jack string) (Wire, error) {
-	u.rewiring <- 1
-	<-u.waitingForRewiring
-	defer func() { u.rewiring <- 1 }()
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	p, err := u.lookupPlug(jack)
-	if err != nil {
-		return Wire{}, err
-	}
-	return *p, nil
+	return u.stepper[s].o[n-1], nil
 }
 
 type associatorSwitch struct {
@@ -305,9 +309,6 @@ func (u *Mp) lookupSwitch(name string) (Switch, error) {
 
 // SetSwitch sets the control switch name to the given value.
 func (u *Mp) SetSwitch(name string, value string) error {
-	u.rewiring <- 1
-	<-u.waitingForRewiring
-	defer func() { u.rewiring <- 1 }()
 	u.mu.Lock()
 	defer u.mu.Unlock()
 	sw, err := u.lookupSwitch(name)
@@ -318,9 +319,6 @@ func (u *Mp) SetSwitch(name string, value string) error {
 }
 
 func (u *Mp) GetSwitch(name string) (string, error) {
-	u.rewiring <- 1
-	<-u.waitingForRewiring
-	defer func() { u.rewiring <- 1 }()
 	u.mu.Lock()
 	defer u.mu.Unlock()
 	sw, err := u.lookupSwitch(name)
@@ -452,7 +450,7 @@ func (u *Mp) incrementDecades(s int) {
 	}
 }
 
-func (u *Mp) clock(p Pulse, resp chan int) {
+func (u *Mp) clock(p Pulse) {
 	u.mu.Lock()
 	defer u.mu.Unlock()
 	cyc := p.Val
@@ -470,7 +468,7 @@ func (u *Mp) clock(p Pulse, resp chan int) {
 				// This stage output could trigger another mp input, so have to release mu.
 				// Live with a potential data race from rewiring stepper here.
 				u.mu.Unlock()
-				Handshake(1, u.stepper[i].o[stageBeforeIncrementing], resp)
+				u.stepper[i].o[stageBeforeIncrementing].Transmit(1)
 				u.mu.Lock()
 			}
 		}
@@ -489,228 +487,15 @@ func (u *Mp) clock(p Pulse, resp chan int) {
 }
 
 func (u *Mp) MakeClockFunc() ClockFunc {
-	resp := make(chan int)
 	return func(p Pulse) {
-		u.clock(p, resp)
-	}
-}
-
-func (u *Mp) Run() {
-	var p Pulse
-
-	for {
-		p.Resp = nil
-		select {
-		case <-u.rewiring:
-			u.waitingForRewiring <- 1
-			<-u.rewiring
-		case p = <-u.decade[0].di.Ch:
-			u.mu.Lock()
-			u.decade[0].increment()
-			u.mu.Unlock()
-		case p = <-u.decade[1].di.Ch:
-			u.mu.Lock()
-			u.decade[1].increment()
-			u.mu.Unlock()
-		case p = <-u.decade[2].di.Ch:
-			u.mu.Lock()
-			u.decade[2].increment()
-			u.mu.Unlock()
-		case p = <-u.decade[3].di.Ch:
-			u.mu.Lock()
-			u.decade[3].increment()
-			u.mu.Unlock()
-		case p = <-u.decade[4].di.Ch:
-			u.mu.Lock()
-			u.decade[4].increment()
-			u.mu.Unlock()
-		case p = <-u.decade[5].di.Ch:
-			u.mu.Lock()
-			u.decade[5].increment()
-			u.mu.Unlock()
-		case p = <-u.decade[6].di.Ch:
-			u.mu.Lock()
-			u.decade[6].increment()
-			u.mu.Unlock()
-		case p = <-u.decade[7].di.Ch:
-			u.mu.Lock()
-			u.decade[7].increment()
-			u.mu.Unlock()
-		case p = <-u.decade[8].di.Ch:
-			u.mu.Lock()
-			u.decade[8].increment()
-			u.mu.Unlock()
-		case p = <-u.decade[9].di.Ch:
-			u.mu.Lock()
-			u.decade[9].increment()
-			u.mu.Unlock()
-		case p = <-u.decade[10].di.Ch:
-			u.mu.Lock()
-			u.decade[10].increment()
-			u.mu.Unlock()
-		case p = <-u.decade[11].di.Ch:
-			u.mu.Lock()
-			u.decade[11].increment()
-			u.mu.Unlock()
-		case p = <-u.decade[12].di.Ch:
-			u.mu.Lock()
-			u.decade[12].increment()
-			u.mu.Unlock()
-		case p = <-u.decade[13].di.Ch:
-			u.mu.Lock()
-			u.decade[13].increment()
-			u.mu.Unlock()
-		case p = <-u.decade[14].di.Ch:
-			u.mu.Lock()
-			u.decade[14].increment()
-			u.mu.Unlock()
-		case p = <-u.decade[15].di.Ch:
-			u.mu.Lock()
-			u.decade[15].increment()
-			u.mu.Unlock()
-		case p = <-u.decade[16].di.Ch:
-			u.mu.Lock()
-			u.decade[16].increment()
-			u.mu.Unlock()
-		case p = <-u.decade[17].di.Ch:
-			u.mu.Lock()
-			u.decade[17].increment()
-			u.mu.Unlock()
-		case p = <-u.decade[18].di.Ch:
-			u.mu.Lock()
-			u.decade[18].increment()
-			u.mu.Unlock()
-		case p = <-u.decade[19].di.Ch:
-			u.mu.Lock()
-			u.decade[19].increment()
-			u.mu.Unlock()
-		case p = <-u.stepper[0].di.Ch:
-			u.mu.Lock()
-			u.stepper[0].increment()
-			u.mu.Unlock()
-		case p = <-u.stepper[0].i.Ch:
-			u.mu.Lock()
-			u.stepper[0].inff = 1
-			u.mu.Unlock()
-		case p = <-u.stepper[0].cdi.Ch:
-			u.mu.Lock()
-			u.stepper[0].stage = 0
-			u.mu.Unlock()
-		case p = <-u.stepper[1].di.Ch:
-			u.mu.Lock()
-			u.stepper[1].increment()
-			u.mu.Unlock()
-		case p = <-u.stepper[1].i.Ch:
-			u.mu.Lock()
-			u.stepper[1].inff = 1
-			u.mu.Unlock()
-		case p = <-u.stepper[1].cdi.Ch:
-			u.mu.Lock()
-			u.stepper[1].stage = 0
-			u.mu.Unlock()
-		case p = <-u.stepper[2].di.Ch:
-			u.mu.Lock()
-			u.stepper[2].increment()
-			u.mu.Unlock()
-		case p = <-u.stepper[2].i.Ch:
-			u.mu.Lock()
-			u.stepper[2].inff = 1
-			u.mu.Unlock()
-		case p = <-u.stepper[2].cdi.Ch:
-			u.mu.Lock()
-			u.stepper[2].stage = 0
-			u.mu.Unlock()
-		case p = <-u.stepper[3].di.Ch:
-			u.mu.Lock()
-			u.stepper[3].increment()
-			u.mu.Unlock()
-		case p = <-u.stepper[3].i.Ch:
-			u.mu.Lock()
-			u.stepper[3].inff = 1
-			u.mu.Unlock()
-		case p = <-u.stepper[3].cdi.Ch:
-			u.mu.Lock()
-			u.stepper[3].stage = 0
-			u.mu.Unlock()
-		case p = <-u.stepper[4].di.Ch:
-			u.mu.Lock()
-			u.stepper[4].increment()
-			u.mu.Unlock()
-		case p = <-u.stepper[4].i.Ch:
-			u.mu.Lock()
-			u.stepper[4].inff = 1
-			u.mu.Unlock()
-		case p = <-u.stepper[4].cdi.Ch:
-			u.mu.Lock()
-			u.stepper[4].stage = 0
-			u.mu.Unlock()
-		case p = <-u.stepper[5].di.Ch:
-			u.mu.Lock()
-			u.stepper[5].increment()
-			u.mu.Unlock()
-		case p = <-u.stepper[5].i.Ch:
-			u.mu.Lock()
-			u.stepper[5].inff = 1
-			u.mu.Unlock()
-		case p = <-u.stepper[5].cdi.Ch:
-			u.mu.Lock()
-			u.stepper[5].stage = 0
-			u.mu.Unlock()
-		case p = <-u.stepper[6].di.Ch:
-			u.mu.Lock()
-			u.stepper[6].increment()
-			u.mu.Unlock()
-		case p = <-u.stepper[6].i.Ch:
-			u.mu.Lock()
-			u.stepper[6].inff = 1
-			u.mu.Unlock()
-		case p = <-u.stepper[6].cdi.Ch:
-			u.mu.Lock()
-			u.stepper[6].stage = 0
-			u.mu.Unlock()
-		case p = <-u.stepper[7].di.Ch:
-			u.mu.Lock()
-			u.stepper[7].increment()
-			u.mu.Unlock()
-		case p = <-u.stepper[7].i.Ch:
-			u.mu.Lock()
-			u.stepper[7].inff = 1
-			u.mu.Unlock()
-		case p = <-u.stepper[7].cdi.Ch:
-			u.mu.Lock()
-			u.stepper[7].stage = 0
-			u.mu.Unlock()
-		case p = <-u.stepper[8].di.Ch:
-			u.mu.Lock()
-			u.stepper[8].increment()
-			u.mu.Unlock()
-		case p = <-u.stepper[8].i.Ch:
-			u.mu.Lock()
-			u.stepper[8].inff = 1
-			u.mu.Unlock()
-		case p = <-u.stepper[8].cdi.Ch:
-			u.mu.Lock()
-			u.stepper[8].stage = 0
-			u.mu.Unlock()
-		case p = <-u.stepper[9].di.Ch:
-			u.mu.Lock()
-			u.stepper[9].increment()
-			u.mu.Unlock()
-		case p = <-u.stepper[9].i.Ch:
-			u.mu.Lock()
-			u.stepper[9].inff = 1
-			u.mu.Unlock()
-		case p = <-u.stepper[9].cdi.Ch:
-			u.mu.Lock()
-			u.stepper[9].stage = 0
-			u.mu.Unlock()
-		}
-		if p.Resp != nil {
-			p.Resp <- 1
-		}
+		u.clock(p)
 	}
 }
 
 func stepperNameToIndex(s byte) int {
 	return strings.IndexByte("ABCDEFGHJK", s)
+}
+
+func stepperIndexToName(i int) byte {
+	return "ABCDEFGHJK"[i]
 }

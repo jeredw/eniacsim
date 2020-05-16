@@ -18,27 +18,50 @@ type Constant struct {
 	signj        [2]byte
 	k            [10]byte
 	signk        [2]byte
-	out          Wire
-	pin          [30]Wire
+	out          *Jack
+	pin          [30]*Jack
 	inff1, inff2 [30]bool
-	pout         [30]Wire
+	pout         [30]*Jack
 
 	val     []byte
 	sign    byte
 	pos1pp  int
 	whichrp bool
 
-	rewiring           chan int
-	waitingForRewiring chan int
+	tracePulse TraceFunc
 
 	mu sync.Mutex
 }
 
 func NewConstant() *Constant {
-	return &Constant{
-		rewiring:           make(chan int),
-		waitingForRewiring: make(chan int),
+	u := &Constant{}
+	programInput := func(prog int) JackHandler {
+		return func(j *Jack, val int) {
+			if val == 1 {
+				u.trigger(prog)
+			}
+		}
 	}
+	output := func(width int) JackHandler {
+		return func(j *Jack, val int) {
+			if u.tracePulse != nil {
+				u.tracePulse(j.Name, width, int64(val))
+			}
+		}
+	}
+	for i := 0; i < 30; i++ {
+		u.pin[i] = NewInput(fmt.Sprintf("c.%di", i+1), programInput(i))
+		u.pout[i] = NewOutput(fmt.Sprintf("c.%do", i+1), output(1))
+	}
+	u.out = NewOutput("c.o", output(11))
+	return u
+}
+
+func (u *Constant) AttachTrace(tracePulse TraceFunc) []func(TraceFunc) {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	u.tracePulse = tracePulse
+	return []func(TraceFunc){}
 }
 
 func (u *Constant) Stat() string {
@@ -50,17 +73,14 @@ func (u *Constant) Stat() string {
 }
 
 func (u *Constant) Reset() {
-	u.rewiring <- 1
-	<-u.waitingForRewiring
-	defer func() { u.rewiring <- 1 }()
 	u.mu.Lock()
 	defer u.mu.Unlock()
 	for i := 0; i < 30; i++ {
 		u.sel[i] = 0
-		u.pin[i] = Wire{}
+		u.pin[i].Disconnect()
 		u.inff1[i] = false
 		u.inff2[i] = false
-		u.pout[i] = Wire{}
+		u.pout[i].Disconnect()
 	}
 	for i := 0; i < 8; i++ {
 		for j := 0; j < 10; j++ {
@@ -77,12 +97,12 @@ func (u *Constant) Reset() {
 	u.signj[1] = 0
 	u.signk[0] = 0
 	u.signk[1] = 0
-	u.out = Wire{}
+	u.out.Disconnect()
 }
 
-func (u *Constant) lookupPlug(jack string) (*Wire, error) {
+func (u *Constant) FindJack(jack string) (*Jack, error) {
 	if jack == "o" {
-		return &u.out, nil
+		return u.out, nil
 	}
 	var prog int
 	var ilk rune
@@ -92,38 +112,11 @@ func (u *Constant) lookupPlug(jack string) (*Wire, error) {
 	}
 	switch ilk {
 	case 'i':
-		return &u.pin[prog-1], nil
+		return u.pin[prog-1], nil
 	case 'o':
-		return &u.pout[prog-1], nil
+		return u.pout[prog-1], nil
 	}
 	return nil, fmt.Errorf("invalid jack %s", jack)
-}
-
-func (u *Constant) Plug(jack string, wire Wire) error {
-	u.rewiring <- 1
-	<-u.waitingForRewiring
-	defer func() { u.rewiring <- 1 }()
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	p, err := u.lookupPlug(jack)
-	if err != nil {
-		return err
-	}
-	Plug(p, wire)
-	return nil
-}
-
-func (u *Constant) GetPlug(jack string) (Wire, error) {
-	u.rewiring <- 1
-	<-u.waitingForRewiring
-	defer func() { u.rewiring <- 1 }()
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	p, err := u.lookupPlug(jack)
-	if err != nil {
-		return Wire{}, err
-	}
-	return *p, nil
 }
 
 type selSwitch struct {
@@ -258,11 +251,11 @@ func (u *Constant) procfield(i int, f string) {
 	for j := bank * 6; j < bank*6+6; j++ {
 		switch u.sel[j] {
 		case 0, 1:
-			if i%2 == 0 && u.pin[j].Ch != nil {
+			if i%2 == 0 && u.pin[j].Connected() {
 				tendig = false
 			}
 		case 3, 4:
-			if i%2 == 1 && u.pin[j].Ch != nil {
+			if i%2 == 1 && u.pin[j].Connected() {
 				tendig = false
 			}
 		}
@@ -407,7 +400,7 @@ var digitcons = []int{0, Onep, Twop, (Onep | Twop), Fourp, (Onep | Fourp),
 	(Twop | Fourp), (Onep | Twop | Fourp), (Twop | Twopp | Fourp),
 	(Onep | Twop | Twopp | Fourp)}
 
-func (u *Constant) clock(p Pulse, resp chan int) {
+func (u *Constant) clock(p Pulse) {
 	//	u.mu.Lock()
 	//	defer u.mu.Unlock()
 	sending := -1
@@ -436,7 +429,7 @@ func (u *Constant) clock(p Pulse, resp chan int) {
 	}
 	if sending > -1 {
 		if cyc&Cpp != 0 {
-			Handshake(1, u.pout[sending], resp)
+			u.pout[sending].Transmit(1)
 			u.inff2[sending] = false
 			sending = -1
 		} else if cyc&Ninep != 0 {
@@ -450,154 +443,17 @@ func (u *Constant) clock(p Pulse, resp chan int) {
 				n |= 1 << 10
 			}
 			if n != 0 {
-				Handshake(n, u.out, resp)
+				u.out.Transmit(n)
 			}
 		} else if cyc&Onepp != 0 && u.pos1pp >= 0 && u.sign == 1 {
-			Handshake(1<<uint(u.pos1pp), u.out, resp)
+			u.out.Transmit(1 << uint(u.pos1pp))
 		}
 	}
 }
 
 func (u *Constant) MakeClockFunc() ClockFunc {
-	resp := make(chan int)
 	return func(p Pulse) {
-		u.clock(p, resp)
-	}
-}
-
-func (u *Constant) Run() {
-	var p Pulse
-
-	for {
-		p.Resp = nil
-		select {
-		case <-u.rewiring:
-			u.waitingForRewiring <- 1
-			<-u.rewiring
-		case p = <-u.pin[0].Ch:
-			if p.Val == 1 {
-				u.trigger(0)
-			}
-		case p = <-u.pin[1].Ch:
-			if p.Val == 1 {
-				u.trigger(1)
-			}
-		case p = <-u.pin[2].Ch:
-			if p.Val == 1 {
-				u.trigger(2)
-			}
-		case p = <-u.pin[3].Ch:
-			if p.Val == 1 {
-				u.trigger(3)
-			}
-		case p = <-u.pin[4].Ch:
-			if p.Val == 1 {
-				u.trigger(4)
-			}
-		case p = <-u.pin[5].Ch:
-			if p.Val == 1 {
-				u.trigger(5)
-			}
-		case p = <-u.pin[6].Ch:
-			if p.Val == 1 {
-				u.trigger(6)
-			}
-		case p = <-u.pin[7].Ch:
-			if p.Val == 1 {
-				u.trigger(7)
-			}
-		case p = <-u.pin[8].Ch:
-			if p.Val == 1 {
-				u.trigger(8)
-			}
-		case p = <-u.pin[9].Ch:
-			if p.Val == 1 {
-				u.trigger(9)
-			}
-		case p = <-u.pin[10].Ch:
-			if p.Val == 1 {
-				u.trigger(10)
-			}
-		case p = <-u.pin[11].Ch:
-			if p.Val == 1 {
-				u.trigger(11)
-			}
-		case p = <-u.pin[12].Ch:
-			if p.Val == 1 {
-				u.trigger(12)
-			}
-		case p = <-u.pin[13].Ch:
-			if p.Val == 1 {
-				u.trigger(13)
-			}
-		case p = <-u.pin[14].Ch:
-			if p.Val == 1 {
-				u.trigger(14)
-			}
-		case p = <-u.pin[15].Ch:
-			if p.Val == 1 {
-				u.trigger(15)
-			}
-		case p = <-u.pin[16].Ch:
-			if p.Val == 1 {
-				u.trigger(16)
-			}
-		case p = <-u.pin[17].Ch:
-			if p.Val == 1 {
-				u.trigger(17)
-			}
-		case p = <-u.pin[18].Ch:
-			if p.Val == 1 {
-				u.trigger(18)
-			}
-		case p = <-u.pin[19].Ch:
-			if p.Val == 1 {
-				u.trigger(19)
-			}
-		case p = <-u.pin[20].Ch:
-			if p.Val == 1 {
-				u.trigger(20)
-			}
-		case p = <-u.pin[21].Ch:
-			if p.Val == 1 {
-				u.trigger(21)
-			}
-		case p = <-u.pin[22].Ch:
-			if p.Val == 1 {
-				u.trigger(22)
-			}
-		case p = <-u.pin[23].Ch:
-			if p.Val == 1 {
-				u.trigger(23)
-			}
-		case p = <-u.pin[24].Ch:
-			if p.Val == 1 {
-				u.trigger(24)
-			}
-		case p = <-u.pin[25].Ch:
-			if p.Val == 1 {
-				u.trigger(25)
-			}
-		case p = <-u.pin[26].Ch:
-			if p.Val == 1 {
-				u.trigger(26)
-			}
-		case p = <-u.pin[27].Ch:
-			if p.Val == 1 {
-				u.trigger(27)
-			}
-		case p = <-u.pin[28].Ch:
-			if p.Val == 1 {
-				u.trigger(28)
-			}
-		case p = <-u.pin[29].Ch:
-			if p.Val == 1 {
-				u.trigger(29)
-			}
-		}
-		if p.Resp != nil {
-			p.Resp <- 1
-		}
+		u.clock(p)
 	}
 }
 

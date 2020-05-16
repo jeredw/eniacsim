@@ -469,9 +469,14 @@ function findNearestDataTerminal(adapter, adj) {
 }
 
 function connectAdapter(adapter, adj) {
-  const port = findNearestDataTerminal(adapter, adj);
+  let refAdapter = adapter;
+  if (/^ad\.dp\.o/.test(adapter)) {
+    // Connect output wires to the input side of dp adapter (the data jack).
+    refAdapter = adapter.replace(/\.o\.(\d+).*/, '.i.$1')
+  }
+  const port = findNearestDataTerminal(refAdapter, adj);
   if (!port) {
-    console.error("error connecting adapter", adj);
+    console.error("error connecting adapter", adapter);
     return;
   }
   simulatorPorts[adapter] = port;
@@ -491,7 +496,7 @@ async function setupWiringFromSimulator() {
     const conn = outputs[i].trim();
     if (conn != 'unconnected') {
       for (const wire of conn.split(/\n/)) {
-        const [a, b] = wire.split(" ");
+        let [a, b] = wire.split(" ");
         if (!wires.has(`${a} ${b}`) && !wires.has(`${b} ${a}`)) {
           wires.add(wire);
         }

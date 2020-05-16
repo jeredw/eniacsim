@@ -61,8 +61,8 @@ type Accumulator struct {
 	Io AccumulatorConn
 
 	unit                int
-	α, β, γ, δ, ε, A, S Wire
-	ctlterm             [20]Wire
+	α, β, γ, δ, ε, A, S *Jack
+	ctlterm             [20]*Jack
 	inff1, inff2        [12]bool
 	opsw                [12]byte
 	clrsw               [12]bool
@@ -78,9 +78,7 @@ type Accumulator struct {
 	lbuddy, rbuddy      int
 	plbuddy, prbuddy    *Accumulator
 
-	rewiring           chan int
-	waitingForRewiring chan int
-	resp               chan int
+	tracePulse TraceFunc
 
 	mu sync.Mutex
 }
@@ -92,20 +90,73 @@ type AccumulatorConn struct {
 	Su3   func() int
 	Multl func() bool
 	Multr func() bool
-
-	TracePulse TraceFunc
 }
 
 func NewAccumulator(unit int) *Accumulator {
-	return &Accumulator{
-		unit:               unit,
-		rewiring:           make(chan int),
-		waitingForRewiring: make(chan int),
-		resp:               make(chan int),
-		sigfig:             10,
-		lbuddy:             unit,
-		rbuddy:             unit,
+	unitDot := fmt.Sprintf("a%d.", unit+1)
+	u := &Accumulator{
+		unit:   unit,
+		sigfig: 10,
+		lbuddy: unit,
+		rbuddy: unit,
 	}
+	digitInput := func(st1Pin int) JackHandler {
+		return func(j *Jack, val int) {
+			u.mu.Lock()
+			defer u.mu.Unlock()
+			if u.st1()&st1Pin != 0 {
+				u.receive(val)
+				if u.tracePulse != nil {
+					u.tracePulse(j.Name, 11, int64(val))
+				}
+			}
+		}
+	}
+	programInput := func(prog int) JackHandler {
+		return func(j *Jack, val int) {
+			if val == 1 {
+				u.trigger(prog)
+				if u.tracePulse != nil {
+					u.tracePulse(j.Name, 1, int64(val))
+				}
+			}
+		}
+	}
+	output := func(width int) JackHandler {
+		return func(j *Jack, val int) {
+			if u.tracePulse != nil {
+				u.tracePulse(j.Name, width, int64(val))
+			}
+		}
+	}
+	u.α = NewInput(unitDot+"α", digitInput(stα))
+	u.β = NewInput(unitDot+"β", digitInput(stβ))
+	u.γ = NewInput(unitDot+"γ", digitInput(stγ))
+	u.δ = NewInput(unitDot+"δ", digitInput(stδ))
+	u.ε = NewInput(unitDot+"ε", digitInput(stε))
+	u.A = NewOutput(unitDot+"A", output(11))
+	u.S = NewOutput(unitDot+"S", output(11))
+	u.ctlterm[0] = NewInput(unitDot+"1i", programInput(0))
+	u.ctlterm[1] = NewInput(unitDot+"2i", programInput(1))
+	u.ctlterm[2] = NewInput(unitDot+"3i", programInput(2))
+	u.ctlterm[3] = NewInput(unitDot+"4i", programInput(3))
+	u.ctlterm[4] = NewInput(unitDot+"5i", programInput(4))
+	u.ctlterm[5] = NewOutput(unitDot+"5o", output(1))
+	u.ctlterm[6] = NewInput(unitDot+"6i", programInput(5))
+	u.ctlterm[7] = NewOutput(unitDot+"6o", output(1))
+	u.ctlterm[8] = NewInput(unitDot+"7i", programInput(6))
+	u.ctlterm[9] = NewOutput(unitDot+"7o", output(1))
+	u.ctlterm[10] = NewInput(unitDot+"8i", programInput(7))
+	u.ctlterm[11] = NewOutput(unitDot+"8o", output(1))
+	u.ctlterm[12] = NewInput(unitDot+"9i", programInput(8))
+	u.ctlterm[13] = NewOutput(unitDot+"9o", output(1))
+	u.ctlterm[14] = NewInput(unitDot+"10i", programInput(9))
+	u.ctlterm[15] = NewOutput(unitDot+"10o", output(1))
+	u.ctlterm[16] = NewInput(unitDot+"11i", programInput(10))
+	u.ctlterm[17] = NewOutput(unitDot+"11o", output(1))
+	u.ctlterm[18] = NewInput(unitDot+"12i", programInput(11))
+	u.ctlterm[19] = NewOutput(unitDot+"12o", output(1))
+	return u
 }
 
 func (u *Accumulator) Sign() string {
@@ -184,9 +235,9 @@ func (u *Accumulator) State() json.RawMessage {
 func (u *Accumulator) AttachTrace(tracePulse TraceFunc) []func(TraceFunc) {
 	u.mu.Lock()
 	defer u.mu.Unlock()
-	u.Io.TracePulse = tracePulse
-	sign := fmt.Sprintf("a%d.sign", u.unit + 1)
-	value := fmt.Sprintf("a%d.value", u.unit + 1)
+	u.tracePulse = tracePulse
+	sign := fmt.Sprintf("a%d.sign", u.unit+1)
+	value := fmt.Sprintf("a%d.value", u.unit+1)
 	return []func(t TraceFunc){
 		func(traceReg TraceFunc) {
 			s := int64(0)
@@ -207,16 +258,14 @@ func (u *Accumulator) AttachTrace(tracePulse TraceFunc) []func(TraceFunc) {
 }
 
 func (u *Accumulator) Reset() {
-	u.rewiring <- 1
-	<-u.waitingForRewiring
 	u.mu.Lock()
-	u.α = Wire{}
-	u.β = Wire{}
-	u.γ = Wire{}
-	u.δ = Wire{}
-	u.ε = Wire{}
+	u.α.Disconnect()
+	u.β.Disconnect()
+	u.γ.Disconnect()
+	u.δ.Disconnect()
+	u.ε.Disconnect()
 	for i := 0; i < 12; i++ {
-		u.ctlterm[i] = Wire{}
+		u.ctlterm[i].Disconnect()
 		u.inff1[i] = false
 		u.inff2[i] = false
 		u.opsw[i] = 0
@@ -233,7 +282,6 @@ func (u *Accumulator) Reset() {
 	u.lbuddy = u.unit
 	u.rbuddy = u.unit
 	u.mu.Unlock()
-	u.rewiring <- 1
 	u.Clear()
 }
 
@@ -313,22 +361,22 @@ func Interconnect(units [20]*Accumulator, p1 []string, p2 []string) error {
 	return nil
 }
 
-func (u *Accumulator) lookupPlug(jack string) (*Wire, bool, error) {
+func (u *Accumulator) FindJack(jack string) (*Jack, error) {
 	switch {
 	case jack == "α", jack == "a", jack == "alpha":
-		return &u.α, false, nil
+		return u.α, nil
 	case jack == "β", jack == "b", jack == "beta":
-		return &u.β, false, nil
+		return u.β, nil
 	case jack == "γ", jack == "g", jack == "gamma":
-		return &u.γ, false, nil
+		return u.γ, nil
 	case jack == "δ", jack == "d", jack == "delta":
-		return &u.δ, false, nil
+		return u.δ, nil
 	case jack == "ε", jack == "e", jack == "epsilon":
-		return &u.ε, false, nil
+		return u.ε, nil
 	case jack == "A":
-		return &u.A, false, nil
+		return u.A, nil
 	case jack == "S":
-		return &u.S, false, nil
+		return u.S, nil
 	}
 	jacks := [20]string{
 		"1i", "2i", "3i", "4i", "5i", "5o", "6i", "6o", "7i", "7o",
@@ -336,41 +384,10 @@ func (u *Accumulator) lookupPlug(jack string) (*Wire, bool, error) {
 	}
 	for i, j := range jacks {
 		if j == jack {
-			return &u.ctlterm[i], true, nil
+			return u.ctlterm[i], nil
 		}
 	}
-	return nil, false, fmt.Errorf("invalid jack: %s", jack)
-}
-
-func (u *Accumulator) Plug(jack string, wire Wire) error {
-	u.rewiring <- 1
-	<-u.waitingForRewiring
-	defer func() { u.rewiring <- 1 }()
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	p, teed, err := u.lookupPlug(jack)
-	if err != nil {
-		return err
-	}
-	if teed {
-		*p = Tee(*p, wire)
-	} else {
-		Plug(p, wire)
-	}
-	return nil
-}
-
-func (u *Accumulator) GetPlug(jack string) (Wire, error) {
-	u.rewiring <- 1
-	<-u.waitingForRewiring
-	defer func() { u.rewiring <- 1 }()
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	p, _, err := u.lookupPlug(jack)
-	if err != nil {
-		return Wire{}, err
-	}
-	return *p, nil
+	return nil, fmt.Errorf("invalid jack: %s", jack)
 }
 
 func (u *Accumulator) lookupSwitch(name string) (Switch, error) {
@@ -533,10 +550,7 @@ func (u *Accumulator) docpp(cyc int) {
 				u.inff2[i] = false
 				rstrep = true
 				t := (i-4)*2 + 5
-				Handshake(1, u.ctlterm[t], u.resp)
-				if u.Io.TracePulse != nil && u.ctlterm[t].Ch != nil {
-					u.Io.TracePulse(u.ctlterm[t].Source, 1, 1)
-				}
+				u.ctlterm[t].Transmit(1)
 			}
 		}
 		if rstrep {
@@ -632,7 +646,7 @@ func (u *Accumulator) dotenp() {
 func (u *Accumulator) doninep() {
 	curprog := u.st1()
 	if curprog&(stA|stAS) != 0 {
-		if u.A.Ch != nil {
+		if u.A.Connected() {
 			n := 0
 			for i := 0; i < 10; i++ {
 				if u.decff[i] {
@@ -643,15 +657,12 @@ func (u *Accumulator) doninep() {
 				n |= 1 << 10
 			}
 			if n != 0 {
-				Handshake(n, u.A, u.resp)
-				if u.Io.TracePulse != nil && u.A.Ch != nil {
-					u.Io.TracePulse(u.A.Source, 11, int64(n))
-				}
+				u.A.Transmit(n)
 			}
 		}
 	}
 	if curprog&(stAS|stS) != 0 {
-		if u.S.Ch != nil {
+		if u.S.Connected() {
 			n := 0
 			for i := 0; i < 10; i++ {
 				if !u.decff[i] {
@@ -662,10 +673,7 @@ func (u *Accumulator) doninep() {
 				n |= 1 << 10
 			}
 			if n != 0 {
-				Handshake(n, u.S, u.resp)
-				if u.Io.TracePulse != nil && u.S.Ch != nil {
-					u.Io.TracePulse(u.S.Source, 11, int64(n))
-				}
+				u.S.Transmit(n)
 			}
 		}
 	}
@@ -685,15 +693,12 @@ func (u *Accumulator) doonepp() {
 			}
 		}
 	}
-	if curprog&(stAS|stS) != 0 && u.S.Ch != nil {
+	if curprog&(stAS|stS) != 0 && u.S.Connected() {
 		if ((u.lbuddy < 0 || u.lbuddy == u.unit) && u.rbuddy == u.unit && u.sigfig > 0) ||
 			(u.rbuddy != u.unit && u.sigfig < 10) ||
 			(u.lbuddy != u.unit && u.lbuddy >= 0 && u.plbuddy.sigfig == 10 && u.sigfig > 0) ||
 			(u.rbuddy != u.unit && u.sigfig == 10 && u.prbuddy.sigfig == 0) {
-			Handshake(1<<uint(10-u.sigfig), u.S, u.resp)
-			if u.Io.TracePulse != nil && u.S.Ch != nil {
-				u.Io.TracePulse(u.S.Source, 11, int64(1<<uint(10-u.sigfig)))
-			}
+			u.S.Transmit(1 << uint(10-u.sigfig))
 		}
 	}
 }
@@ -746,149 +751,4 @@ func (u *Accumulator) trigger(input int) {
 	u.mu.Lock()
 	u.inff1[input] = true
 	u.mu.Unlock()
-}
-
-func (u *Accumulator) Run() {
-	var p Pulse
-
-	for {
-		p.Resp = nil
-		select {
-		case <-u.rewiring:
-			u.waitingForRewiring <- 1
-			<-u.rewiring
-		case p = <-u.α.Ch:
-			u.mu.Lock()
-			if u.st1()&stα != 0 {
-				u.receive(p.Val)
-				if u.Io.TracePulse != nil {
-					u.Io.TracePulse(u.α.Sink, 11, int64(p.Val))
-				}
-			}
-			u.mu.Unlock()
-		case p = <-u.β.Ch:
-			u.mu.Lock()
-			if u.st1()&stβ != 0 {
-				u.receive(p.Val)
-				if u.Io.TracePulse != nil {
-					u.Io.TracePulse(u.β.Sink, 11, int64(p.Val))
-				}
-			}
-			u.mu.Unlock()
-		case p = <-u.γ.Ch:
-			u.mu.Lock()
-			if u.st1()&stγ != 0 {
-				u.receive(p.Val)
-				if u.Io.TracePulse != nil {
-					u.Io.TracePulse(u.γ.Sink, 11, int64(p.Val))
-				}
-			}
-			u.mu.Unlock()
-		case p = <-u.δ.Ch:
-			u.mu.Lock()
-			if u.st1()&stδ != 0 {
-				u.receive(p.Val)
-				if u.Io.TracePulse != nil {
-					u.Io.TracePulse(u.δ.Sink, 11, int64(p.Val))
-				}
-			}
-			u.mu.Unlock()
-		case p = <-u.ε.Ch:
-			u.mu.Lock()
-			if u.st1()&stε != 0 {
-				u.receive(p.Val)
-				if u.Io.TracePulse != nil {
-					u.Io.TracePulse(u.ε.Sink, 11, int64(p.Val))
-				}
-			}
-			u.mu.Unlock()
-		case p = <-u.ctlterm[0].Ch:
-			if p.Val == 1 {
-				u.trigger(0)
-				if u.Io.TracePulse != nil {
-					u.Io.TracePulse(u.ctlterm[0].Sink, 1, int64(p.Val))
-				}
-			}
-		case p = <-u.ctlterm[1].Ch:
-			if p.Val == 1 {
-				u.trigger(1)
-				if u.Io.TracePulse != nil {
-					u.Io.TracePulse(u.ctlterm[1].Sink, 1, int64(p.Val))
-				}
-			}
-		case p = <-u.ctlterm[2].Ch:
-			if p.Val == 1 {
-				u.trigger(2)
-				if u.Io.TracePulse != nil {
-					u.Io.TracePulse(u.ctlterm[2].Sink, 1, int64(p.Val))
-				}
-			}
-		case p = <-u.ctlterm[3].Ch:
-			if p.Val == 1 {
-				u.trigger(3)
-				if u.Io.TracePulse != nil {
-					u.Io.TracePulse(u.ctlterm[3].Sink, 1, int64(p.Val))
-				}
-			}
-		case p = <-u.ctlterm[4].Ch:
-			if p.Val == 1 {
-				u.trigger(4)
-				if u.Io.TracePulse != nil {
-					u.Io.TracePulse(u.ctlterm[4].Sink, 1, int64(p.Val))
-				}
-			}
-		case p = <-u.ctlterm[6].Ch:
-			if p.Val == 1 {
-				u.trigger(5)
-				if u.Io.TracePulse != nil {
-					u.Io.TracePulse(u.ctlterm[6].Sink, 1, int64(p.Val))
-				}
-			}
-		case p = <-u.ctlterm[8].Ch:
-			if p.Val == 1 {
-				u.trigger(6)
-				if u.Io.TracePulse != nil {
-					u.Io.TracePulse(u.ctlterm[8].Sink, 1, int64(p.Val))
-				}
-			}
-		case p = <-u.ctlterm[10].Ch:
-			if p.Val == 1 {
-				u.trigger(7)
-				if u.Io.TracePulse != nil {
-					u.Io.TracePulse(u.ctlterm[10].Sink, 1, int64(p.Val))
-				}
-			}
-		case p = <-u.ctlterm[12].Ch:
-			if p.Val == 1 {
-				u.trigger(8)
-				if u.Io.TracePulse != nil {
-					u.Io.TracePulse(u.ctlterm[12].Sink, 1, int64(p.Val))
-				}
-			}
-		case p = <-u.ctlterm[14].Ch:
-			if p.Val == 1 {
-				u.trigger(9)
-				if u.Io.TracePulse != nil {
-					u.Io.TracePulse(u.ctlterm[14].Sink, 1, int64(p.Val))
-				}
-			}
-		case p = <-u.ctlterm[16].Ch:
-			if p.Val == 1 {
-				u.trigger(10)
-				if u.Io.TracePulse != nil {
-					u.Io.TracePulse(u.ctlterm[16].Sink, 1, int64(p.Val))
-				}
-			}
-		case p = <-u.ctlterm[18].Ch:
-			if p.Val == 1 {
-				u.trigger(11)
-				if u.Io.TracePulse != nil {
-					u.Io.TracePulse(u.ctlterm[18].Sink, 1, int64(p.Val))
-				}
-			}
-		}
-		if p.Resp != nil {
-			p.Resp <- 1
-		}
-	}
 }

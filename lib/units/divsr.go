@@ -36,8 +36,8 @@ const (
 type Divsr struct {
 	Io DivsrConn
 
-	progin, progout, ilock                                                     [8]Wire
-	answer                                                                     Wire
+	progin, progout, ilock                                                     [8]*Jack
+	answer                                                                     *Jack
 	numarg, denarg, roundoff, places, ilocksw, anssw                           [8]int
 	numcl, dencl                                                               [8]bool
 	preff, progff                                                              [8]bool
@@ -47,9 +47,6 @@ type Divsr struct {
 	ans1, ans2, ans3, ans4                                                     bool
 	curprog, divadap, sradap                                                   int
 	sv, su2, su3                                                               int
-
-	rewiring           chan int
-	waitingForRewiring chan int
 
 	mu sync.Mutex
 }
@@ -63,10 +60,23 @@ type DivsrConn struct {
 }
 
 func NewDivsr() *Divsr {
-	return &Divsr{
-		rewiring:           make(chan int),
-		waitingForRewiring: make(chan int),
+	u := &Divsr{}
+	u.intclear()
+	programInput := func(prog int) JackHandler {
+		return func(j *Jack, val int) {
+			u.divargs(prog)
+		}
 	}
+	programInterlock := func(*Jack, int) {
+		u.interlock()
+	}
+	for i := 0; i < 8; i++ {
+		u.progin[i] = NewInput(fmt.Sprintf("d.%di", i+1), programInput(i))
+		u.ilock[i] = NewInput(fmt.Sprintf("d.%dl", i+1), programInterlock)
+		u.progout[i] = NewOutput(fmt.Sprintf("d.%do", i+1), nil)
+	}
+	u.answer = NewOutput("d.ans", nil)
+	return u
 }
 
 func (u *Divsr) Sv() int {
@@ -235,12 +245,10 @@ func (u *Divsr) Stat2() string {
 
 func (u *Divsr) Reset() {
 	u.mu.Lock()
-	u.rewiring <- 1
-	<-u.waitingForRewiring
 	for i := 0; i < 8; i++ {
-		u.progin[i] = Wire{}
-		u.progout[i] = Wire{}
-		u.ilock[i] = Wire{}
+		u.progin[i].Disconnect()
+		u.progout[i].Disconnect()
+		u.ilock[i].Disconnect()
 		u.numarg[i] = 0
 		u.numcl[i] = false
 		u.denarg[i] = 0
@@ -252,7 +260,7 @@ func (u *Divsr) Reset() {
 		u.preff[i] = false
 		u.progff[i] = false
 	}
-	u.answer = Wire{}
+	u.answer.Disconnect()
 	u.divff = false
 	u.ilockff = false
 	u.ans1 = false
@@ -263,7 +271,6 @@ func (u *Divsr) Reset() {
 	u.sradap = 0
 	u.mu.Unlock()
 	u.Clear()
-	u.rewiring <- 1
 }
 
 func (u *Divsr) Clear() {
@@ -308,9 +315,9 @@ func (u *Divsr) intclear() {
 	u.dβ = false
 }
 
-func (u *Divsr) lookupPlug(jack string) (*Wire, error) {
+func (u *Divsr) FindJack(jack string) (*Jack, error) {
 	if jack == "ans" || jack == "ANS" {
-		return &u.answer, nil
+		return u.answer, nil
 	}
 	var prog int
 	var ilk rune
@@ -320,40 +327,13 @@ func (u *Divsr) lookupPlug(jack string) (*Wire, error) {
 	}
 	switch ilk {
 	case 'i':
-		return &u.progin[prog-1], nil
+		return u.progin[prog-1], nil
 	case 'o':
-		return &u.progout[prog-1], nil
+		return u.progout[prog-1], nil
 	case 'l':
-		return &u.ilock[prog-1], nil
+		return u.ilock[prog-1], nil
 	}
 	return nil, fmt.Errorf("invalid jack %s", jack)
-}
-
-func (u *Divsr) Plug(jack string, wire Wire) error {
-	u.rewiring <- 1
-	<-u.waitingForRewiring
-	defer func() { u.rewiring <- 1 }()
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	p, err := u.lookupPlug(jack)
-	if err != nil {
-		return err
-	}
-	Plug(p, wire)
-	return nil
-}
-
-func (u *Divsr) GetPlug(jack string) (Wire, error) {
-	u.rewiring <- 1
-	<-u.waitingForRewiring
-	defer func() { u.rewiring <- 1 }()
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	p, err := u.lookupPlug(jack)
-	if err != nil {
-		return Wire{}, err
-	}
-	return *p, nil
 }
 
 func (u *Divsr) lookupSwitch(name string) (Switch, error) {
@@ -490,7 +470,7 @@ func (u *Divsr) interlock() {
 	u.mu.Unlock()
 }
 
-func (u *Divsr) doGP(resp chan int) {
+func (u *Divsr) doGP() {
 	if u.coinff { // Gate E50
 		if u.ilocksw[u.curprog] == 0 || u.ilockff {
 			u.coinff = false
@@ -499,7 +479,7 @@ func (u *Divsr) doGP(resp chan int) {
 		}
 	} else if u.clrff {
 		u.progff[u.curprog] = false
-		Handshake(1, u.progout[u.curprog], resp)
+		u.progout[u.curprog].Transmit(1)
 		if u.ilocksw[u.curprog] == 1 {
 			u.ilockff = false
 		}
@@ -735,7 +715,7 @@ func (u *Divsr) doIIIP() {
 	u.progring++
 }
 
-func (u *Divsr) clock(p Pulse, resp chan int) {
+func (u *Divsr) clock(p Pulse) {
 	u.mu.Lock()
 	defer u.mu.Unlock()
 	switch {
@@ -750,7 +730,7 @@ func (u *Divsr) clock(p Pulse, resp chan int) {
 		}
 		if u.curprog >= 0 {
 			if u.psrcff == false { // Gate F4
-				u.doGP(resp)
+				u.doGP()
 			} else { // Gate F5
 				u.doIIIP()
 			}
@@ -768,21 +748,21 @@ func (u *Divsr) clock(p Pulse, resp chan int) {
 		}
 	case p.Val&Onep != 0 && u.p1 || p.Val&Twop != 0 && u.p2:
 		if u.placering < 9 {
-			Handshake(1<<uint(8-u.placering), u.answer, resp)
+			u.answer.Transmit(1 << uint(8-u.placering))
 		}
 	case p.Val&Onep != 0 && u.m2 || p.Val&Twopp != 0 && u.m1:
-		Handshake(0x7ff, u.answer, resp)
+		u.answer.Transmit(0x7ff)
 	case p.Val&Onep != 0 && u.m1 || p.Val&Twopp != 0 && u.m2:
 		if u.placering < 9 {
-			Handshake(0x7ff^(1<<uint(8-u.placering)), u.answer, resp)
+			u.answer.Transmit(0x7ff ^ (1 << uint(8-u.placering)))
 		} else {
-			Handshake(0x7ff, u.answer, resp)
+			u.answer.Transmit(0x7ff)
 		}
 	case (p.Val&Fourp != 0 || p.Val&Twop != 0) && (u.m1 || u.m2):
-		Handshake(0x7ff, u.answer, resp)
+		u.answer.Transmit(0x7ff)
 	case p.Val&Onepp != 0:
 		if u.m1 || u.m2 {
-			Handshake(1, u.answer, resp)
+			u.answer.Transmit(1)
 		}
 		if u.psrcff == false && u.sα { // Gate L45
 			u.placering++
@@ -791,61 +771,7 @@ func (u *Divsr) clock(p Pulse, resp chan int) {
 }
 
 func (u *Divsr) MakeClockFunc() ClockFunc {
-	resp := make(chan int)
 	return func(p Pulse) {
-		u.clock(p, resp)
-	}
-}
-
-func (u *Divsr) Run() {
-	u.intclear()
-	go u.readInputs()
-}
-
-func (u *Divsr) readInputs() {
-	var p Pulse
-
-	for {
-		p.Resp = nil
-		select {
-		case <-u.rewiring:
-			u.waitingForRewiring <- 1
-			<-u.rewiring
-		case p = <-u.progin[0].Ch:
-			u.divargs(0)
-		case p = <-u.progin[1].Ch:
-			u.divargs(1)
-		case p = <-u.progin[2].Ch:
-			u.divargs(2)
-		case p = <-u.progin[3].Ch:
-			u.divargs(3)
-		case p = <-u.progin[4].Ch:
-			u.divargs(4)
-		case p = <-u.progin[5].Ch:
-			u.divargs(5)
-		case p = <-u.progin[6].Ch:
-			u.divargs(6)
-		case p = <-u.progin[7].Ch:
-			u.divargs(7)
-		case p = <-u.ilock[0].Ch:
-			u.interlock()
-		case p = <-u.ilock[1].Ch:
-			u.interlock()
-		case p = <-u.ilock[2].Ch:
-			u.interlock()
-		case p = <-u.ilock[3].Ch:
-			u.interlock()
-		case p = <-u.ilock[4].Ch:
-			u.interlock()
-		case p = <-u.ilock[5].Ch:
-			u.interlock()
-		case p = <-u.ilock[6].Ch:
-			u.interlock()
-		case p = <-u.ilock[7].Ch:
-			u.interlock()
-		}
-		if p.Resp != nil {
-			p.Resp <- 1
-		}
+		u.clock(p)
 	}
 }

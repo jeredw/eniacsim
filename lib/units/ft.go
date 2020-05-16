@@ -11,7 +11,7 @@ import (
 
 // Simulates an ENIAC function table unit.
 type Ft struct {
-	jack [27]Wire
+	jack [27]*Jack
 
 	unit int
 
@@ -31,24 +31,42 @@ type Ft struct {
 	subtr            bool
 	argsetup         bool
 	gateh42, gatee42 bool
-	resp             chan int
 	whichrp          bool
 	px4119           bool
 	prog             int
-
-	rewiring           chan int
-	waitingForRewiring chan int
 
 	mu sync.Mutex
 }
 
 func NewFt(unit int) *Ft {
-	return &Ft{
-		unit:               unit,
-		rewiring:           make(chan int),
-		waitingForRewiring: make(chan int),
-		resp:               make(chan int),
+	u := &Ft{unit: unit}
+	unitDot := fmt.Sprintf("f%d.", unit+1)
+	u.jack[0] = NewInput(unitDot+"arg", func(j *Jack, val int) {
+		u.mu.Lock()
+		if u.gateh42 {
+			if val&0x01 != 0 {
+				u.arg++
+			}
+			if val&0x02 != 0 {
+				u.arg += 10
+			}
+		}
+		u.mu.Unlock()
+	})
+	u.jack[1] = NewOutput(unitDot+"A", nil)
+	u.jack[2] = NewOutput(unitDot+"B", nil)
+	u.jack[3] = NewOutput(unitDot+"NC", nil)
+	u.jack[4] = NewOutput(unitDot+"C", nil)
+	programInput := func(prog int) JackHandler {
+		return func(*Jack, int) {
+			u.trigger(prog)
+		}
 	}
+	for i := 0; i < 11; i++ {
+		u.jack[5+2*i] = NewInput(fmt.Sprintf("%s%di", unitDot, i+1), programInput(i))
+		u.jack[5+2*i+1] = NewOutput(fmt.Sprintf("%s%do", unitDot, i+1), nil)
+	}
+	return u
 }
 
 func (u *Ft) Stat() string {
@@ -108,13 +126,10 @@ func (u *Ft) State() json.RawMessage {
 }
 
 func (u *Ft) Reset() {
-	u.rewiring <- 1
-	<-u.waitingForRewiring
-	defer func() { u.rewiring <- 1 }()
 	u.mu.Lock()
 	defer u.mu.Unlock()
 	for i := range u.jack {
-		u.jack[i] = Wire{}
+		u.jack[i].Disconnect()
 	}
 	for i := range u.inff1 {
 		u.inff1[i] = false
@@ -148,18 +163,18 @@ func (u *Ft) Reset() {
 	u.px4119 = false
 }
 
-func (u *Ft) lookupPlug(jack string) (*Wire, error) {
+func (u *Ft) FindJack(jack string) (*Jack, error) {
 	switch jack {
 	case "arg", "ARG":
-		return &u.jack[0], nil
+		return u.jack[0], nil
 	case "A":
-		return &u.jack[1], nil
+		return u.jack[1], nil
 	case "B":
-		return &u.jack[2], nil
+		return u.jack[2], nil
 	case "NC":
-		return &u.jack[3], nil
+		return u.jack[3], nil
 	case "C":
-		return &u.jack[4], nil
+		return u.jack[4], nil
 	}
 	jacks := [22]string{
 		"1i", "1o", "2i", "2o", "3i", "3o", "4i", "4o",
@@ -168,37 +183,10 @@ func (u *Ft) lookupPlug(jack string) (*Wire, error) {
 	}
 	for i, j := range jacks {
 		if j == jack {
-			return &u.jack[i+5], nil
+			return u.jack[i+5], nil
 		}
 	}
 	return nil, fmt.Errorf("invalid jack %s", jack)
-}
-
-func (u *Ft) Plug(jack string, wire Wire) error {
-	u.rewiring <- 1
-	<-u.waitingForRewiring
-	defer func() { u.rewiring <- 1 }()
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	p, err := u.lookupPlug(jack)
-	if err != nil {
-		return err
-	}
-	Plug(p, wire)
-	return nil
-}
-
-func (u *Ft) GetPlug(jack string) (Wire, error) {
-	u.rewiring <- 1
-	<-u.waitingForRewiring
-	defer func() { u.rewiring <- 1 }()
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	p, err := u.lookupPlug(jack)
-	if err != nil {
-		return Wire{}, err
-	}
-	return *p, nil
 }
 
 func (u *Ft) lookupSwitch(name string) (Switch, error) {
@@ -295,9 +283,6 @@ func (u *Ft) lookupSwitch(name string) (Switch, error) {
 }
 
 func (u *Ft) SetSwitch(name, value string) error {
-	u.rewiring <- 1
-	<-u.waitingForRewiring
-	defer func() { u.rewiring <- 1 }()
 	u.mu.Lock()
 	defer u.mu.Unlock()
 	sw, err := u.lookupSwitch(name)
@@ -308,9 +293,6 @@ func (u *Ft) SetSwitch(name, value string) error {
 }
 
 func (u *Ft) GetSwitch(name string) (string, error) {
-	u.rewiring <- 1
-	<-u.waitingForRewiring
-	defer func() { u.rewiring <- 1 }()
 	u.mu.Lock()
 	defer u.mu.Unlock()
 	sw, err := u.lookupSwitch(name)
@@ -439,10 +421,10 @@ func (u *Ft) addlookup(c int) {
 		}
 	}
 	if a != 0 {
-		Handshake(a, u.jack[1], u.resp)
+		u.jack[1].Transmit(a)
 	}
 	if b != 0 {
-		Handshake(b, u.jack[1], u.resp)
+		u.jack[1].Transmit(b)
 	}
 }
 
@@ -559,10 +541,10 @@ func (u *Ft) subtrlookup(c int) {
 		}
 	}
 	if a != 0 {
-		Handshake(a, u.jack[1], u.resp)
+		u.jack[1].Transmit(a)
 	}
 	if b != 0 {
-		Handshake(b, u.jack[2], u.resp)
+		u.jack[2].Transmit(b)
 	}
 }
 
@@ -613,9 +595,9 @@ func (u *Ft) clock(p Pulse) {
 			}
 			switch u.argsw[u.prog] {
 			case 1:
-				Handshake(1, u.jack[3], u.resp)
+				u.jack[3].Transmit(1)
 			case 2:
-				Handshake(1, u.jack[4], u.resp)
+				u.jack[4].Transmit(1)
 			}
 			u.ring++ // Stage -2 begins
 			u.gateh42 = true
@@ -642,7 +624,7 @@ func (u *Ft) clock(p Pulse) {
 			}
 		default: // Stages 1-9
 			if u.rptsw[u.prog] == u.ring-4 {
-				Handshake(1, u.jack[u.prog*2+6], u.resp)
+				u.jack[u.prog*2+6].Transmit(1)
 				u.arg = 0
 				u.add = false
 				u.subtr = false
@@ -685,53 +667,4 @@ func (u *Ft) trigger(input int) {
 	u.mu.Lock()
 	u.inff1[input] = true
 	u.mu.Unlock()
-}
-
-func (u *Ft) Run() {
-	var p Pulse
-
-	for {
-		p.Resp = nil
-		select {
-		case <-u.rewiring:
-			u.waitingForRewiring <- 1
-			<-u.rewiring
-		case p = <-u.jack[5].Ch:
-			u.trigger(0)
-		case p = <-u.jack[7].Ch:
-			u.trigger(1)
-		case p = <-u.jack[9].Ch:
-			u.trigger(2)
-		case p = <-u.jack[11].Ch:
-			u.trigger(3)
-		case p = <-u.jack[13].Ch:
-			u.trigger(4)
-		case p = <-u.jack[15].Ch:
-			u.trigger(5)
-		case p = <-u.jack[17].Ch:
-			u.trigger(6)
-		case p = <-u.jack[19].Ch:
-			u.trigger(7)
-		case p = <-u.jack[21].Ch:
-			u.trigger(8)
-		case p = <-u.jack[23].Ch:
-			u.trigger(9)
-		case p = <-u.jack[25].Ch:
-			u.trigger(10)
-		case p = <-u.jack[0].Ch:
-			u.mu.Lock()
-			if u.gateh42 {
-				if p.Val&0x01 != 0 {
-					u.arg++
-				}
-				if p.Val&0x02 != 0 {
-					u.arg += 10
-				}
-			}
-			u.mu.Unlock()
-		}
-		if p.Resp != nil {
-			p.Resp <- 1
-		}
-	}
 }

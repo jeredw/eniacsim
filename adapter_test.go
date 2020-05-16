@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func send(digits [11]int, wire Wire, resp chan int) {
+func send(digits [11]int, jack *Jack) {
 	for j := 1; j <= 9; j++ {
 		val := 0
 		for i := 0; i < 11; i++ {
@@ -14,73 +14,67 @@ func send(digits [11]int, wire Wire, resp chan int) {
 			}
 		}
 		if val != 0 {
-			wire.Ch <- Pulse{val, nil}
+			jack.Transmit(val)
 		}
 	}
-	wire.Ch <- Pulse{0, resp}
 }
 
-func receive(digits *[11]int, wire Wire, resp chan int, done chan int) {
-	for {
-		select {
-		case p := <-wire.Ch:
-			for i := 0; i < 11; i++ {
-				if p.Val&(1<<i) != 0 {
-					digits[10-i]++
-				}
-			}
-		case <-resp:
-			done <- 1
-			return
+func receive(digits *[11]int, val int) {
+	for i := 0; i < 11; i++ {
+		if val&(1<<i) != 0 {
+			digits[10-i]++
 		}
 	}
 }
 
 func testShifter(digits [11]int, amount int) [11]int {
-	sent := make(chan int)
-	done := make(chan int)
-	s := shifter{
-		in:     *NewWire("*", "i"),
-		out:    *NewWire("o", "*"),
-		amount: amount,
-	}
-	go s.run()
-	go send(digits, s.in, sent)
 	result := [11]int{}
-	go receive(&result, s.out, sent, done)
-	<-done
+	s := &shifter{amount: amount}
+	s.in = NewInput("i", func(j *Jack, val int) {
+		s.adapt(val)
+	})
+	s.out = NewOutput("o", nil)
+	testSource := NewOutput("to", nil)
+	testSink := NewInput("ti", func(j *Jack, val int) {
+		receive(&result, val)
+	})
+	Connect(testSource, s.in)
+	Connect(s.out, testSink)
+	send(digits, testSource)
 	return result
 }
 
 func testDeleter(digits [11]int, digit int) [11]int {
-	sent := make(chan int)
-	done := make(chan int)
-	d := deleter{
-		in:    *NewWire("*", "i"),
-		out:   *NewWire("o", "*"),
-		digit: digit,
-	}
-	go d.run()
-	go send(digits, d.in, sent)
 	result := [11]int{}
-	go receive(&result, d.out, sent, done)
-	<-done
+	d := &deleter{digit: digit}
+	d.in = NewInput("i", func(j *Jack, val int) {
+		d.adapt(val)
+	})
+	d.out = NewOutput("o", nil)
+	testSource := NewOutput("to", nil)
+	testSink := NewInput("ti", func(j *Jack, val int) {
+		receive(&result, val)
+	})
+	Connect(testSource, d.in)
+	Connect(d.out, testSink)
+	send(digits, testSource)
 	return result
 }
 
 func testPermuter(digits [11]int, order [11]int) [11]int {
-	sent := make(chan int)
-	done := make(chan int)
-	p := permuter{
-		in:    *NewWire("*", "i"),
-		out:   *NewWire("o", "*"),
-		order: order,
-	}
-	go p.run()
-	go send(digits, p.in, sent)
 	result := [11]int{}
-	go receive(&result, p.out, sent, done)
-	<-done
+	p := &permuter{order: order}
+	p.in = NewInput("i", func(j *Jack, val int) {
+		p.adapt(val)
+	})
+	p.out = NewOutput("o", nil)
+	testSource := NewOutput("to", nil)
+	testSink := NewInput("ti", func(j *Jack, val int) {
+		receive(&result, val)
+	})
+	Connect(testSource, p.in)
+	Connect(p.out, testSink)
+	send(digits, testSource)
 	return result
 }
 

@@ -195,6 +195,7 @@ func doPlug(w io.Writer, command string, f []string) {
 		fmt.Fprintln(w, "Invalid jumper spec", command)
 		return
 	}
+
 	p1 := strings.Split(f[1], ".")
 	p2 := strings.Split(f[2], ".")
 	/*
@@ -210,122 +211,102 @@ func doPlug(w io.Writer, command string, f []string) {
 		}
 		return
 	}
-	wire := NewWire(f[1], f[2])
-	doPlugSide(w, 0, command, f, p1, *wire)
-	doPlugSide(w, 1, command, f, p2, *wire)
+
+	jack1, pb1, err := findJack(f[1], 0)
+	if err != nil {
+		fmt.Fprintf(w, "Plug error: %s\n", err)
+		return
+	}
+	err = setAdapterSwitchFromJack(pb1, p1)
+	if err != nil {
+		fmt.Fprintf(w, "Adapter: %s\n", err)
+		return
+	}
+	jack2, pb2, err := findJack(f[2], 1)
+	if err != nil {
+		fmt.Fprintf(w, "Plug error: %s\n", err)
+		fmt.Fprintln(w, command)
+		return
+	}
+	err = setAdapterSwitchFromJack(pb2, p2)
+	if err != nil {
+		fmt.Fprintf(w, "Adapter: %s\n", err)
+		return
+	}
+	err = Connect(jack1, jack2)
+	if err != nil {
+		fmt.Fprintf(w, "Plug error: %s\n", err)
+		return
+	}
 }
 
-func doPlugSide(w io.Writer, side int, command string, f []string, p []string, wire Wire) {
-	output := side == 1
-	switch {
-	case p[0] == "ad":
-		if len(p) == 3 {
-			err := adapters.Plug(p[1], p[2], "", wire, output)
-			if err != nil {
-				fmt.Fprintf(w, "Adapter: %s\n", err)
-			}
-			return
-		}
-		if len(p) != 4 {
-			fmt.Fprintln(w, "Adapter jumper syntax: ad.<type>.<id>.param")
-			return
-		}
-		err := adapters.Plug(p[1], p[2], p[3], wire, output)
-		if err != nil {
-			fmt.Fprintf(w, "Adapter: %s\n", err)
-		}
-	case p[0][0] == 'a':
-		if len(p) != 2 {
-			fmt.Fprintln(w, "Accumulator jumper syntax: aunit.terminal")
-			return
-		}
-		unit, _ := strconv.Atoi(p[0][1:])
-		if !(unit >= 1 && unit <= 20) {
-			fmt.Fprintf(w, "Invalid accumulator %s\n", p[0][1:])
-			return
-		}
-		err := accumulator[unit-1].Plug(p[1], wire)
-		if err != nil {
-			fmt.Fprintf(w, "Accumulator %d: %s\n", unit, err)
-		}
-	case p[0] == "c":
-		if len(p) != 2 {
-			fmt.Fprintln(w, "Invalid constant jumper:", command)
-			return
-		}
-		err := constant.Plug(p[1], wire)
-		if err != nil {
-			fmt.Fprintf(w, "Constant: %s\n", err)
-		}
-	case p[0] == "d":
-		if len(p) != 2 {
-			fmt.Fprintln(w, "Divider jumper syntax: d.terminal")
-			return
-		}
-		err := divsr.Plug(p[1], wire)
-		if err != nil {
-			fmt.Fprintf(w, "Divider: %s\n", err)
-		}
-	case p[0] == "debug":
-		if side == 1 {
-			if len(p) != 2 {
-				fmt.Fprintln(w, "Debugger jumper syntax: debug.bpn")
-				return
-			}
-			err := debugger.Plug(p[1], wire, f[1])
-			if err != nil {
-				fmt.Fprintf(w, "Debugger: %s\n", err)
-			}
-		}
-	case p[0][0] == 'f':
-		if len(p) != 2 {
-			fmt.Fprintln(w, "Function table jumper syntax: funit.terminal")
-			return
-		}
-		unit, _ := strconv.Atoi(p[0][1:])
-		if !(unit >= 1 && unit <= 3) {
-			fmt.Fprintf(w, "Invalid function table %s\n", p[0][1:])
-			return
-		}
-		err := ft[unit-1].Plug(p[1], wire)
-		if err != nil {
-			fmt.Fprintf(w, "Function table %d: %s\n", unit, err)
-		}
-	case p[0] == "i":
-		if len(p) != 2 {
-			fmt.Fprintln(w, "Initiator jumper syntax: i.terminal")
-			return
-		}
-		err := initiate.Plug(p[1], wire)
-		if err != nil {
-			fmt.Fprintf(w, "Initiate: %s\n", err)
-		}
-	case p[0] == "m":
-		if len(p) != 2 {
-			fmt.Fprintln(w, "Multiplier jumper syntax: m.terminal")
-			return
-		}
-		err := multiplier.Plug(p[1], wire)
-		if err != nil {
-			fmt.Fprintf(w, "Multiplier: %s\n", err)
-		}
-	case p[0] == "p":
-		if len(p) != 2 {
-			fmt.Fprintln(w, "Programmer jumper syntax: p.terminal")
-			return
-		}
-		err := mp.Plug(p[1], wire)
-		if err != nil {
-			fmt.Fprintf(w, "Programmer: %s\n", err)
-		}
-	case unicode.IsDigit(rune(p[0][0])):
-		err := trays.Plug(p[0], wire, output)
-		if err != nil {
-			fmt.Fprintf(w, "Trays: %s\n", err)
-		}
-	default:
-		fmt.Fprintln(w, "Invalid jack spec: ", p)
+func findJack(name string, pos int) (*Jack, Plugboard, error) {
+	p := strings.SplitN(name, ".", 2)
+	pb, err := findPlugboard(p[0])
+	if err != nil {
+		return nil, nil, err
 	}
+	jackName := name
+	if pb != trays {
+		if len(p) != 2 {
+			return nil, nil, fmt.Errorf("bad jack name %s", name)
+		}
+		jackName = p[1]
+	}
+	if pb == adapters {
+		jackName = rewriteAdapterJackName(jackName, pos)
+	}
+	jack, err := pb.FindJack(jackName)
+	return jack, pb, err
+}
+
+func rewriteAdapterJackName(s string, pos int) string {
+	dir := "o."
+	if pos == 1 {
+		dir = "i."
+	}
+	return dir + s
+}
+
+func setAdapterSwitchFromJack(pb Plugboard, p []string) error {
+	if pb == adapters && len(p) == 4 {
+		return adapters.Switch(p[1], p[2], p[3])
+	}
+	return nil
+}
+
+func findPlugboard(name string) (Plugboard, error) {
+	switch {
+	case name == "ad":
+		return adapters, nil
+	case len(name) > 1 && name[0] == 'a':
+		n, _ := strconv.Atoi(name[1:])
+		if !(n >= 1 && n <= 20) {
+			return nil, fmt.Errorf("invalid accumulator %s", name[1:])
+		}
+		return accumulator[n-1], nil
+	case name == "c":
+		return constant, nil
+	case name == "d":
+		return divsr, nil
+	case name == "debug":
+		return debugger, nil
+	case len(name) > 1 && name[0] == 'f':
+		n, _ := strconv.Atoi(name[1:])
+		if !(n >= 1 && n <= 3) {
+			return nil, fmt.Errorf("invalid function table %s", name[1:])
+		}
+		return ft[n-1], nil
+	case name == "i":
+		return initiate, nil
+	case name == "m":
+		return multiplier, nil
+	case name == "p":
+		return mp, nil
+	case unicode.IsDigit(rune(name[0])):
+		return trays, nil
+	}
+	return nil, fmt.Errorf("invalid unit name %s", name)
 }
 
 func doGetPlug(w io.Writer, command string, f []string) {
@@ -333,125 +314,12 @@ func doGetPlug(w io.Writer, command string, f []string) {
 		fmt.Fprintln(w, "Invalid jumper spec", command)
 		return
 	}
-	p := strings.Split(f[1], ".")
-	switch {
-	case p[0] == "ad":
-		if len(p) == 3 {
-			wires, err := adapters.GetPlug(p[1], p[2], "")
-			if err != nil {
-				fmt.Fprintf(w, "Adapter: %s\n", err)
-			} else {
-				printWires(w, wires)
-			}
-			return
-		}
-		if len(p) != 4 {
-			fmt.Fprintln(w, "Adapter jumper syntax: ad.<type>.<id>.param")
-			return
-		}
-		wires, err := adapters.GetPlug(p[1], p[2], p[3])
-		if err != nil {
-			fmt.Fprintf(w, "Adapter: %s\n", err)
-		} else {
-			printWires(w, wires)
-		}
-	case p[0][0] == 'a':
-		if len(p) != 2 {
-			fmt.Fprintln(w, "Accumulator jumper syntax: aunit.terminal")
-			return
-		}
-		unit, _ := strconv.Atoi(p[0][1:])
-		if !(unit >= 1 && unit <= 20) {
-			fmt.Fprintf(w, "Invalid accumulator %s\n", p[0][1:])
-			return
-		}
-		wire, err := accumulator[unit-1].GetPlug(p[1])
-		if err != nil {
-			fmt.Fprintf(w, "Accumulator %d: %s\n", unit, err)
-		} else {
-			fmt.Fprintln(w, wire.ToString())
-		}
-	case p[0] == "c":
-		if len(p) != 2 {
-			fmt.Fprintln(w, "Invalid constant jumper:", command)
-			return
-		}
-		wire, err := constant.GetPlug(p[1])
-		if err != nil {
-			fmt.Fprintf(w, "Constant: %s\n", err)
-		} else {
-			fmt.Fprintln(w, wire.ToString())
-		}
-	case p[0] == "d":
-		if len(p) != 2 {
-			fmt.Fprintln(w, "Divider jumper syntax: d.terminal")
-			return
-		}
-		wire, err := divsr.GetPlug(p[1])
-		if err != nil {
-			fmt.Fprintf(w, "Divider: %s\n", err)
-		} else {
-			fmt.Fprintln(w, wire.ToString())
-		}
-	case p[0][0] == 'f':
-		if len(p) != 2 {
-			fmt.Fprintln(w, "Function table jumper syntax: funit.terminal")
-			return
-		}
-		unit, _ := strconv.Atoi(p[0][1:])
-		if !(unit >= 1 && unit <= 3) {
-			fmt.Fprintf(w, "Invalid function table %s\n", p[0][1:])
-			return
-		}
-		wire, err := ft[unit-1].GetPlug(p[1])
-		if err != nil {
-			fmt.Fprintf(w, "Function table %d: %s\n", unit, err)
-		} else {
-			fmt.Fprintln(w, wire.ToString())
-		}
-	case p[0] == "i":
-		if len(p) != 2 {
-			fmt.Fprintln(w, "Initiator jumper syntax: i.terminal")
-			return
-		}
-		wire, err := initiate.GetPlug(p[1])
-		if err != nil {
-			fmt.Fprintf(w, "Initiate: %s\n", err)
-		} else {
-			fmt.Fprintln(w, wire.ToString())
-		}
-	case p[0] == "m":
-		if len(p) != 2 {
-			fmt.Fprintln(w, "Multiplier jumper syntax: m.terminal")
-			return
-		}
-		wire, err := multiplier.GetPlug(p[1])
-		if err != nil {
-			fmt.Fprintf(w, "Multiplier: %s\n", err)
-		} else {
-			fmt.Fprintln(w, wire.ToString())
-		}
-	case p[0] == "p":
-		if len(p) != 2 {
-			fmt.Fprintln(w, "Programmer jumper syntax: p.terminal")
-			return
-		}
-		wire, err := mp.GetPlug(p[1])
-		if err != nil {
-			fmt.Fprintf(w, "Programmer: %s\n", err)
-		} else {
-			fmt.Fprintln(w, wire.ToString())
-		}
-	case unicode.IsDigit(rune(p[0][0])):
-		wires, err := trays.GetPlug(p[0])
-		if err != nil {
-			fmt.Fprintf(w, "Trays: %s\n", err)
-		} else {
-			printWires(w, wires)
-		}
-	default:
-		fmt.Fprintln(w, "Invalid jack spec: ", p)
+	jack, _, err := findJack(f[1], 0)
+	if err != nil {
+		fmt.Fprintf(w, "Get plug: %s\n", err)
+		return
 	}
+	fmt.Fprintf(w, "%s", jack.ConnectionsString())
 }
 
 func doReset(w io.Writer, f []string) {
@@ -760,6 +628,7 @@ func doTraceStart(w io.Writer, f []string) {
 	for i := range accumulator {
 		log.Register(accumulator[i].AttachTrace(log.tracePulse))
 	}
+	log.Register(constant.AttachTrace(log.tracePulse))
 	cycle.Io.TraceAddCycle = func() {
 		log.RunCallbacks()
 	}
@@ -785,17 +654,4 @@ func doTraceEnd(w io.Writer, f []string) {
 	bw := bufio.NewWriter(fd)
 	log.WriteVcd(bw, time.Now())
 	bw.Flush()
-}
-
-func printWires(w io.Writer, wires []Wire) {
-	connected := 0
-	for i := range wires {
-		if wires[i].Ch != nil {
-			fmt.Fprintln(w, wires[i].ToString())
-			connected++
-		}
-	}
-	if connected == 0 {
-		fmt.Fprintln(w, "unconnected")
-	}
 }

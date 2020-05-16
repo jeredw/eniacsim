@@ -9,6 +9,7 @@ import (
 
 	. "github.com/jeredw/eniacsim/lib"
 	"github.com/jeredw/eniacsim/lib/units"
+	//	"github.com/pkg/profile"
 )
 
 var cycle *units.Cycle
@@ -133,17 +134,7 @@ func main() {
 	}
 
 	go initiate.Run()
-	go mp.Run()
 	go cycle.Run()
-	go divsr.Run()
-	go multiplier.Run()
-	go constant.Run()
-	for i := 0; i < 20; i++ {
-		go accumulator[i].Run()
-	}
-	for i := 0; i < 3; i++ {
-		go ft[i].Run()
-	}
 
 	if flag.NArg() >= 1 {
 		// Seriously ugly hack to give other goprocs time to get initialized
@@ -153,8 +144,10 @@ func main() {
 
 	if *testCycles > 0 {
 		doTraceStart(os.Stdout, []string{"ts", "pf"})
+		//		p := profile.Start()
 		cycle.Io.TestButton.Push <- 1
 		<-cycle.Io.TestButton.Done
+		//		p.Stop()
 		doDumpAll(os.Stdout)
 		doTraceEnd(os.Stdout, []string{"te", "/tmp/test.vcd"})
 		return
