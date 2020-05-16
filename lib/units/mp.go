@@ -450,7 +450,7 @@ func (u *Mp) incrementDecades(s int) {
 	}
 }
 
-func (u *Mp) clock(cyc Pulse) {
+func (u *Mp) Clock(cyc Pulse) {
 	u.mu.Lock()
 	defer u.mu.Unlock()
 	if cyc&Cpp != 0 {
@@ -482,12 +482,6 @@ func (u *Mp) clock(cyc Pulse) {
 		if u.stepper[i].inff > 0 {
 			u.stepper[i].inff++
 		}
-	}
-}
-
-func (u *Mp) MakeClockFunc() ClockFunc {
-	return func(p Pulse) {
-		u.clock(p)
 	}
 }
 

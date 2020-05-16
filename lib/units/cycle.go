@@ -19,7 +19,7 @@ type Cycle struct {
 
 // CycleConn defines connections needed for the cycle unit
 type CycleConn struct {
-	Units       []ClockFunc    // Funcs per clocked unit
+	Units       []Clocked      // Clocked units
 	Clear       func() bool    // Clear gate (from initiate unit)
 	Switches    chan [2]string // Sim controls to change mode
 	Reset       chan int       // Sim control to reset unit
@@ -143,18 +143,18 @@ func (u *Cycle) Run() {
 		for u.phase = 0; u.phase < len(phases); u.phase++ {
 			u.applyControls(update)
 			if u.phase == 32 && u.Io.Clear() {
-				for _, f := range u.Io.Units {
-					f(Scg)
+				for _, c := range u.Io.Units {
+					c.Clock(Scg)
 				}
 			} else if phases[u.phase] != 0 {
-				for _, f := range u.Io.Units {
-					f(phases[u.phase])
+				for _, c := range u.Io.Units {
+					c.Clock(phases[u.phase])
 				}
 			}
 			u.phase++
 			if phases[u.phase] != 0 {
-				for _, f := range u.Io.Units {
-					f(phases[u.phase])
+				for _, c := range u.Io.Units {
+					c.Clock(phases[u.phase])
 				}
 			}
 			if u.mode == OnePulse {

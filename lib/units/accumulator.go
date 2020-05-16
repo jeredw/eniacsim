@@ -703,7 +703,7 @@ func (u *Accumulator) doonepp() {
 	}
 }
 
-func (u *Accumulator) clock(cyc Pulse) {
+func (u *Accumulator) Clock(cyc Pulse) {
 	switch {
 	case cyc&Cpp != 0:
 		u.docpp(cyc)
@@ -721,12 +721,6 @@ func (u *Accumulator) clock(cyc Pulse) {
 		u.doninep()
 	case cyc&Onepp != 0:
 		u.doonepp()
-	}
-}
-
-func (u *Accumulator) MakeClockFunc() ClockFunc {
-	return func(p Pulse) {
-		u.clock(p)
 	}
 }
 

@@ -362,7 +362,7 @@ func (u *Multiplier) shiftprod(lhpp, rhpp int) {
 	}
 }
 
-func (u *Multiplier) clock(c Pulse) {
+func (u *Multiplier) Clock(c Pulse) {
 	//	u.mu.Lock()
 	//	defer u.mu.Unlock()
 	switch {
@@ -530,12 +530,6 @@ func (u *Multiplier) clock(c Pulse) {
 	case c&Rp != 0 && u.buffer61:
 		u.buffer61 = false
 		u.f44 = true
-	}
-}
-
-func (u *Multiplier) MakeClockFunc() ClockFunc {
-	return func(p Pulse) {
-		u.clock(p)
 	}
 }
 

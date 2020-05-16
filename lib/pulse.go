@@ -3,8 +3,10 @@ package lib
 // Pulse is a type of signal sent on the cycle trunk.
 type Pulse int
 
-// A ClockFunc responds to a pulse from the cycle unit.
-type ClockFunc func(Pulse)
+// Clocked things receive a clock pulse on the cycle trunk.
+type Clocked interface {
+	Clock(Pulse)
+}
 
 // A TraceFunc records the value of a signal at the current simulation timestep.
 type TraceFunc func(string, int, int64)

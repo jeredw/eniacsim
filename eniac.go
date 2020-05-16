@@ -79,18 +79,18 @@ func main() {
 		accumulator[i] = units.NewAccumulator(i)
 	}
 
-	clockFuncs := []ClockFunc{
-		initiate.MakeClockFunc(),
-		mp.MakeClockFunc(),
-		divsr.MakeClockFunc(),
-		multiplier.MakeClockFunc(),
-		constant.MakeClockFunc(),
+	clockedUnits := []Clocked{
+		initiate,
+		mp,
+		divsr,
+		multiplier,
+		constant,
 	}
 	for i := 0; i < 20; i++ {
-		clockFuncs = append(clockFuncs, accumulator[i].MakeClockFunc())
+		clockedUnits = append(clockedUnits, accumulator[i])
 	}
 	for i := 0; i < 3; i++ {
-		clockFuncs = append(clockFuncs, ft[i].MakeClockFunc())
+		clockedUnits = append(clockedUnits, ft[i])
 	}
 	clearFuncs := []func(){
 		func() { mp.Clear() },
@@ -104,7 +104,7 @@ func main() {
 	}
 	clearFuncs = append(clearFuncs, func() { divsr.Clear() })
 
-	cycle.Io.Units = clockFuncs
+	cycle.Io.Units = clockedUnits
 	cycle.Io.Clear = func() bool { return initiate.ShouldClear() }
 	initiate.Io.ClearUnits = clearFuncs
 	initiate.Io.AddCycle = func() int { return cycle.AddCycle() }

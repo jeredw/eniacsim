@@ -400,7 +400,7 @@ var digitcons = []Pulse{0, Onep, Twop, (Onep | Twop), Fourp, (Onep | Fourp),
 	(Twop | Fourp), (Onep | Twop | Fourp), (Twop | Twopp | Fourp),
 	(Onep | Twop | Twopp | Fourp)}
 
-func (u *Constant) clock(cyc Pulse) {
+func (u *Constant) Clock(cyc Pulse) {
 	//	u.mu.Lock()
 	//	defer u.mu.Unlock()
 	sending := -1
@@ -447,12 +447,6 @@ func (u *Constant) clock(cyc Pulse) {
 		} else if cyc&Onepp != 0 && u.pos1pp >= 0 && u.sign == 1 {
 			u.out.Transmit(1 << uint(u.pos1pp))
 		}
-	}
-}
-
-func (u *Constant) MakeClockFunc() ClockFunc {
-	return func(p Pulse) {
-		u.clock(p)
 	}
 }
 

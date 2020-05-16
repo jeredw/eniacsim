@@ -715,7 +715,7 @@ func (u *Divsr) doIIIP() {
 	u.progring++
 }
 
-func (u *Divsr) clock(p Pulse) {
+func (u *Divsr) Clock(p Pulse) {
 	u.mu.Lock()
 	defer u.mu.Unlock()
 	switch {
@@ -767,11 +767,5 @@ func (u *Divsr) clock(p Pulse) {
 		if u.psrcff == false && u.sα { // Gate L45
 			u.placering++
 		}
-	}
-}
-
-func (u *Divsr) MakeClockFunc() ClockFunc {
-	return func(p Pulse) {
-		u.clock(p)
 	}
 }

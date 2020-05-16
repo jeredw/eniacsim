@@ -184,13 +184,7 @@ func (u *Initiate) FindJack(jack string) (*Jack, error) {
 	return nil, fmt.Errorf("invalid jack %s", jack)
 }
 
-func (u *Initiate) MakeClockFunc() ClockFunc {
-	return func(p Pulse) {
-		u.clock(p)
-	}
-}
-
-func (u *Initiate) clock(cyc Pulse) {
+func (u *Initiate) Clock(cyc Pulse) {
 	if cyc&Cpp != 0 {
 		u.mu.Lock()
 		defer u.mu.Unlock()

@@ -548,7 +548,7 @@ func (u *Ft) subtrlookup(c Pulse) {
 	}
 }
 
-func (u *Ft) clock(p Pulse) {
+func (u *Ft) Clock(p Pulse) {
 	//  u.mu.Lock()
 	//  defer u.mu.Unlock()
 	if u.px4119 {
@@ -654,12 +654,6 @@ func (u *Ft) clock(p Pulse) {
 	}
 	if u.ring == 2 && c&Onepp != 0 {
 		u.argsetup = true
-	}
-}
-
-func (u *Ft) MakeClockFunc() ClockFunc {
-	return func(p Pulse) {
-		u.clock(p)
 	}
 }
 
