@@ -70,7 +70,7 @@ type StaticWiring interface {
 	Clear()
 }
 
-// Operations supported by acc central programming circuits
+// Operations supported by common programming circuits.
 const (
 	opα = 1 << iota
 	opβ
@@ -91,33 +91,33 @@ func NewAccumulator(unit int) *Accumulator {
 		rbuddy:  unit,
 		figures: 10,
 	}
-	u.α = NewInput(u.terminal("α"), u.newDigitInput(opα))
-	u.β = NewInput(u.terminal("β"), u.newDigitInput(opβ))
-	u.γ = NewInput(u.terminal("γ"), u.newDigitInput(opγ))
-	u.δ = NewInput(u.terminal("δ"), u.newDigitInput(opδ))
-	u.ε = NewInput(u.terminal("ε"), u.newDigitInput(opε))
-	u.A = NewOutput(u.terminal("A"), u.newOutput(11))
-	u.S = NewOutput(u.terminal("S"), u.newOutput(11))
-	u.program[0] = NewInput(u.terminal("1i"), u.newProgramInput(0))
-	u.program[1] = NewInput(u.terminal("2i"), u.newProgramInput(1))
-	u.program[2] = NewInput(u.terminal("3i"), u.newProgramInput(2))
-	u.program[3] = NewInput(u.terminal("4i"), u.newProgramInput(3))
-	u.program[4] = NewInput(u.terminal("5i"), u.newProgramInput(4))
-	u.program[5] = NewOutput(u.terminal("5o"), u.newOutput(1))
-	u.program[6] = NewInput(u.terminal("6i"), u.newProgramInput(5))
-	u.program[7] = NewOutput(u.terminal("6o"), u.newOutput(1))
-	u.program[8] = NewInput(u.terminal("7i"), u.newProgramInput(6))
-	u.program[9] = NewOutput(u.terminal("7o"), u.newOutput(1))
-	u.program[10] = NewInput(u.terminal("8i"), u.newProgramInput(7))
-	u.program[11] = NewOutput(u.terminal("8o"), u.newOutput(1))
-	u.program[12] = NewInput(u.terminal("9i"), u.newProgramInput(8))
-	u.program[13] = NewOutput(u.terminal("9o"), u.newOutput(1))
-	u.program[14] = NewInput(u.terminal("10i"), u.newProgramInput(9))
-	u.program[15] = NewOutput(u.terminal("10o"), u.newOutput(1))
-	u.program[16] = NewInput(u.terminal("11i"), u.newProgramInput(10))
-	u.program[17] = NewOutput(u.terminal("11o"), u.newOutput(1))
-	u.program[18] = NewInput(u.terminal("12i"), u.newProgramInput(11))
-	u.program[19] = NewOutput(u.terminal("12o"), u.newOutput(1))
+	u.α = u.newDigitInput("α", opα)
+	u.β = u.newDigitInput("β", opβ)
+	u.γ = u.newDigitInput("γ", opγ)
+	u.δ = u.newDigitInput("δ", opδ)
+	u.ε = u.newDigitInput("ε", opε)
+	u.A = u.newOutput("A", 11)
+	u.S = u.newOutput("S", 11)
+	u.program[0] = u.newProgramInput("1i", 0)
+	u.program[1] = u.newProgramInput("2i", 1)
+	u.program[2] = u.newProgramInput("3i", 2)
+	u.program[3] = u.newProgramInput("4i", 3)
+	u.program[4] = u.newProgramInput("5i", 4)
+	u.program[5] = u.newOutput("5o", 1)
+	u.program[6] = u.newProgramInput("6i", 5)
+	u.program[7] = u.newOutput("6o", 1)
+	u.program[8] = u.newProgramInput("7i", 6)
+	u.program[9] = u.newOutput("7o", 1)
+	u.program[10] = u.newProgramInput("8i", 7)
+	u.program[11] = u.newOutput("8o", 1)
+	u.program[12] = u.newProgramInput("9i", 8)
+	u.program[13] = u.newOutput("9o", 1)
+	u.program[14] = u.newProgramInput("10i", 9)
+	u.program[15] = u.newOutput("10o", 1)
+	u.program[16] = u.newProgramInput("11i", 10)
+	u.program[17] = u.newOutput("11o", 1)
+	u.program[18] = u.newProgramInput("12i", 11)
+	u.program[19] = u.newOutput("12o", 1)
 	return u
 }
 
@@ -125,8 +125,8 @@ func (u *Accumulator) terminal(name string) string {
 	return fmt.Sprintf("a%d.%s", u.unit+1, name)
 }
 
-func (u *Accumulator) newDigitInput(programMask int) JackHandler {
-	return func(j *Jack, val int) {
+func (u *Accumulator) newDigitInput(name string, programMask int) *Jack {
+	return NewInput(u.terminal(name), func(j *Jack, val int) {
 		u.mu.Lock()
 		defer u.mu.Unlock()
 		if u.activeProgram()&programMask != 0 {
@@ -135,26 +135,26 @@ func (u *Accumulator) newDigitInput(programMask int) JackHandler {
 				u.tracePulse(j.Name, 11, int64(val))
 			}
 		}
-	}
+	})
 }
 
-func (u *Accumulator) newProgramInput(which int) JackHandler {
-	return func(j *Jack, val int) {
+func (u *Accumulator) newProgramInput(name string, which int) *Jack {
+	return NewInput(u.terminal(name), func(j *Jack, val int) {
 		if val == 1 {
 			u.trigger(which)
 			if u.tracePulse != nil {
 				u.tracePulse(j.Name, 1, int64(val))
 			}
 		}
-	}
+	})
 }
 
-func (u *Accumulator) newOutput(width int) JackHandler {
-	return func(j *Jack, val int) {
+func (u *Accumulator) newOutput(name string, width int) *Jack {
+	return NewOutput(u.terminal(name), func(j *Jack, val int) {
 		if u.tracePulse != nil {
 			u.tracePulse(j.Name, width, int64(val))
 		}
-	}
+	})
 }
 
 func (u *Accumulator) Stat() string {
