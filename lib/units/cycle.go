@@ -6,6 +6,9 @@ import (
 	"sync"
 )
 
+var HACKcyc Pulse
+var HACKcyccount int
+
 // Cycle simulates ENIAC's clock generation circuits
 type Cycle struct {
 	Io CycleConn // Connections to simulator control and other units
@@ -48,8 +51,8 @@ type controlState struct {
 }
 
 // Basic sequence of pulses to generate
-// Note due to the phase shift of 9P there are 40 distinct phases per add cycle
-// though only 20 pulse times.
+// Note due to the phase shift of 10P there are 40 distinct phases per add
+// cycle though only 20 pulse times.
 var phases = []Pulse{
 	0, Tenp, // 0
 	Onep | Ninep, Tenp, // 1
@@ -62,7 +65,7 @@ var phases = []Pulse{
 	Fourp | Ninep, Tenp, // 8
 	Fourp | Ninep, Tenp, // 9
 	Onepp, 0, // 10
-	Ccg, 0, // 11
+	Ccg, 0, // 11  (Ccg is really asserted for ~7 pulse times)
 	0, 0, // 12
 	Rp, 0, // 13
 	0, 0, // 14
@@ -115,8 +118,8 @@ func (u Cycle) Stat() string {
 // its own goroutine.
 //
 // This is the main control thread for the simulator, where a for loop
-// generates a repeating sequence of control pulses and calls a "ClockFunc" for
-// each clocked unit for each pulse.
+// generates a repeating sequence of control pulses and calls "Clock" for each
+// clocked unit for each pulse.
 //
 // As with the real ENIAC, clocks can be single stepped for debugging.  This
 // code also supports a "test mode" that runs the clocks for a specified number
@@ -147,12 +150,14 @@ func (u *Cycle) Run() {
 					c.Clock(Scg)
 				}
 			} else if phases[u.phase] != 0 {
+				HACKcyc = phases[u.phase]
 				for _, c := range u.Io.Units {
 					c.Clock(phases[u.phase])
 				}
 			}
 			u.phase++
 			if phases[u.phase] != 0 {
+				HACKcyc = phases[u.phase]
 				for _, c := range u.Io.Units {
 					c.Clock(phases[u.phase])
 				}
@@ -166,6 +171,7 @@ func (u *Cycle) Run() {
 				u.Io.TracePulse()
 			}
 		}
+		HACKcyccount++
 		if u.Io.TraceAddCycle != nil {
 			u.Io.TraceAddCycle()
 		}

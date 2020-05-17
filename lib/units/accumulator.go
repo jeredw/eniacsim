@@ -9,6 +9,64 @@ import (
 	. "github.com/jeredw/eniacsim/lib"
 )
 
+// An Accumulator is a unit of the ENIAC which is capable of performing the
+// following operations:
+// 1) Storing a ten digit number along with the proper indication of its sign.
+// 2) Receiving numbers (positive or negative) from other units of the ENIAC
+//    and adding them to numbers already stored, properly indicating the sign of
+//    the sum.
+// 3) Round off its contents to a previously determined number of
+//    places.
+// 4) Transmitting the number held, or its complement with respect to 10^10,
+//    without losing its contents (this makes it possible to add and/or subtract
+//    from the contents of one accumulator those of another).
+// 5) Clear its contents to zero (except for a possible round off five).
+// 6) Information stored in certain accumulators may be transmitted statically
+//    to certain other units.
+// -- ENIAC Technical Manual, Part II (Ch IV)
+type Accumulator struct {
+	Io AccumulatorConn
+
+	unit                int
+	α, β, γ, δ, ε, A, S *Jack
+	ctlterm             [20]*Jack
+	inff1, inff2        [12]bool
+	opsw                [12]int
+	clrsw               [12]bool
+	rptsw               [8]int
+	sigfig              int
+	sc                  byte
+	decade              [10]int
+	carry               [10]bool
+	sign                bool
+	h50                 bool
+	rep                 int
+	afterFirstRp        bool
+	lbuddy, rbuddy      int
+	plbuddy, prbuddy    *Accumulator
+	su1Cache            int
+
+	tracePulse TraceFunc
+
+	mu sync.Mutex
+}
+
+// Connections to other units.
+type AccumulatorConn struct {
+	Sv    func() int
+	Su2   func() int
+	Su3   func() int
+	Multl func() bool
+	Multr func() bool
+}
+
+// Static connections to other non-accumulator units.
+type StaticWiring interface {
+	Sign() string
+	Value() string
+	Clear()
+}
+
 /*
  * Bit positions for the ST1 and ST2 connectors
  */
@@ -56,50 +114,6 @@ const (
 	stSF10out  = pin17
 )
 
-// Simulates an ENIAC accumulator unit.
-type Accumulator struct {
-	Io AccumulatorConn
-
-	unit                int
-	α, β, γ, δ, ε, A, S *Jack
-	ctlterm             [20]*Jack
-	inff1, inff2        [12]bool
-	opsw                [12]int
-	clrsw               [12]bool
-	rptsw               [8]int
-	sigfig              int
-	sc                  byte
-	val                 [10]byte
-	decff               [10]bool
-	sign                bool
-	h50                 bool
-	rep                 int
-	whichrp             bool
-	lbuddy, rbuddy      int
-	plbuddy, prbuddy    *Accumulator
-	su1Cache            int
-
-	tracePulse TraceFunc
-
-	mu sync.Mutex
-}
-
-// Connections to other units.
-type AccumulatorConn struct {
-	Sv    func() int
-	Su2   func() int
-	Su3   func() int
-	Multl func() bool
-	Multr func() bool
-}
-
-// Static connections to other non-accumulator units.
-type StaticWiring interface {
-	Sign() string
-	Value() string
-	Clear()
-}
-
 func NewAccumulator(unit int) *Accumulator {
 	unitDot := fmt.Sprintf("a%d.", unit+1)
 	u := &Accumulator{
@@ -112,7 +126,7 @@ func NewAccumulator(unit int) *Accumulator {
 		return func(j *Jack, val int) {
 			u.mu.Lock()
 			defer u.mu.Unlock()
-			if u.st1()&st1Pin != 0 {
+			if u.program()&st1Pin != 0 {
 				u.receive(val)
 				if u.tracePulse != nil {
 					u.tracePulse(j.Name, 11, int64(val))
@@ -177,14 +191,14 @@ func (u *Accumulator) Stat() string {
 		s += "P "
 	}
 	for i := 9; i >= 0; i-- {
-		s += fmt.Sprintf("%d", u.val[i])
+		s += fmt.Sprintf("%d", u.decade[i])
 	}
 	s += " "
 	for i := 9; i >= 0; i-- {
-		s += ToBin(u.decff[i])
+		s += ToBin(u.carry[i])
 	}
 	s += fmt.Sprintf(" %d ", u.rep)
-	for _, f := range u.inff1 {
+	for _, f := range u.inff2 {
 		s += ToBin(f)
 	}
 	return s
@@ -193,7 +207,7 @@ func (u *Accumulator) Stat() string {
 type accJson struct {
 	Sign    bool     `json:"sign"`
 	Decade  [10]int  `json:"decade"`
-	Decff   [10]bool `json:"decff"`
+	Carry   [10]bool `json:"carry"`
 	Repeat  int      `json:"repeat"`
 	Program [12]bool `json:"program"`
 }
@@ -201,16 +215,12 @@ type accJson struct {
 func (u *Accumulator) State() json.RawMessage {
 	u.mu.Lock()
 	defer u.mu.Unlock()
-	digits := [10]int{}
-	for i := range u.val {
-		digits[i] = int(u.val[i])
-	}
 	s := accJson{
 		Sign:    u.sign,
-		Decade:  digits,
-		Decff:   u.decff,
+		Decade:  u.decade,
+		Carry:   u.carry,
 		Repeat:  u.rep,
-		Program: u.inff1,
+		Program: u.inff2,
 	}
 	result, _ := json.Marshal(s)
 	return result
@@ -234,7 +244,7 @@ func (u *Accumulator) AttachTrace(tracePulse TraceFunc) []func(TraceFunc) {
 			var n int64
 			for i := 9; i >= 0; i-- {
 				n <<= 4
-				n += int64(u.val[i])
+				n += int64(u.decade[i])
 			}
 			traceReg(value, 40, n)
 		},
@@ -262,7 +272,7 @@ func (u *Accumulator) Reset() {
 	u.sc = 0
 	u.h50 = false
 	u.rep = 0
-	u.whichrp = false
+	u.afterFirstRp = false
 	u.lbuddy = u.unit
 	u.rbuddy = u.unit
 	u.mu.Unlock()
@@ -288,7 +298,7 @@ func (u *Accumulator) Value() string {
 		s += "P "
 	}
 	for i := 9; i >= 0; i-- {
-		s += fmt.Sprintf("%d", u.val[i])
+		s += fmt.Sprintf("%d", u.decade[i])
 	}
 	return s
 }
@@ -297,11 +307,11 @@ func (u *Accumulator) Clear() {
 	u.mu.Lock()
 	defer u.mu.Unlock()
 	for i := 0; i < 10; i++ {
-		u.val[i] = 0
-		u.decff[i] = false
+		u.decade[i] = 0
+		u.carry[i] = false
 	}
 	if u.sigfig < 10 {
-		u.val[9-u.sigfig] = 5
+		u.decade[9-u.sigfig] = 5
 	}
 	u.sign = false
 }
@@ -314,8 +324,8 @@ func (u *Accumulator) Set(value int64) {
 		value = -value
 	}
 	for i := 0; i < 10; i++ {
-		u.val[i] = byte(value % 10)
-		u.decff[i] = false
+		u.decade[i] = int(value % 10)
+		u.carry[i] = false
 		value /= 10
 	}
 }
@@ -405,7 +415,7 @@ func accOpSettings() []IntSwitchSetting {
 		{"γ", stγ}, {"g", stγ}, {"gamma", stγ},
 		{"δ", stδ}, {"d", stδ}, {"delta", stδ},
 		{"ε", stε}, {"e", stε}, {"epsilon", stε},
-		{"0", 0}, // Must be 0 for su1().
+		{"0", 0}, // Must be 0 for userProgram().
 		{"A", stA},
 		{"AS", stAS},
 		{"S", stS},
@@ -448,7 +458,7 @@ func (u *Accumulator) SetSwitch(name, value string) error {
 	if err != nil {
 		return err
 	}
-	u.updateSu1Cache()
+	u.updateProgram()
 	return sw.Set(value)
 }
 
@@ -462,22 +472,18 @@ func (u *Accumulator) GetSwitch(name string) (string, error) {
 	return sw.Get(), nil
 }
 
-/*
- * Implement the PX-5-109 terminator and PX-5-110
- * and PX-5-121 interconnect cables
- */
-func (u *Accumulator) su1() int {
+func (u *Accumulator) userProgram() int {
 	x := 0
 	if u.rbuddy >= 0 && u.rbuddy != u.unit {
-		x = u.prbuddy.su1()
+		x = u.prbuddy.userProgram()
 	}
 	return x | u.su1Cache
 }
 
-func (u *Accumulator) updateSu1Cache() {
+func (u *Accumulator) updateProgram() {
 	x := 0
-	for i := range u.inff1 {
-		if u.inff1[i] {
+	for i := range u.inff2 {
+		if u.inff2[i] {
 			x |= u.opsw[i]
 			if u.clrsw[i] {
 				if u.opsw[i] == 0 || u.opsw[i] >= stA {
@@ -493,25 +499,25 @@ func (u *Accumulator) updateSu1Cache() {
 	u.su1Cache = x
 }
 
-func (u *Accumulator) st1() int {
+func (u *Accumulator) program() int {
 	x := 0
 	if u.lbuddy == u.unit {
-		x = u.su1()
+		x = u.userProgram()
 	} else if u.lbuddy == -1 {
-		x = u.su1()
+		x = u.userProgram()
 		if u.Io.Multl() {
 			x |= stα
 		}
 	} else if u.lbuddy == -2 {
-		x = u.su1()
+		x = u.userProgram()
 		if u.Io.Multr() {
 			x |= stα
 		}
 	} else if u.lbuddy == -3 {
-		x = u.su1()
+		x = u.userProgram()
 		x |= u.Io.Sv()
 	} else if u.lbuddy == -4 {
-		x = u.su1()
+		x = u.userProgram()
 		/* Wiring for PX-5-134 for quotient */
 		su2 := u.Io.Su2()
 		x |= su2 & stα
@@ -519,14 +525,14 @@ func (u *Accumulator) st1() int {
 		x |= (su2 & su2qS) << 3
 		x |= (su2 & su2qCLR) << 3
 	} else if u.lbuddy == -5 {
-		x = u.su1()
+		x = u.userProgram()
 		/* Wiring for PX-5-135 for shift */
 		su2 := u.Io.Su2()
 		x |= (su2 & su2sα) >> 1
 		x |= (su2 & su2sA) << 3
 		x |= (su2 & su2sCLR) << 2
 	} else if u.lbuddy == -6 {
-		x = u.su1()
+		x = u.userProgram()
 		/* Wiring for PX-5-136 for denominator */
 		su3 := u.Io.Su3()
 		x |= su3 & (stα | stβ | stγ)
@@ -540,27 +546,22 @@ func (u *Accumulator) st1() int {
 }
 
 func (u *Accumulator) st2() int {
-	x := u.st1() & 0x03ff
+	x := u.program() & 0x03ff
 
 	return x
 }
 
-func (u *Accumulator) docpp(cyc Pulse) {
-	su1Dirty := false
+func (u *Accumulator) doCpp(cyc Pulse) {
 	for i := 0; i < 4; i++ {
 		if u.inff2[i] {
-			u.inff1[i] = false
 			u.inff2[i] = false
-			su1Dirty = true
 		}
 	}
 	if u.h50 {
 		u.rep++
-		su1Dirty = true
 		rstrep := false
 		for i := 4; i < 12; i++ {
 			if u.inff2[i] && u.rep == int(u.rptsw[i-4])+1 {
-				u.inff1[i] = false
 				u.inff2[i] = false
 				rstrep = true
 				t := (i-4)*2 + 5
@@ -572,23 +573,20 @@ func (u *Accumulator) docpp(cyc Pulse) {
 			u.h50 = false
 		}
 	}
-	if su1Dirty {
-		u.updateSu1Cache()
-	}
 }
 
 func (u *Accumulator) ripple() {
 	for i := 0; i < 9; i++ {
-		if u.decff[i] {
-			u.val[i+1]++
-			if u.val[i+1] == 10 {
-				u.val[i+1] = 0
-				u.decff[i+1] = true
+		if u.carry[i] {
+			u.decade[i+1]++
+			if u.decade[i+1] == 10 {
+				u.decade[i+1] = 0
+				u.carry[i+1] = true
 			}
 		}
 	}
 	if u.lbuddy < 0 || u.lbuddy == u.unit {
-		if u.decff[9] {
+		if u.carry[9] {
 			/*
 			 * Connection PX-5-121 pins 14, 15
 			 */
@@ -598,42 +596,36 @@ func (u *Accumulator) ripple() {
 		/*
 		 * PX-5-110, pin 15 straight through
 		 */
-		if u.decff[9] {
-			u.plbuddy.val[0]++
-			if u.plbuddy.val[0] == 10 {
-				u.plbuddy.val[0] = 0
-				u.plbuddy.decff[0] = true
+		if u.carry[9] {
+			u.plbuddy.decade[0]++
+			if u.plbuddy.decade[0] == 10 {
+				u.plbuddy.decade[0] = 0
+				u.plbuddy.carry[0] = true
 			}
 		}
 		u.plbuddy.ripple()
 	}
 }
 
-func (u *Accumulator) doccg() {
-	curprog := u.st1()
-	u.whichrp = false
-	if curprog&0x1f != 0 {
+func (u *Accumulator) doCcg() {
+	program := u.program()
+	if program&(stα|stβ|stγ|stδ|stε) != 0 {
 		if u.rbuddy == u.unit {
 			u.ripple()
 		}
-	} else if (curprog & stCLR) != 0 {
+	} else if program&stCLR != 0 {
 		for i := 0; i < 10; i++ {
-			u.val[i] = byte(0)
+			u.decade[i] = 0
 		}
 		u.sign = false
 	}
 }
 
-func (u *Accumulator) dorp() {
-	if !u.whichrp {
-		/*
-		 * Ugly hack to avoid races.  Effectively this is
-		 * a coarse approximation to the "slow buffer
-		 * output" described in 1.2.9 of the Technical
-		 * Manual Part 2.
-		 */
+func (u *Accumulator) doRp() {
+	if u.afterFirstRp {
 		for i := 0; i < 12; i++ {
 			if u.inff1[i] {
+				u.inff1[i] = false
 				u.inff2[i] = true
 				if i >= 4 {
 					u.h50 = true
@@ -641,32 +633,33 @@ func (u *Accumulator) dorp() {
 			}
 		}
 		for i := 0; i < 10; i++ {
-			u.decff[i] = false
+			u.carry[i] = false
 		}
-		u.whichrp = true
+		u.updateProgram()
 	}
+	u.afterFirstRp = !u.afterFirstRp
 }
 
-func (u *Accumulator) dotenp() {
-	curprog := u.st1()
-	if curprog&(stA|stAS|stS) != 0 {
+func (u *Accumulator) doTenp() {
+	program := u.program()
+	if program&(stA|stAS|stS) != 0 {
 		for i := 0; i < 10; i++ {
-			u.val[i]++
-			if u.val[i] == 10 {
-				u.val[i] = 0
-				u.decff[i] = true
+			u.decade[i]++
+			if u.decade[i] == 10 {
+				u.decade[i] = 0
+				u.carry[i] = true
 			}
 		}
 	}
 }
 
-func (u *Accumulator) doninep() {
-	curprog := u.st1()
-	if curprog&(stA|stAS) != 0 {
+func (u *Accumulator) doNinep() {
+	program := u.program()
+	if program&(stA|stAS) != 0 {
 		if u.A.Connected() {
 			n := 0
 			for i := 0; i < 10; i++ {
-				if u.decff[i] {
+				if u.carry[i] {
 					n |= 1 << uint(i)
 				}
 			}
@@ -678,11 +671,11 @@ func (u *Accumulator) doninep() {
 			}
 		}
 	}
-	if curprog&(stAS|stS) != 0 {
+	if program&(stAS|stS) != 0 {
 		if u.S.Connected() {
 			n := 0
 			for i := 0; i < 10; i++ {
-				if !u.decff[i] {
+				if !u.carry[i] {
 					n |= 1 << uint(i)
 				}
 			}
@@ -696,21 +689,18 @@ func (u *Accumulator) doninep() {
 	}
 }
 
-func (u *Accumulator) doonepp() {
-	curprog := u.st1()
-	if curprog&stCORR != 0 {
-		/*
-		 * Connection of PX-5-109 pins 14, 15
-		 */
+func (u *Accumulator) doOnepp() {
+	program := u.program()
+	if program&stCORR != 0 {
 		if u.rbuddy == u.unit {
-			u.val[0]++
-			if u.val[0] > 9 {
-				u.val[0] = 0
-				u.decff[0] = true
+			u.decade[0]++
+			if u.decade[0] > 9 {
+				u.decade[0] = 0
+				u.carry[0] = true
 			}
 		}
 	}
-	if curprog&(stAS|stS) != 0 && u.S.Connected() {
+	if program&(stAS|stS) != 0 && u.S.Connected() {
 		if ((u.lbuddy < 0 || u.lbuddy == u.unit) && u.rbuddy == u.unit && u.sigfig > 0) ||
 			(u.rbuddy != u.unit && u.sigfig < 10) ||
 			(u.lbuddy != u.unit && u.lbuddy >= 0 && u.plbuddy.sigfig == 10 && u.sigfig > 0) ||
@@ -722,32 +712,32 @@ func (u *Accumulator) doonepp() {
 
 func (u *Accumulator) Clock(cyc Pulse) {
 	switch {
-	case cyc&Cpp != 0:
-		u.docpp(cyc)
+	case cyc&Tenp != 0:
+		u.doTenp()
+	case cyc&Ninep != 0:
+		u.doNinep()
+	case cyc&Onepp != 0:
+		u.doOnepp()
 	case cyc&Ccg != 0:
-		u.doccg()
+		u.doCcg()
+	case cyc&Rp != 0:
+		u.doRp()
 	case cyc&Scg != 0:
 		if u.sc == 1 {
 			u.Clear()
 		}
-	case cyc&Rp != 0:
-		u.dorp()
-	case cyc&Tenp != 0:
-		u.dotenp()
-	case cyc&Ninep != 0:
-		u.doninep()
-	case cyc&Onepp != 0:
-		u.doonepp()
+	case cyc&Cpp != 0:
+		u.doCpp(cyc)
 	}
 }
 
 func (u *Accumulator) receive(value int) {
 	for i := 0; i < 10; i++ {
 		if value&1 == 1 {
-			u.val[i]++
-			if u.val[i] >= 10 {
-				u.decff[i] = true
-				u.val[i] -= 10
+			u.decade[i]++
+			if u.decade[i] >= 10 {
+				u.carry[i] = true
+				u.decade[i] -= 10
 			}
 		}
 		value >>= 1
@@ -759,7 +749,20 @@ func (u *Accumulator) receive(value int) {
 
 func (u *Accumulator) trigger(input int) {
 	u.mu.Lock()
-	u.inff1[input] = true
-	u.updateSu1Cache()
+	if u.afterFirstRp {
+		// This is a normal input during Cpp, either before or after u.Clock(Cpp).
+		// Set a flag to update the program on Rp following the Cpp so that
+		// clocking order doesn't matter.
+		u.inff1[input] = true
+	} else {
+		// Inputs before the Cpp, e.g. from digit pulse adapters to dummy programs,
+		// should take effect on the current Cpp.
+		u.inff2[input] = true
+		if input >= 4 {
+			u.h50 = true
+		}
+		// fttest2.e wires digit pulse adapters to non-dummy programs.
+		u.updateProgram()
+	}
 	u.mu.Unlock()
 }
