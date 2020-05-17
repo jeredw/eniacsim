@@ -6,9 +6,6 @@ import (
 	"sync"
 )
 
-var HACKcyc Pulse
-var HACKcyccount int
-
 // Cycle simulates ENIAC's clock generation circuits
 type Cycle struct {
 	Io CycleConn // Connections to simulator control and other units
@@ -150,14 +147,12 @@ func (u *Cycle) Run() {
 					c.Clock(Scg)
 				}
 			} else if phases[u.phase] != 0 {
-				HACKcyc = phases[u.phase]
 				for _, c := range u.Io.Units {
 					c.Clock(phases[u.phase])
 				}
 			}
 			u.phase++
 			if phases[u.phase] != 0 {
-				HACKcyc = phases[u.phase]
 				for _, c := range u.Io.Units {
 					c.Clock(phases[u.phase])
 				}
@@ -171,7 +166,6 @@ func (u *Cycle) Run() {
 				u.Io.TracePulse()
 			}
 		}
-		HACKcyccount++
 		if u.Io.TraceAddCycle != nil {
 			u.Io.TraceAddCycle()
 		}
