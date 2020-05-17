@@ -25,27 +25,30 @@ import (
 //    to certain other units.
 // -- ENIAC Technical Manual, Part II (Ch IV)
 type Accumulator struct {
-	Io AccumulatorConn
+	α, β, γ, δ, ε *Jack     // Digit inputs
+	A, S          *Jack     // Digit outputs
+	program       [20]*Jack // Program terminals
 
-	unit                int
-	α, β, γ, δ, ε, A, S *Jack
-	ctlterm             [20]*Jack
-	inff1, inff2        [12]bool
-	opsw                [12]int
-	clrsw               [12]bool
-	rptsw               [8]int
-	sigfig              int
-	sc                  byte
-	decade              [10]int
-	carry               [10]bool
-	sign                bool
-	h50                 bool
-	rep                 int
-	afterFirstRp        bool
-	lbuddy, rbuddy      int
-	plbuddy, prbuddy    *Accumulator
-	su1Cache            int
+	operation      [12]int  // Operation switches
+	clear          [12]bool // Clear switches
+	repeat         [8]int   // Repeat count selection
+	figures        int      // Significant figures
+	selectiveClear bool     //
 
+	sign   bool     // True if negative
+	decade [10]int  // Ten digits 0-9
+	carry  [10]bool // Carry out of each digit position
+
+	inff1, inff2     [12]bool //
+	repeating        bool
+	repeatCount      int
+	afterFirstRp     bool
+	lbuddy, rbuddy   int
+	plbuddy, prbuddy *Accumulator
+	programCache     int
+
+	unit       int // Unit number 0-19
+	Io         AccumulatorConn
 	tracePulse TraceFunc
 
 	mu sync.Mutex
@@ -117,16 +120,16 @@ const (
 func NewAccumulator(unit int) *Accumulator {
 	unitDot := fmt.Sprintf("a%d.", unit+1)
 	u := &Accumulator{
-		unit:   unit,
-		sigfig: 10,
-		lbuddy: unit,
-		rbuddy: unit,
+		unit:    unit,
+		figures: 10,
+		lbuddy:  unit,
+		rbuddy:  unit,
 	}
 	digitInput := func(st1Pin int) JackHandler {
 		return func(j *Jack, val int) {
 			u.mu.Lock()
 			defer u.mu.Unlock()
-			if u.program()&st1Pin != 0 {
+			if u.activeProgram()&st1Pin != 0 {
 				u.receive(val)
 				if u.tracePulse != nil {
 					u.tracePulse(j.Name, 11, int64(val))
@@ -158,26 +161,26 @@ func NewAccumulator(unit int) *Accumulator {
 	u.ε = NewInput(unitDot+"ε", digitInput(stε))
 	u.A = NewOutput(unitDot+"A", output(11))
 	u.S = NewOutput(unitDot+"S", output(11))
-	u.ctlterm[0] = NewInput(unitDot+"1i", programInput(0))
-	u.ctlterm[1] = NewInput(unitDot+"2i", programInput(1))
-	u.ctlterm[2] = NewInput(unitDot+"3i", programInput(2))
-	u.ctlterm[3] = NewInput(unitDot+"4i", programInput(3))
-	u.ctlterm[4] = NewInput(unitDot+"5i", programInput(4))
-	u.ctlterm[5] = NewOutput(unitDot+"5o", output(1))
-	u.ctlterm[6] = NewInput(unitDot+"6i", programInput(5))
-	u.ctlterm[7] = NewOutput(unitDot+"6o", output(1))
-	u.ctlterm[8] = NewInput(unitDot+"7i", programInput(6))
-	u.ctlterm[9] = NewOutput(unitDot+"7o", output(1))
-	u.ctlterm[10] = NewInput(unitDot+"8i", programInput(7))
-	u.ctlterm[11] = NewOutput(unitDot+"8o", output(1))
-	u.ctlterm[12] = NewInput(unitDot+"9i", programInput(8))
-	u.ctlterm[13] = NewOutput(unitDot+"9o", output(1))
-	u.ctlterm[14] = NewInput(unitDot+"10i", programInput(9))
-	u.ctlterm[15] = NewOutput(unitDot+"10o", output(1))
-	u.ctlterm[16] = NewInput(unitDot+"11i", programInput(10))
-	u.ctlterm[17] = NewOutput(unitDot+"11o", output(1))
-	u.ctlterm[18] = NewInput(unitDot+"12i", programInput(11))
-	u.ctlterm[19] = NewOutput(unitDot+"12o", output(1))
+	u.program[0] = NewInput(unitDot+"1i", programInput(0))
+	u.program[1] = NewInput(unitDot+"2i", programInput(1))
+	u.program[2] = NewInput(unitDot+"3i", programInput(2))
+	u.program[3] = NewInput(unitDot+"4i", programInput(3))
+	u.program[4] = NewInput(unitDot+"5i", programInput(4))
+	u.program[5] = NewOutput(unitDot+"5o", output(1))
+	u.program[6] = NewInput(unitDot+"6i", programInput(5))
+	u.program[7] = NewOutput(unitDot+"6o", output(1))
+	u.program[8] = NewInput(unitDot+"7i", programInput(6))
+	u.program[9] = NewOutput(unitDot+"7o", output(1))
+	u.program[10] = NewInput(unitDot+"8i", programInput(7))
+	u.program[11] = NewOutput(unitDot+"8o", output(1))
+	u.program[12] = NewInput(unitDot+"9i", programInput(8))
+	u.program[13] = NewOutput(unitDot+"9o", output(1))
+	u.program[14] = NewInput(unitDot+"10i", programInput(9))
+	u.program[15] = NewOutput(unitDot+"10o", output(1))
+	u.program[16] = NewInput(unitDot+"11i", programInput(10))
+	u.program[17] = NewOutput(unitDot+"11o", output(1))
+	u.program[18] = NewInput(unitDot+"12i", programInput(11))
+	u.program[19] = NewOutput(unitDot+"12o", output(1))
 	return u
 }
 
@@ -197,7 +200,7 @@ func (u *Accumulator) Stat() string {
 	for i := 9; i >= 0; i-- {
 		s += ToBin(u.carry[i])
 	}
-	s += fmt.Sprintf(" %d ", u.rep)
+	s += fmt.Sprintf(" %d ", u.repeatCount)
 	for _, f := range u.inff2 {
 		s += ToBin(f)
 	}
@@ -219,7 +222,7 @@ func (u *Accumulator) State() json.RawMessage {
 		Sign:    u.sign,
 		Decade:  u.decade,
 		Carry:   u.carry,
-		Repeat:  u.rep,
+		Repeat:  u.repeatCount,
 		Program: u.inff2,
 	}
 	result, _ := json.Marshal(s)
@@ -259,19 +262,19 @@ func (u *Accumulator) Reset() {
 	u.δ.Disconnect()
 	u.ε.Disconnect()
 	for i := 0; i < 12; i++ {
-		u.ctlterm[i].Disconnect()
+		u.program[i].Disconnect()
 		u.inff1[i] = false
 		u.inff2[i] = false
-		u.opsw[i] = stα
-		u.clrsw[i] = false
+		u.operation[i] = stα
+		u.clear[i] = false
 	}
 	for i := 0; i < 8; i++ {
-		u.rptsw[i] = 0
+		u.repeat[i] = 0
 	}
-	u.sigfig = 10
-	u.sc = 0
-	u.h50 = false
-	u.rep = 0
+	u.figures = 10
+	u.selectiveClear = false
+	u.repeating = false
+	u.repeatCount = 0
 	u.afterFirstRp = false
 	u.lbuddy = u.unit
 	u.rbuddy = u.unit
@@ -310,8 +313,8 @@ func (u *Accumulator) Clear() {
 		u.decade[i] = 0
 		u.carry[i] = false
 	}
-	if u.sigfig < 10 {
-		u.decade[9-u.sigfig] = 5
+	if u.figures < 10 {
+		u.decade[9-u.figures] = 5
 	}
 	u.sign = false
 }
@@ -402,7 +405,7 @@ func (u *Accumulator) FindJack(jack string) (*Jack, error) {
 	}
 	for i, j := range jacks {
 		if j == jack {
-			return u.ctlterm[i], nil
+			return u.program[i], nil
 		}
 	}
 	return nil, fmt.Errorf("invalid jack: %s", jack)
@@ -424,10 +427,10 @@ func accOpSettings() []IntSwitchSetting {
 
 func (u *Accumulator) lookupSwitch(name string) (Switch, error) {
 	if name == "sf" {
-		return &IntSwitch{name, &u.sigfig, sfSettings()}, nil
+		return &IntSwitch{name, &u.figures, sfSettings()}, nil
 	}
 	if name == "sc" {
-		return &ByteSwitch{name, &u.sc, scSettings()}, nil
+		return &BoolSwitch{name, &u.selectiveClear, scSettings()}, nil
 	}
 	if len(name) < 3 {
 		return nil, fmt.Errorf("invalid switch %s", name)
@@ -439,14 +442,14 @@ func (u *Accumulator) lookupSwitch(name string) (Switch, error) {
 	prog--
 	switch name[:2] {
 	case "op":
-		return &IntSwitch{name, &u.opsw[prog], accOpSettings()}, nil
+		return &IntSwitch{name, &u.operation[prog], accOpSettings()}, nil
 	case "cc":
-		return &BoolSwitch{name, &u.clrsw[prog], clearSettings()}, nil
+		return &BoolSwitch{name, &u.clear[prog], clearSettings()}, nil
 	case "rp":
 		if !(prog >= 4 && prog <= 11) {
 			return nil, fmt.Errorf("invalid switch %s", name)
 		}
-		return &IntSwitch{name, &u.rptsw[prog-4], rpSettings()}, nil
+		return &IntSwitch{name, &u.repeat[prog-4], rpSettings()}, nil
 	}
 	return nil, fmt.Errorf("invalid switch %s", name)
 }
@@ -458,7 +461,7 @@ func (u *Accumulator) SetSwitch(name, value string) error {
 	if err != nil {
 		return err
 	}
-	u.updateProgram()
+	u.updateActiveProgram()
 	return sw.Set(value)
 }
 
@@ -477,17 +480,17 @@ func (u *Accumulator) userProgram() int {
 	if u.rbuddy >= 0 && u.rbuddy != u.unit {
 		x = u.prbuddy.userProgram()
 	}
-	return x | u.su1Cache
+	return x | u.programCache
 }
 
-func (u *Accumulator) updateProgram() {
+func (u *Accumulator) updateActiveProgram() {
 	x := 0
 	for i := range u.inff2 {
 		if u.inff2[i] {
-			x |= u.opsw[i]
-			if u.clrsw[i] {
-				if u.opsw[i] == 0 || u.opsw[i] >= stA {
-					if i < 4 || u.rep == int(u.rptsw[i-4]) {
+			x |= u.operation[i]
+			if u.clear[i] {
+				if u.operation[i] == 0 || u.operation[i] >= stA {
+					if i < 4 || u.repeatCount == int(u.repeat[i-4]) {
 						x |= stCLR
 					}
 				} else {
@@ -496,10 +499,10 @@ func (u *Accumulator) updateProgram() {
 			}
 		}
 	}
-	u.su1Cache = x
+	u.programCache = x
 }
 
-func (u *Accumulator) program() int {
+func (u *Accumulator) activeProgram() int {
 	x := 0
 	if u.lbuddy == u.unit {
 		x = u.userProgram()
@@ -546,7 +549,7 @@ func (u *Accumulator) program() int {
 }
 
 func (u *Accumulator) st2() int {
-	x := u.program() & 0x03ff
+	x := u.activeProgram() & 0x03ff
 
 	return x
 }
@@ -557,20 +560,20 @@ func (u *Accumulator) doCpp(cyc Pulse) {
 			u.inff2[i] = false
 		}
 	}
-	if u.h50 {
-		u.rep++
-		rstrep := false
+	if u.repeating {
+		u.repeatCount++
+		done := false
 		for i := 4; i < 12; i++ {
-			if u.inff2[i] && u.rep == int(u.rptsw[i-4])+1 {
+			if u.inff2[i] && u.repeatCount == int(u.repeat[i-4])+1 {
 				u.inff2[i] = false
-				rstrep = true
+				done = true
 				t := (i-4)*2 + 5
-				u.ctlterm[t].Transmit(1)
+				u.program[t].Transmit(1)
 			}
 		}
-		if rstrep {
-			u.rep = 0
-			u.h50 = false
+		if done {
+			u.repeatCount = 0
+			u.repeating = false
 		}
 	}
 }
@@ -608,7 +611,7 @@ func (u *Accumulator) ripple() {
 }
 
 func (u *Accumulator) doCcg() {
-	program := u.program()
+	program := u.activeProgram()
 	if program&(stα|stβ|stγ|stδ|stε) != 0 {
 		if u.rbuddy == u.unit {
 			u.ripple()
@@ -628,20 +631,20 @@ func (u *Accumulator) doRp() {
 				u.inff1[i] = false
 				u.inff2[i] = true
 				if i >= 4 {
-					u.h50 = true
+					u.repeating = true
 				}
 			}
 		}
 		for i := 0; i < 10; i++ {
 			u.carry[i] = false
 		}
-		u.updateProgram()
+		u.updateActiveProgram()
 	}
 	u.afterFirstRp = !u.afterFirstRp
 }
 
 func (u *Accumulator) doTenp() {
-	program := u.program()
+	program := u.activeProgram()
 	if program&(stA|stAS|stS) != 0 {
 		for i := 0; i < 10; i++ {
 			u.decade[i]++
@@ -654,7 +657,7 @@ func (u *Accumulator) doTenp() {
 }
 
 func (u *Accumulator) doNinep() {
-	program := u.program()
+	program := u.activeProgram()
 	if program&(stA|stAS) != 0 {
 		if u.A.Connected() {
 			n := 0
@@ -690,7 +693,7 @@ func (u *Accumulator) doNinep() {
 }
 
 func (u *Accumulator) doOnepp() {
-	program := u.program()
+	program := u.activeProgram()
 	if program&stCORR != 0 {
 		if u.rbuddy == u.unit {
 			u.decade[0]++
@@ -701,11 +704,11 @@ func (u *Accumulator) doOnepp() {
 		}
 	}
 	if program&(stAS|stS) != 0 && u.S.Connected() {
-		if ((u.lbuddy < 0 || u.lbuddy == u.unit) && u.rbuddy == u.unit && u.sigfig > 0) ||
-			(u.rbuddy != u.unit && u.sigfig < 10) ||
-			(u.lbuddy != u.unit && u.lbuddy >= 0 && u.plbuddy.sigfig == 10 && u.sigfig > 0) ||
-			(u.rbuddy != u.unit && u.sigfig == 10 && u.prbuddy.sigfig == 0) {
-			u.S.Transmit(1 << uint(10-u.sigfig))
+		if ((u.lbuddy < 0 || u.lbuddy == u.unit) && u.rbuddy == u.unit && u.figures > 0) ||
+			(u.rbuddy != u.unit && u.figures < 10) ||
+			(u.lbuddy != u.unit && u.lbuddy >= 0 && u.plbuddy.figures == 10 && u.figures > 0) ||
+			(u.rbuddy != u.unit && u.figures == 10 && u.prbuddy.figures == 0) {
+			u.S.Transmit(1 << uint(10-u.figures))
 		}
 	}
 }
@@ -723,7 +726,7 @@ func (u *Accumulator) Clock(cyc Pulse) {
 	case cyc&Rp != 0:
 		u.doRp()
 	case cyc&Scg != 0:
-		if u.sc == 1 {
+		if u.selectiveClear {
 			u.Clear()
 		}
 	case cyc&Cpp != 0:
@@ -759,10 +762,10 @@ func (u *Accumulator) trigger(input int) {
 		// should take effect on the current Cpp.
 		u.inff2[input] = true
 		if input >= 4 {
-			u.h50 = true
+			u.repeating = true
 		}
 		// fttest2.e wires digit pulse adapters to non-dummy programs.
-		u.updateProgram()
+		u.updateActiveProgram()
 	}
 	u.mu.Unlock()
 }

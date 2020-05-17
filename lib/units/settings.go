@@ -50,10 +50,10 @@ func sfSettings() []IntSwitchSetting {
 	}
 }
 
-func scSettings() []ByteSwitchSetting {
-	return []ByteSwitchSetting{
-		{"0", 0},
-		{"SC", 1}, {"sc", 1},
+func scSettings() []BoolSwitchSetting {
+	return []BoolSwitchSetting{
+		{"0", false},
+		{"SC", true}, {"sc", true},
 	}
 }
 
