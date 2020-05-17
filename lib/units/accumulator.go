@@ -118,70 +118,76 @@ const (
 )
 
 func NewAccumulator(unit int) *Accumulator {
-	unitDot := fmt.Sprintf("a%d.", unit+1)
 	u := &Accumulator{
 		unit:    unit,
-		figures: 10,
 		lbuddy:  unit,
 		rbuddy:  unit,
+		figures: 10,
 	}
-	digitInput := func(st1Pin int) JackHandler {
-		return func(j *Jack, val int) {
-			u.mu.Lock()
-			defer u.mu.Unlock()
-			if u.activeProgram()&st1Pin != 0 {
-				u.receive(val)
-				if u.tracePulse != nil {
-					u.tracePulse(j.Name, 11, int64(val))
-				}
-			}
-		}
-	}
-	programInput := func(prog int) JackHandler {
-		return func(j *Jack, val int) {
-			if val == 1 {
-				u.trigger(prog)
-				if u.tracePulse != nil {
-					u.tracePulse(j.Name, 1, int64(val))
-				}
-			}
-		}
-	}
-	output := func(width int) JackHandler {
-		return func(j *Jack, val int) {
-			if u.tracePulse != nil {
-				u.tracePulse(j.Name, width, int64(val))
-			}
-		}
-	}
-	u.α = NewInput(unitDot+"α", digitInput(stα))
-	u.β = NewInput(unitDot+"β", digitInput(stβ))
-	u.γ = NewInput(unitDot+"γ", digitInput(stγ))
-	u.δ = NewInput(unitDot+"δ", digitInput(stδ))
-	u.ε = NewInput(unitDot+"ε", digitInput(stε))
-	u.A = NewOutput(unitDot+"A", output(11))
-	u.S = NewOutput(unitDot+"S", output(11))
-	u.program[0] = NewInput(unitDot+"1i", programInput(0))
-	u.program[1] = NewInput(unitDot+"2i", programInput(1))
-	u.program[2] = NewInput(unitDot+"3i", programInput(2))
-	u.program[3] = NewInput(unitDot+"4i", programInput(3))
-	u.program[4] = NewInput(unitDot+"5i", programInput(4))
-	u.program[5] = NewOutput(unitDot+"5o", output(1))
-	u.program[6] = NewInput(unitDot+"6i", programInput(5))
-	u.program[7] = NewOutput(unitDot+"6o", output(1))
-	u.program[8] = NewInput(unitDot+"7i", programInput(6))
-	u.program[9] = NewOutput(unitDot+"7o", output(1))
-	u.program[10] = NewInput(unitDot+"8i", programInput(7))
-	u.program[11] = NewOutput(unitDot+"8o", output(1))
-	u.program[12] = NewInput(unitDot+"9i", programInput(8))
-	u.program[13] = NewOutput(unitDot+"9o", output(1))
-	u.program[14] = NewInput(unitDot+"10i", programInput(9))
-	u.program[15] = NewOutput(unitDot+"10o", output(1))
-	u.program[16] = NewInput(unitDot+"11i", programInput(10))
-	u.program[17] = NewOutput(unitDot+"11o", output(1))
-	u.program[18] = NewInput(unitDot+"12i", programInput(11))
-	u.program[19] = NewOutput(unitDot+"12o", output(1))
+	u.α = NewInput(u.terminal("α"), u.newDigitInput(stα))
+	u.β = NewInput(u.terminal("β"), u.newDigitInput(stβ))
+	u.γ = NewInput(u.terminal("γ"), u.newDigitInput(stγ))
+	u.δ = NewInput(u.terminal("δ"), u.newDigitInput(stδ))
+	u.ε = NewInput(u.terminal("ε"), u.newDigitInput(stε))
+	u.A = NewOutput(u.terminal("A"), u.newOutput(11))
+	u.S = NewOutput(u.terminal("S"), u.newOutput(11))
+	u.program[0] = NewInput(u.terminal("1i"), u.newProgramInput(0))
+	u.program[1] = NewInput(u.terminal("2i"), u.newProgramInput(1))
+	u.program[2] = NewInput(u.terminal("3i"), u.newProgramInput(2))
+	u.program[3] = NewInput(u.terminal("4i"), u.newProgramInput(3))
+	u.program[4] = NewInput(u.terminal("5i"), u.newProgramInput(4))
+	u.program[5] = NewOutput(u.terminal("5o"), u.newOutput(1))
+	u.program[6] = NewInput(u.terminal("6i"), u.newProgramInput(5))
+	u.program[7] = NewOutput(u.terminal("6o"), u.newOutput(1))
+	u.program[8] = NewInput(u.terminal("7i"), u.newProgramInput(6))
+	u.program[9] = NewOutput(u.terminal("7o"), u.newOutput(1))
+	u.program[10] = NewInput(u.terminal("8i"), u.newProgramInput(7))
+	u.program[11] = NewOutput(u.terminal("8o"), u.newOutput(1))
+	u.program[12] = NewInput(u.terminal("9i"), u.newProgramInput(8))
+	u.program[13] = NewOutput(u.terminal("9o"), u.newOutput(1))
+	u.program[14] = NewInput(u.terminal("10i"), u.newProgramInput(9))
+	u.program[15] = NewOutput(u.terminal("10o"), u.newOutput(1))
+	u.program[16] = NewInput(u.terminal("11i"), u.newProgramInput(10))
+	u.program[17] = NewOutput(u.terminal("11o"), u.newOutput(1))
+	u.program[18] = NewInput(u.terminal("12i"), u.newProgramInput(11))
+	u.program[19] = NewOutput(u.terminal("12o"), u.newOutput(1))
 	return u
+}
+
+func (u *Accumulator) terminal(name string) string {
+	return fmt.Sprintf("a%d.%s", u.unit+1, name)
+}
+
+func (u *Accumulator) newDigitInput(programMask int) JackHandler {
+	return func(j *Jack, val int) {
+		u.mu.Lock()
+		defer u.mu.Unlock()
+		if u.activeProgram()&programMask != 0 {
+			u.receive(val)
+			if u.tracePulse != nil {
+				u.tracePulse(j.Name, 11, int64(val))
+			}
+		}
+	}
+}
+
+func (u *Accumulator) newProgramInput(which int) JackHandler {
+	return func(j *Jack, val int) {
+		if val == 1 {
+			u.trigger(which)
+			if u.tracePulse != nil {
+				u.tracePulse(j.Name, 1, int64(val))
+			}
+		}
+	}
+}
+
+func (u *Accumulator) newOutput(width int) JackHandler {
+	return func(j *Jack, val int) {
+		if u.tracePulse != nil {
+			u.tracePulse(j.Name, width, int64(val))
+		}
+	}
 }
 
 func (u *Accumulator) Stat() string {
