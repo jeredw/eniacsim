@@ -13,7 +13,8 @@ type Debugger struct {
 func NewDebugger() *Debugger {
 	u := &Debugger{}
 	for i := range u.breakpoint {
-		u.breakpoint[i] = NewInput(fmt.Sprintf("debug.bp%d", i), func(*Jack, int) {
+		u.breakpoint[i] = NewInput(fmt.Sprintf("debug.bp%d", i), func(j *Jack, val int) {
+			fmt.Printf("break on %s", j.ConnectionsString())
 			cycle.Io.Stop <- 1
 		})
 	}
