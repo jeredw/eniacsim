@@ -27,13 +27,13 @@ import (
 type Accumulator struct {
 	α, β, γ, δ, ε *Jack     // Digit inputs
 	A, S          *Jack     // Digit outputs
-	program       [20]*Jack // Program terminals
+	program       [20]*Jack // Program inputs and outputs
 
 	operation      [12]int  // Operation switches
 	clear          [12]bool // Clear switches
 	repeat         [8]int   // Repeat count selection
 	figures        int      // Significant figures
-	selectiveClear bool     //
+	selectiveClear bool     // If true, initiate unit may trigger clear
 
 	sign   bool     // True if negative
 	decade [10]int  // Ten digits 0-9
@@ -70,51 +70,18 @@ type StaticWiring interface {
 	Clear()
 }
 
-/*
- * Bit positions for the ST1 and ST2 connectors
- */
+// Operations supported by acc central programming circuits
 const (
-	pin1 = 1 << iota
-	pin2
-	pin3
-	pin4
-	pin5
-	pin6
-	pin7
-	pin8
-	pin9
-	pin10
-	_
-	_
-	_
-	pin14
-	pin15
-	pin16
-	pin17
-)
-
-/*
- * Signal names on ST1 and ST2 connectors
- */
-const (
-	stα        = pin1
-	stβ        = pin2
-	stγ        = pin3
-	stδ        = pin4
-	stε        = pin5
-	stA        = pin6
-	stAS       = pin7
-	stS        = pin8
-	stCLR      = pin9
-	stCORR     = pin10
-	stPMinp    = pin14
-	stCORRsrc  = pin14
-	stDEC10CAR = pin15
-	stDEC1inp  = pin15
-	stSF0out   = pin16
-	stDEC1sub  = pin16
-	stSFSWinp  = pin17
-	stSF10out  = pin17
+	opα = 1 << iota
+	opβ
+	opγ
+	opδ
+	opε
+	opA
+	opAS
+	opS
+	opClear
+	opCorrect
 )
 
 func NewAccumulator(unit int) *Accumulator {
@@ -124,11 +91,11 @@ func NewAccumulator(unit int) *Accumulator {
 		rbuddy:  unit,
 		figures: 10,
 	}
-	u.α = NewInput(u.terminal("α"), u.newDigitInput(stα))
-	u.β = NewInput(u.terminal("β"), u.newDigitInput(stβ))
-	u.γ = NewInput(u.terminal("γ"), u.newDigitInput(stγ))
-	u.δ = NewInput(u.terminal("δ"), u.newDigitInput(stδ))
-	u.ε = NewInput(u.terminal("ε"), u.newDigitInput(stε))
+	u.α = NewInput(u.terminal("α"), u.newDigitInput(opα))
+	u.β = NewInput(u.terminal("β"), u.newDigitInput(opβ))
+	u.γ = NewInput(u.terminal("γ"), u.newDigitInput(opγ))
+	u.δ = NewInput(u.terminal("δ"), u.newDigitInput(opδ))
+	u.ε = NewInput(u.terminal("ε"), u.newDigitInput(opε))
 	u.A = NewOutput(u.terminal("A"), u.newOutput(11))
 	u.S = NewOutput(u.terminal("S"), u.newOutput(11))
 	u.program[0] = NewInput(u.terminal("1i"), u.newProgramInput(0))
@@ -239,8 +206,8 @@ func (u *Accumulator) AttachTrace(tracePulse TraceFunc) []func(TraceFunc) {
 	u.mu.Lock()
 	defer u.mu.Unlock()
 	u.tracePulse = tracePulse
-	sign := fmt.Sprintf("a%d.sign", u.unit+1)
-	value := fmt.Sprintf("a%d.value", u.unit+1)
+	sign := u.terminal("sign")
+	decade := u.terminal("decade")
 	return []func(t TraceFunc){
 		func(traceReg TraceFunc) {
 			s := int64(0)
@@ -255,7 +222,7 @@ func (u *Accumulator) AttachTrace(tracePulse TraceFunc) []func(TraceFunc) {
 				n <<= 4
 				n += int64(u.decade[i])
 			}
-			traceReg(value, 40, n)
+			traceReg(decade, 40, n)
 		},
 	}
 }
@@ -271,7 +238,7 @@ func (u *Accumulator) Reset() {
 		u.program[i].Disconnect()
 		u.inff1[i] = false
 		u.inff2[i] = false
-		u.operation[i] = stα
+		u.operation[i] = opα
 		u.clear[i] = false
 	}
 	for i := 0; i < 8; i++ {
@@ -419,15 +386,15 @@ func (u *Accumulator) FindJack(jack string) (*Jack, error) {
 
 func accOpSettings() []IntSwitchSetting {
 	return []IntSwitchSetting{
-		{"α", stα}, {"a", stα}, {"alpha", stα},
-		{"β", stβ}, {"b", stβ}, {"beta", stβ},
-		{"γ", stγ}, {"g", stγ}, {"gamma", stγ},
-		{"δ", stδ}, {"d", stδ}, {"delta", stδ},
-		{"ε", stε}, {"e", stε}, {"epsilon", stε},
+		{"α", opα}, {"a", opα}, {"alpha", opα},
+		{"β", opβ}, {"b", opβ}, {"beta", opβ},
+		{"γ", opγ}, {"g", opγ}, {"gamma", opγ},
+		{"δ", opδ}, {"d", opδ}, {"delta", opδ},
+		{"ε", opε}, {"e", opε}, {"epsilon", opε},
 		{"0", 0}, // Must be 0 for userProgram().
-		{"A", stA},
-		{"AS", stAS},
-		{"S", stS},
+		{"A", opA},
+		{"AS", opAS},
+		{"S", opS},
 	}
 }
 
@@ -495,12 +462,12 @@ func (u *Accumulator) updateActiveProgram() {
 		if u.inff2[i] {
 			x |= u.operation[i]
 			if u.clear[i] {
-				if u.operation[i] == 0 || u.operation[i] >= stA {
+				if u.operation[i] == 0 || u.operation[i] >= opA {
 					if i < 4 || u.repeatCount == int(u.repeat[i-4]) {
-						x |= stCLR
+						x |= opClear
 					}
 				} else {
-					x |= stCORR
+					x |= opCorrect
 				}
 			}
 		}
@@ -515,12 +482,12 @@ func (u *Accumulator) activeProgram() int {
 	} else if u.lbuddy == -1 {
 		x = u.userProgram()
 		if u.Io.Multl() {
-			x |= stα
+			x |= opα
 		}
 	} else if u.lbuddy == -2 {
 		x = u.userProgram()
 		if u.Io.Multr() {
-			x |= stα
+			x |= opα
 		}
 	} else if u.lbuddy == -3 {
 		x = u.userProgram()
@@ -529,7 +496,7 @@ func (u *Accumulator) activeProgram() int {
 		x = u.userProgram()
 		/* Wiring for PX-5-134 for quotient */
 		su2 := u.Io.Su2()
-		x |= su2 & stα
+		x |= su2 & opα
 		x |= (su2 & su2qA) << 2
 		x |= (su2 & su2qS) << 3
 		x |= (su2 & su2qCLR) << 3
@@ -544,7 +511,7 @@ func (u *Accumulator) activeProgram() int {
 		x = u.userProgram()
 		/* Wiring for PX-5-136 for denominator */
 		su3 := u.Io.Su3()
-		x |= su3 & (stα | stβ | stγ)
+		x |= su3 & (opα | opβ | opγ)
 		x |= (su3 & su3A) << 2
 		x |= (su3 & su3S) << 3
 		x |= (su3 & su3CLR) << 3
@@ -618,11 +585,11 @@ func (u *Accumulator) ripple() {
 
 func (u *Accumulator) doCcg() {
 	program := u.activeProgram()
-	if program&(stα|stβ|stγ|stδ|stε) != 0 {
+	if program&(opα|opβ|opγ|opδ|opε) != 0 {
 		if u.rbuddy == u.unit {
 			u.ripple()
 		}
-	} else if program&stCLR != 0 {
+	} else if program&opClear != 0 {
 		for i := 0; i < 10; i++ {
 			u.decade[i] = 0
 		}
@@ -651,7 +618,7 @@ func (u *Accumulator) doRp() {
 
 func (u *Accumulator) doTenp() {
 	program := u.activeProgram()
-	if program&(stA|stAS|stS) != 0 {
+	if program&(opA|opAS|opS) != 0 {
 		for i := 0; i < 10; i++ {
 			u.decade[i]++
 			if u.decade[i] == 10 {
@@ -664,7 +631,7 @@ func (u *Accumulator) doTenp() {
 
 func (u *Accumulator) doNinep() {
 	program := u.activeProgram()
-	if program&(stA|stAS) != 0 {
+	if program&(opA|opAS) != 0 {
 		if u.A.Connected() {
 			n := 0
 			for i := 0; i < 10; i++ {
@@ -680,7 +647,7 @@ func (u *Accumulator) doNinep() {
 			}
 		}
 	}
-	if program&(stAS|stS) != 0 {
+	if program&(opAS|opS) != 0 {
 		if u.S.Connected() {
 			n := 0
 			for i := 0; i < 10; i++ {
@@ -700,7 +667,7 @@ func (u *Accumulator) doNinep() {
 
 func (u *Accumulator) doOnepp() {
 	program := u.activeProgram()
-	if program&stCORR != 0 {
+	if program&opCorrect != 0 {
 		if u.rbuddy == u.unit {
 			u.decade[0]++
 			if u.decade[0] > 9 {
@@ -709,7 +676,7 @@ func (u *Accumulator) doOnepp() {
 			}
 		}
 	}
-	if program&(stAS|stS) != 0 && u.S.Connected() {
+	if program&(opAS|opS) != 0 && u.S.Connected() {
 		if ((u.lbuddy < 0 || u.lbuddy == u.unit) && u.rbuddy == u.unit && u.figures > 0) ||
 			(u.rbuddy != u.unit && u.figures < 10) ||
 			(u.lbuddy != u.unit && u.lbuddy >= 0 && u.plbuddy.figures == 10 && u.figures > 0) ||
@@ -759,13 +726,15 @@ func (u *Accumulator) receive(value int) {
 func (u *Accumulator) trigger(input int) {
 	u.mu.Lock()
 	if u.afterFirstRp {
-		// This is a normal input during Cpp, either before or after u.Clock(Cpp).
-		// Set a flag to update the program on Rp following the Cpp so that
-		// clocking order doesn't matter.
+		// So that simulator clocking order doesn't matter, programs are registered
+		// in inff1 and applied on the Rp pulse following Cpp.  (Pulse order is Rp,
+		// ..., Cpp, ..., Rp, so this input is during Cpp.)
 		u.inff1[input] = true
 	} else {
-		// Inputs before the Cpp, e.g. from digit pulse adapters to dummy programs,
-		// should take effect on the current Cpp.
+		// Inputs from digit pulse adapters arrive before Cpp, and take effect for
+		// the current add cycle - in particular, a dummy program driven by digit
+		// pulses triggers its output on Cpp of the same add cycle as its input.
+		// (See Technical Manual IV-26, Table 4-3.)
 		u.inff2[input] = true
 		if input >= 4 {
 			u.repeating = true
