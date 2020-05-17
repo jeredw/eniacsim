@@ -229,6 +229,7 @@ func (u *Accumulator) AttachTrace(tracePulse TraceFunc) []func(TraceFunc) {
 
 func (u *Accumulator) Reset() {
 	u.mu.Lock()
+	defer u.mu.Unlock()
 	u.α.Disconnect()
 	u.β.Disconnect()
 	u.γ.Disconnect()
@@ -251,8 +252,7 @@ func (u *Accumulator) Reset() {
 	u.afterFirstRp = false
 	u.lbuddy = u.unit
 	u.rbuddy = u.unit
-	u.mu.Unlock()
-	u.Clear()
+	u.clearInternal()
 }
 
 func (u *Accumulator) Sign() string {
@@ -282,6 +282,10 @@ func (u *Accumulator) Value() string {
 func (u *Accumulator) Clear() {
 	u.mu.Lock()
 	defer u.mu.Unlock()
+	u.clearInternal()
+}
+
+func (u *Accumulator) clearInternal() {
 	for i := 0; i < 10; i++ {
 		u.decade[i] = 0
 		u.carry[i] = false
@@ -463,7 +467,7 @@ func (u *Accumulator) updateActiveProgram() {
 			x |= u.operation[i]
 			if u.clear[i] {
 				if u.operation[i] == 0 || u.operation[i] >= opA {
-					if i < 4 || u.repeatCount == int(u.repeat[i-4]) {
+					if i < 4 || u.repeatCount == u.repeat[i-4] {
 						x |= opClear
 					}
 				} else {
@@ -537,7 +541,7 @@ func (u *Accumulator) doCpp(cyc Pulse) {
 		u.repeatCount++
 		done := false
 		for i := 4; i < 12; i++ {
-			if u.inff2[i] && u.repeatCount == int(u.repeat[i-4])+1 {
+			if u.inff2[i] && u.repeatCount == u.repeat[i-4]+1 {
 				u.inff2[i] = false
 				done = true
 				t := (i-4)*2 + 5
@@ -590,10 +594,7 @@ func (u *Accumulator) doCcg() {
 			u.ripple()
 		}
 	} else if program&opClear != 0 {
-		for i := 0; i < 10; i++ {
-			u.decade[i] = 0
-		}
-		u.sign = false
+		u.clearInternal()
 	}
 }
 
