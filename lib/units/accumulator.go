@@ -40,13 +40,14 @@ type Accumulator struct {
 	carry  [10]bool // Carry ff per decade
 	carry2 [10]bool // Temp for ripple carries
 
-	inff1, inff2     [12]bool
-	repeating        bool
-	repeatCount      int
-	afterFirstRp     bool
-	lbuddy, rbuddy   int
-	plbuddy, prbuddy *Accumulator
-	programCache     int
+	inff1, inff2 [12]bool
+	repeating    bool
+	repeatCount  int
+	afterFirstRp bool
+	programCache int
+
+	left  *Accumulator
+	right *Accumulator
 
 	unit       int // Unit number 0-19
 	tracePulse TraceFunc
@@ -78,8 +79,6 @@ const (
 func NewAccumulator(unit int) *Accumulator {
 	u := &Accumulator{
 		unit:    unit,
-		lbuddy:  unit,
-		rbuddy:  unit,
 		figures: 10,
 	}
 	u.α = u.newDigitInput("α", opα)
@@ -241,8 +240,8 @@ func (u *Accumulator) Reset() {
 	u.repeating = false
 	u.repeatCount = 0
 	u.afterFirstRp = false
-	u.lbuddy = u.unit
-	u.rbuddy = u.unit
+	u.left = nil
+	u.right = nil
 	u.clearInternal()
 }
 
@@ -303,39 +302,39 @@ func (u *Accumulator) Set(value int64) {
 	}
 }
 
-// Interconnect connects accumulators with other units statically.
-// FIXME This seems to be totally unused/untested.
-func Interconnect(units [20]*Accumulator, p1 []string, p2 []string) error {
-	unit1, _ := strconv.Atoi(p1[0][1:])
-	unit2 := -1
-	if len(p2) > 1 && p2[0][0] == 'a' {
-		unit2, _ = strconv.Atoi(p2[0][1:])
+// Interconnect joins two accumulators to form a 20 digit accumulator.
+func Interconnect(accumulator [20]*Accumulator, p1 []string, p2 []string) error {
+	unit1, err := strconv.Atoi(p1[0][1:])
+	if err != nil {
+		return err
 	}
+	unit2, err := strconv.Atoi(p2[0][1:])
+	if err != nil {
+		return err
+	}
+	port1 := p1[1]
+	port2 := p2[1]
+	if unit1 == unit2 {
+		if (port1 == "il1" && port2 == "il2") || (port1 == "il2" && port2 == "il1") {
+			return nil
+		}
+		return fmt.Errorf("illegal interconnection")
+	}
+	a1 := accumulator[unit1-1]
+	a2 := accumulator[unit2-1]
+	a1.mu.Lock()
+	defer a1.mu.Unlock()
+	a2.mu.Lock()
+	defer a2.mu.Unlock()
 	switch {
-	case p1[1] == "st1" || p1[1] == "il1":
-		if unit2 != -1 && unit1 != unit2 {
-			units[unit1-1].lbuddy = unit2 - 1
-			units[unit2-1].rbuddy = unit1 - 1
-		}
-	case p1[1] == "st2" || p1[1] == "ir1":
-		if unit2 != -1 && unit1 != unit2 {
-			units[unit1-1].rbuddy = unit2 - 1
-			units[unit2-1].lbuddy = unit1 - 1
-		}
-	case p1[1] == "su1" || p1[1] == "il2":
-		if unit2 != -1 && unit1 != unit2 {
-			units[unit1-1].lbuddy = unit2 - 1
-			units[unit2].rbuddy = unit1 - 1
-		}
-	case p1[1] == "su2" || p1[1] == "ir2":
-		if unit2 != -1 && unit1 != unit2 {
-			units[unit1-1].rbuddy = unit2 - 1
-			units[unit2-1].lbuddy = unit1 - 1
-		}
-	}
-	if unit2 != -1 && unit1 != unit2 {
-		//		units[unit1-1].change <- 1
-		//		units[unit2-1].change <- 1
+	case port1 == "il1" && port2 == "ir1", port1 == "il2" && port2 == "ir2":
+		a1.left = a2
+		a2.right = a1
+	case port1 == "ir1" && port2 == "il1", port1 == "ir2" && port2 == "il2":
+		a1.right = a2
+		a2.left = a1
+	default:
+		return fmt.Errorf("illegal interconnection")
 	}
 	return nil
 }
@@ -433,14 +432,6 @@ func (u *Accumulator) GetSwitch(name string) (string, error) {
 	return sw.Get(), nil
 }
 
-func (u *Accumulator) userProgram() int {
-	x := 0
-	if u.rbuddy != u.unit {
-		x = u.prbuddy.userProgram()
-	}
-	return x | u.programCache
-}
-
 func (u *Accumulator) updateActiveProgram() {
 	x := 0
 	for i := range u.inff2 {
@@ -461,19 +452,13 @@ func (u *Accumulator) updateActiveProgram() {
 }
 
 func (u *Accumulator) activeProgram() int {
-	x := 0
-	if u.lbuddy == u.unit {
-		x = u.userProgram()
-	} else {
-		x = u.plbuddy.st2() & 0x1c3ff
+	if u.left != nil {
+		return u.programCache | u.left.programCache
 	}
-	return x
-}
-
-func (u *Accumulator) st2() int {
-	x := u.activeProgram() & 0x03ff
-
-	return x
+	if u.right != nil {
+		return u.programCache | u.right.programCache
+	}
+	return u.programCache
 }
 
 func (u *Accumulator) doCpp(cyc Pulse) {
@@ -510,21 +495,22 @@ func (u *Accumulator) ripple() {
 			}
 		}
 	}
-	if u.lbuddy == u.unit {
-		// This accumulator is operating as a single ten digit accumulator.
+	if u.left == nil {
+		// Carry from final decade into sign.
 		if u.carry[9] || u.carry2[9] {
 			u.sign = !u.sign
 		}
 	} else {
 		// This is the right half of a pair of interconnected accumulators.
+		// Carry from final decade into decade 1 of left half.
 		if u.carry[9] || u.carry2[9] {
-			u.plbuddy.decade[0]++
-			if u.plbuddy.decade[0] == 10 {
-				u.plbuddy.decade[0] = 0
-				u.plbuddy.carry2[0] = true
+			u.left.decade[0]++
+			if u.left.decade[0] == 10 {
+				u.left.decade[0] = 0
+				u.left.carry2[0] = true
 			}
 		}
-		u.plbuddy.ripple()
+		u.left.ripple()
 	}
 }
 
@@ -541,7 +527,8 @@ func (u *Accumulator) doRp() {
 		// digit reception.
 		program := u.activeProgram()
 		if program&(opα|opβ|opγ|opδ|opε) != 0 {
-			if u.rbuddy == u.unit {
+			// Carry-over starts from the right accumulator of a pair.
+			if u.right == nil {
 				u.ripple()
 			}
 		}
@@ -624,7 +611,8 @@ func (u *Accumulator) doNinep() {
 func (u *Accumulator) doOnepp() {
 	program := u.activeProgram()
 	if program&opCorrect != 0 {
-		if u.rbuddy == u.unit {
+		// Apply tens' complement correction to the lowest order decade.
+		if u.right == nil {
 			u.decade[0]++
 			if u.decade[0] > 9 {
 				u.decade[0] = 0
@@ -633,10 +621,18 @@ func (u *Accumulator) doOnepp() {
 		}
 	}
 	if program&(opAS|opS) != 0 && u.S.Connected() {
-		if (u.lbuddy == u.unit && u.rbuddy == u.unit && u.figures > 0) ||
-			(u.rbuddy != u.unit && u.figures < 10) ||
-			(u.lbuddy != u.unit && u.plbuddy.figures == 10 && u.figures > 0) ||
-			(u.rbuddy != u.unit && u.figures == 10 && u.prbuddy.figures == 0) {
+		// Transmit a final +1 in the least significant decade on S.
+		//
+		// Behavior of figures switches for interconnected accumulators is
+		// explained in Technical Manual IV-22: "The significant figures switch of
+		// the left hand accumulator should be set to 10 and in the right hand
+		// accumulator to s' where 0 <= s' < 10 if 10 + s' significant figures are
+		// desired.  If fewer than 10 significant figures are desired, the left
+		// hand switch is set to this number and the right hand switch to 10."
+		if (u.left == nil && u.right == nil && u.figures > 0) ||
+			(u.right != nil && u.figures < 10) ||
+			(u.left != nil && u.left.figures == 10 && u.figures > 0) ||
+			(u.right != nil && u.figures == 10 && u.right.figures == 0) {
 			u.S.Transmit(1 << uint(10-u.figures))
 		}
 	}

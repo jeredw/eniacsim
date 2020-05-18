@@ -198,12 +198,11 @@ func doPlug(w io.Writer, command string, f []string) {
 
 	p1 := strings.Split(f[1], ".")
 	p2 := strings.Split(f[2], ".")
-	/*
-	 * Ugly special case of 20 digit interconnects
-	 */
+	// Ugly special case of 20 digit interconnects
 	if len(p1) == 2 && p1[0][0] == 'a' && len(p1[1]) >= 2 &&
-		(p1[1][:2] == "st" || p1[1][:2] == "su" ||
-			p1[1][:2] == "il" || p1[1][:2] == "ir") {
+		len(p2) == 2 && p2[0][0] == 'a' && len(p2[1]) >= 2 &&
+		(p1[1][:2] == "il" || p1[1][:2] == "ir") &&
+		(p2[1][:2] == "il" || p2[1][:2] == "ir") {
 		// Handle commands like p aXX.{st,su,il,ir} *
 		err := units.Interconnect(accumulator, p1, p2)
 		if err != nil {
