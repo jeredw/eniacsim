@@ -76,50 +76,73 @@ func (a *Adapters) Reset() {
 	}
 }
 
-func (a *Adapters) Switch(kind, id string, param string) error {
+type adParamSwitch struct {
+	minValue int
+	maxValue int
+	data     *int
+}
+
+func (s *adParamSwitch) Set(value string) error {
+	param, _ := strconv.Atoi(value)
+	if !(param >= s.minValue && param <= s.maxValue) {
+		return fmt.Errorf("invalid parameter %s", value)
+	}
+	*s.data = param
+	return nil
+}
+
+func (s *adParamSwitch) Get() string {
+	return fmt.Sprintf("%d", s.data)
+}
+
+type permuteSwitch struct {
+	ad *permuter
+}
+
+func (s *permuteSwitch) Set(value string) error {
+	order := strings.Split(value, ",")
+	if len(order) != 11 {
+		return fmt.Errorf("ad.permute usage: ad.permute.1.11,10,9,8,7,6,5,4,3,2,1")
+	}
+	for j := range order {
+		pos, _ := strconv.Atoi(order[j])
+		if !(pos >= 0 && pos <= 11) {
+			return fmt.Errorf("invalid digit field in permutation")
+		}
+		s.ad.order[j] = pos
+	}
+	return nil
+}
+
+func (s *permuteSwitch) Get() string {
+	return fmt.Sprintf("%v", s.ad.order)
+}
+
+func (a *Adapters) FindSwitch(name string) (Switch, error) {
+	p := strings.Split(name, ".")
+	if len(p) != 2 {
+		return nil, fmt.Errorf("invalid adapter switch %s", name)
+	}
+	kind := p[0]
+	id := p[1]
 	i, _ := strconv.Atoi(id)
 	if !(i >= 1 && i <= 40) {
-		return fmt.Errorf("invalid id %s", id)
+		return nil, fmt.Errorf("invalid id %s", id)
 	}
 	i--
 	switch kind {
 	case "dp":
-		// Params make no sense here but silently ignore this for compatibility.
-		return nil
+		return nil, fmt.Errorf("dp param must be specified with p")
 	case "s":
-		amount, _ := strconv.Atoi(param)
-		if !(amount >= -10 && amount <= 10) {
-			return fmt.Errorf("invalid shift amount %s", param)
-		}
-		a.shift[i].amount = amount
+		return &adParamSwitch{-10, 10, &a.shift[i].amount}, nil
 	case "d":
-		digit, _ := strconv.Atoi(param)
-		if !(digit >= -10 && digit <= 10) {
-			return fmt.Errorf("invalid digit %s", param)
-		}
-		a.del[i].digit = digit
+		return &adParamSwitch{-10, 10, &a.del[i].digit}, nil
 	case "sd":
-		digit, _ := strconv.Atoi(param)
-		if !(digit >= -10 && digit <= 10) {
-			return fmt.Errorf("invalid digit %s", param)
-		}
-		a.sd[i].digit = uint(digit)
+		return &adParamSwitch{0, 10, &a.sd[i].digit}, nil
 	case "permute":
-		order := strings.Split(param, ",")
-		if len(order) != 11 {
-			return fmt.Errorf("ad.permute usage: ad.permute.1.11,10,9,8,7,6,5,4,3,2,1")
-		}
-		for j := range order {
-			pos, _ := strconv.Atoi(order[j])
-			if !(pos >= 0 && pos <= 11) {
-				return fmt.Errorf("invalid digit field in permutation")
-			}
-			a.permute[i].order[j] = pos
-		}
-	default:
-		return fmt.Errorf("invalid type %s", kind)
+		return &permuteSwitch{&a.permute[i]}, nil
 	}
-	return nil
+	return nil, fmt.Errorf("invalid type %s", kind)
 }
 
 func (a *Adapters) FindJack(name string) (*Jack, error) {
@@ -230,11 +253,11 @@ func (a *deleter) adapt(val int) {
 type specialDigit struct {
 	in    *Jack
 	out   *Jack
-	digit uint
+	digit int
 }
 
 func (a *specialDigit) adapt(val int) {
-	x := val >> a.digit
+	x := val >> uint(a.digit)
 	mask := 0x07fc
 	if val&(1<<10) != 0 {
 		val = x | mask

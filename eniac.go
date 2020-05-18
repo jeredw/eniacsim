@@ -63,7 +63,6 @@ func main() {
 	debugger = NewDebugger()
 	cycle = units.NewCycle(units.CycleConn{
 		CycleButton: NewButton(),
-		Switches:    make(chan [2]string),
 		Reset:       make(chan int),
 		Stop:        make(chan int),
 		TestButton:  NewButton(),

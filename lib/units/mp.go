@@ -235,16 +235,21 @@ func (u *Mp) FindJack(jack string) (*Jack, error) {
 }
 
 type associatorSwitch struct {
+	owner       sync.Locker
 	name        string
 	left, right string
 	data        *byte
 }
 
 func (s *associatorSwitch) Get() string {
+	s.owner.Lock()
+	defer s.owner.Unlock()
 	return string(*s.data)
 }
 
 func (s *associatorSwitch) Set(value string) error {
+	s.owner.Lock()
+	defer s.owner.Unlock()
 	ucLeft := strings.ToUpper(s.left)
 	ucRight := strings.ToUpper(s.right)
 	switch value {
@@ -258,7 +263,7 @@ func (s *associatorSwitch) Set(value string) error {
 	return nil
 }
 
-func (u *Mp) lookupSwitch(name string) (Switch, error) {
+func (u *Mp) FindSwitch(name string) (Switch, error) {
 	if len(name) == 0 {
 		return nil, fmt.Errorf("invalid switch")
 	}
@@ -267,21 +272,21 @@ func (u *Mp) lookupSwitch(name string) (Switch, error) {
 	case 'a', 'A':
 		switch name {
 		case "a20", "A20":
-			return &associatorSwitch{name, "a", "b", &u.associator[0]}, nil
+			return &associatorSwitch{&u.mu, name, "a", "b", &u.associator[0]}, nil
 		case "a18", "A18":
-			return &associatorSwitch{name, "b", "c", &u.associator[1]}, nil
+			return &associatorSwitch{&u.mu, name, "b", "c", &u.associator[1]}, nil
 		case "a14", "A14":
-			return &associatorSwitch{name, "c", "d", &u.associator[2]}, nil
+			return &associatorSwitch{&u.mu, name, "c", "d", &u.associator[2]}, nil
 		case "a12", "A12":
-			return &associatorSwitch{name, "d", "e", &u.associator[3]}, nil
+			return &associatorSwitch{&u.mu, name, "d", "e", &u.associator[3]}, nil
 		case "a10", "A10":
-			return &associatorSwitch{name, "f", "g", &u.associator[4]}, nil
+			return &associatorSwitch{&u.mu, name, "f", "g", &u.associator[4]}, nil
 		case "a8", "A8":
-			return &associatorSwitch{name, "g", "h", &u.associator[5]}, nil
+			return &associatorSwitch{&u.mu, name, "g", "h", &u.associator[5]}, nil
 		case "a4", "A4":
-			return &associatorSwitch{name, "h", "j", &u.associator[6]}, nil
+			return &associatorSwitch{&u.mu, name, "h", "j", &u.associator[6]}, nil
 		case "a2", "A2":
-			return &associatorSwitch{name, "j", "k", &u.associator[7]}, nil
+			return &associatorSwitch{&u.mu, name, "j", "k", &u.associator[7]}, nil
 		default:
 			return nil, fmt.Errorf("invalid associator switch %s", name)
 		}
@@ -293,7 +298,7 @@ func (u *Mp) lookupSwitch(name string) (Switch, error) {
 		if !(s >= 1 && s <= 6) {
 			return nil, fmt.Errorf("invalid decade stage %s", name)
 		}
-		return &IntSwitch{name, &u.decade[20-d].limit[s-1], mpDecadeSettings()}, nil
+		return &IntSwitch{&u.mu, name, &u.decade[20-d].limit[s-1], mpDecadeSettings()}, nil
 	case 'c', 'C':
 		if len(name) < 2 {
 			return nil, fmt.Errorf("invalid stepper %s\n", name)
@@ -302,30 +307,9 @@ func (u *Mp) lookupSwitch(name string) (Switch, error) {
 		if s == -1 {
 			return nil, fmt.Errorf("invalid stepper %s\n", name)
 		}
-		return &IntSwitch{name, &u.stepper[s].csw, mpClearSettings()}, nil
+		return &IntSwitch{&u.mu, name, &u.stepper[s].csw, mpClearSettings()}, nil
 	}
 	return nil, fmt.Errorf("invalid switch %s", name)
-}
-
-// SetSwitch sets the control switch name to the given value.
-func (u *Mp) SetSwitch(name string, value string) error {
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	sw, err := u.lookupSwitch(name)
-	if err != nil {
-		return err
-	}
-	return sw.Set(value)
-}
-
-func (u *Mp) GetSwitch(name string) (string, error) {
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	sw, err := u.lookupSwitch(name)
-	if err != nil {
-		return "?", err
-	}
-	return sw.Get(), nil
 }
 
 // Return a bitmask of the decades associated with stepper s.

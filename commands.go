@@ -268,8 +268,12 @@ func rewriteAdapterJackName(s string, pos int) string {
 }
 
 func setAdapterSwitchFromJack(pb Plugboard, p []string) error {
-	if pb == adapters && len(p) == 4 {
-		return adapters.Switch(p[1], p[2], p[3])
+	if pb == adapters && len(p) == 4 && p[1] != "dp" {
+		sw, err := adapters.FindSwitch(fmt.Sprintf("%s.%s", p[1], p[2]))
+		if err != nil {
+			return err
+		}
+		return sw.Set(p[3])
 	}
 	return nil
 }
@@ -384,114 +388,65 @@ func doResetAll(w io.Writer) {
 	trays.Reset()
 }
 
+func findSwitch(name string) (Switch, error) {
+	if len(name) == 0 {
+		return nil, fmt.Errorf("missing switch name")
+	}
+	p := strings.SplitN(name, ".", 2)
+	sb, err := findSwitchboard(p[0])
+	if err != nil {
+		return nil, fmt.Errorf("invalid switch: %s", err)
+	}
+	sw, err := sb.FindSwitch(p[1])
+	if err != nil {
+		return nil, err
+	}
+	return sw, nil
+}
+
+func findSwitchboard(name string) (Switchboard, error) {
+	switch {
+	case name == "ad":
+		return adapters, nil
+	case len(name) > 1 && name[0] == 'a':
+		n, _ := strconv.Atoi(name[1:])
+		if !(n >= 1 && n <= 20) {
+			return nil, fmt.Errorf("invalid accumulator %s", name[1:])
+		}
+		return accumulator[n-1], nil
+	case name == "c":
+		return constant, nil
+	case name == "cy":
+		return cycle, nil
+	case name == "d" || name == "ds":
+		return divsr, nil
+	case len(name) > 1 && name[0] == 'f':
+		n, _ := strconv.Atoi(name[1:])
+		if !(n >= 1 && n <= 3) {
+			return nil, fmt.Errorf("invalid function table %s", name[1:])
+		}
+		return ft[n-1], nil
+	case name == "m":
+		return multiplier, nil
+	case name == "p":
+		return mp, nil
+	case name == "pr":
+		return printer, nil
+	}
+	return nil, fmt.Errorf("invalid unit name %s", name)
+}
+
 func doGetSwitch(w io.Writer, command string, f []string) {
 	if len(f) != 2 {
 		fmt.Fprintln(w, "expected s? u.switch")
 		return
 	}
-	p := strings.Split(f[1], ".")
-	switch {
-	case p[0][0] == 'a':
-		if len(p) != 2 {
-			fmt.Fprintln(w, "Invalid accumulator switch:", command)
-			return
-		}
-		unit, _ := strconv.Atoi(p[0][1:])
-		if !(unit >= 1 && unit <= 20) {
-			fmt.Fprintf(w, "Invalid accumulator %s\n", p[0][1:])
-			return
-		}
-		value, err := accumulator[unit-1].GetSwitch(p[1])
-		if err != nil {
-			fmt.Fprintf(w, "Accumulator %d: %s\n", unit, err)
-		} else {
-			fmt.Fprintf(w, "%s\n", value)
-		}
-	case p[0] == "c":
-		if len(p) != 2 {
-			fmt.Fprintln(w, "Constant switch syntax: s? c.switch")
-			return
-		}
-		value, err := constant.GetSwitch(p[1])
-		if err != nil {
-			fmt.Fprintf(w, "Constant: %s\n", err)
-		} else {
-			fmt.Fprintf(w, "%s\n", value)
-		}
-	case p[0] == "cy":
-		if len(p) != 2 {
-			fmt.Fprintln(w, "Cycling switch syntax: s? cy.switch")
-			return
-		}
-		value, err := cycle.GetSwitch(p[1])
-		if err != nil {
-			fmt.Fprintf(w, "Cycling: %s\n", err)
-		} else {
-			fmt.Fprintf(w, "%s\n", value)
-		}
-	case p[0] == "d" || p[0] == "ds":
-		if len(p) != 2 {
-			fmt.Fprintln(w, "Divider switch syntax: s? d.switch")
-			return
-		}
-		value, err := divsr.GetSwitch(p[1])
-		if err != nil {
-			fmt.Fprintf(w, "Divider: %s\n", err)
-		} else {
-			fmt.Fprintf(w, "%s\n", value)
-		}
-	case p[0][0] == 'f':
-		if len(p) != 2 {
-			fmt.Fprintln(w, "Function table switch syntax: s? funit.switch", command)
-			return
-		}
-		unit, _ := strconv.Atoi(p[0][1:])
-		if !(unit >= 1 && unit <= 3) {
-			fmt.Fprintln(w, "Invalid function table")
-			return
-		}
-		value, err := ft[unit-1].GetSwitch(p[1])
-		if err != nil {
-			fmt.Fprintf(w, "Function table %d: %s\n", unit, err)
-		} else {
-			fmt.Fprintf(w, "%s\n", value)
-		}
-	case p[0] == "m":
-		if len(p) != 2 {
-			fmt.Fprintln(w, "Multiplier switch syntax: s? m.switch")
-			return
-		}
-		value, err := multiplier.GetSwitch(p[1])
-		if err != nil {
-			fmt.Fprintf(w, "error: %s\n", err)
-		} else {
-			fmt.Fprintf(w, "%s\n", value)
-		}
-	case p[0] == "p":
-		if len(p) != 2 {
-			fmt.Fprintln(w, "Programmer switch syntax: s? p.switch")
-			break
-		}
-		value, err := mp.GetSwitch(p[1])
-		if err != nil {
-			fmt.Fprintf(w, "Programmer: %s\n", err)
-		} else {
-			fmt.Fprintf(w, "%s\n", value)
-		}
-	case p[0] == "pr":
-		if len(p) != 2 {
-			fmt.Fprintln(w, "Printer switch syntax: s? pr.switch")
-			return
-		}
-		value, err := printer.GetSwitch(p[1])
-		if err != nil {
-			fmt.Fprintf(w, "Printer: %s\n", err)
-		} else {
-			fmt.Fprintf(w, "%s\n", value)
-		}
-	default:
-		fmt.Fprintf(w, "unknown unit for switch: %s\n", p[0])
+	sw, err := findSwitch(f[1])
+	if err != nil {
+		fmt.Fprintln(w, err)
+		return
 	}
+	fmt.Fprintf(w, "%s\n", sw.Get())
 }
 
 func doSetSwitch(w io.Writer, command string, f []string) {
@@ -499,98 +454,15 @@ func doSetSwitch(w io.Writer, command string, f []string) {
 		fmt.Fprintln(w, "No switch setting")
 		return
 	}
-	p := strings.Split(f[1], ".")
-	switch {
-	case p[0] == "ad":
-		if len(p) != 3 {
-			fmt.Fprintln(w, "Invalid adapter switch:", command)
-			return
-		}
-		err := adapters.Switch(p[1], p[2], f[2])
-		if err != nil {
-			fmt.Fprintf(w, "Adapter: %s\n", err)
-		}
-	case p[0][0] == 'a':
-		if len(p) != 2 {
-			fmt.Fprintln(w, "Invalid accumulator switch:", command)
-			return
-		}
-		unit, _ := strconv.Atoi(p[0][1:])
-		if !(unit >= 1 && unit <= 20) {
-			fmt.Fprintf(w, "Invalid accumulator %s\n", p[0][1:])
-			return
-		}
-		err := accumulator[unit-1].SetSwitch(p[1], f[2])
-		if err != nil {
-			fmt.Fprintf(w, "Accumulator %d: %s\n", unit, err)
-		}
-	case p[0] == "c":
-		if len(p) != 2 {
-			fmt.Fprintln(w, "Constant switch syntax: s c.switch value")
-			return
-		}
-		err := constant.SetSwitch(p[1], f[2])
-		if err != nil {
-			fmt.Fprintf(w, "Constant: %s\n", err)
-		}
-	case p[0] == "cy":
-		if len(p) != 2 {
-			fmt.Fprintln(w, "Cycling switch syntax: s cy.switch value")
-			return
-		}
-		cycle.Io.Switches <- [2]string{p[1], f[2]}
-	case p[0] == "d" || p[0] == "ds":
-		if len(p) != 2 {
-			fmt.Fprintln(w, "Divider switch syntax: s d.switch value")
-			return
-		}
-		err := divsr.SetSwitch(p[1], f[2])
-		if err != nil {
-			fmt.Fprintf(w, "Divider: %s\n", err)
-		}
-	case p[0][0] == 'f':
-		if len(p) != 2 {
-			fmt.Fprintln(w, "Function table switch syntax: s funit.switch value", command)
-			return
-		}
-		unit, _ := strconv.Atoi(p[0][1:])
-		if !(unit >= 1 && unit <= 3) {
-			fmt.Fprintln(w, "Invalid function table")
-			return
-		}
-		err := ft[unit-1].SetSwitch(p[1], f[2])
-		if err != nil {
-			fmt.Fprintf(w, "Function table %d: %s", unit, err)
-		}
-	case p[0] == "m":
-		if len(p) != 2 {
-			fmt.Fprintln(w, "Multiplier switch syntax: s m.switch value")
-			return
-		}
-		err := multiplier.SetSwitch(p[1], f[2])
-		if err != nil {
-			fmt.Fprintf(w, "Multiplier: %s\n", err)
-		}
-	case p[0] == "p":
-		if len(p) != 2 {
-			fmt.Fprintln(w, "Programmer switch syntax: s p.switch value")
-			break
-		}
-		err := mp.SetSwitch(p[1], f[2])
-		if err != nil {
-			fmt.Fprintf(w, "Programmer: %s\n", err)
-		}
-	case p[0] == "pr":
-		if len(p) != 2 {
-			fmt.Fprintln(w, "Printer switch syntax: s pr.switch value")
-			return
-		}
-		err := printer.SetSwitch(p[1], f[2])
-		if err != nil {
-			fmt.Fprintf(w, "Printer: %s\n", err)
-		}
-	default:
-		fmt.Fprintf(w, "unknown unit for switch: %s\n", p[0])
+	sw, err := findSwitch(f[1])
+	if err != nil {
+		fmt.Fprintf(w, "error finding switch: %s\n", err)
+		return
+	}
+	err = sw.Set(f[2])
+	if err != nil {
+		fmt.Fprintf(w, "error setting switch: %s\n", err)
+		return
 	}
 }
 

@@ -148,13 +148,13 @@ func toIBMCard(sign byte, digits string) string {
 	}
 }
 
-func (u *Printer) lookupSwitch(name string) (Switch, error) {
+func (u *Printer) FindSwitch(name string) (Switch, error) {
 	if !strings.ContainsRune(name, '-') {
 		field, _ := strconv.Atoi(name)
 		if !(field >= 1 && field <= 16) {
 			return nil, fmt.Errorf("invalid switch %s", name)
 		}
-		return &BoolSwitch{name, &u.printing[field-1], printSettings()}, nil
+		return &BoolSwitch{&u.mu, name, &u.printing[field-1], printSettings()}, nil
 	}
 
 	f := strings.Split(name, "-")
@@ -172,25 +172,5 @@ func (u *Printer) lookupSwitch(name string) (Switch, error) {
 	if field2 != field1+1 {
 		return nil, fmt.Errorf("invalid switch %s", name)
 	}
-	return &BoolSwitch{name, &u.coupling[field1-1], couplingSettings()}, nil
-}
-
-func (u *Printer) SetSwitch(name, value string) error {
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	sw, err := u.lookupSwitch(name)
-	if err != nil {
-		return err
-	}
-	return sw.Set(value)
-}
-
-func (u *Printer) GetSwitch(name string) (string, error) {
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	sw, err := u.lookupSwitch(name)
-	if err != nil {
-		return "", err
-	}
-	return sw.Get(), nil
+	return &BoolSwitch{&u.mu, name, &u.coupling[field1-1], couplingSettings()}, nil
 }

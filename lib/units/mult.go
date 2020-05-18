@@ -265,72 +265,52 @@ func (u *Multiplier) FindJack(jack string) (*Jack, error) {
 	return nil, fmt.Errorf("invalid jack %s", jack)
 }
 
-func (u *Multiplier) lookupSwitch(name string) (Switch, error) {
+func (u *Multiplier) FindSwitch(name string) (Switch, error) {
 	switch {
 	case len(name) > 6 && name[:6] == "ieracc":
 		prog, _ := strconv.Atoi(name[6:])
 		if !(prog >= 1 && prog <= 24) {
 			return nil, fmt.Errorf("invalid switch %s", name)
 		}
-		return &IntSwitch{name, &u.iersw[prog-1], recvSettings()}, nil
+		return &IntSwitch{&u.mu, name, &u.iersw[prog-1], recvSettings()}, nil
 	case len(name) > 5 && name[:5] == "iercl":
 		prog, _ := strconv.Atoi(name[5:])
 		if !(prog >= 1 && prog <= 24) {
 			return nil, fmt.Errorf("invalid switch %s", name)
 		}
-		return &IntSwitch{name, &u.iercl[prog-1], mclSettings()}, nil
+		return &IntSwitch{&u.mu, name, &u.iercl[prog-1], mclSettings()}, nil
 	case len(name) > 8 && name[:8] == "icandacc":
 		prog, _ := strconv.Atoi(name[8:])
 		if !(prog >= 1 && prog <= 24) {
 			return nil, fmt.Errorf("invalid switch %s", name)
 		}
-		return &IntSwitch{name, &u.icandsw[prog-1], recvSettings()}, nil
+		return &IntSwitch{&u.mu, name, &u.icandsw[prog-1], recvSettings()}, nil
 	case len(name) > 7 && name[:7] == "icandcl":
 		prog, _ := strconv.Atoi(name[7:])
 		if !(prog >= 1 && prog <= 24) {
 			return nil, fmt.Errorf("invalid switch %s", name)
 		}
-		return &IntSwitch{name, &u.icandcl[prog-1], mclSettings()}, nil
+		return &IntSwitch{&u.mu, name, &u.icandcl[prog-1], mclSettings()}, nil
 	case len(name) > 2 && name[:2] == "sf":
 		prog, _ := strconv.Atoi(name[2:])
 		if !(prog >= 1 && prog <= 24) {
 			return nil, fmt.Errorf("invalid switch %s", name)
 		}
-		return &IntSwitch{name, &u.sigsw[prog-1], msfSettings()}, nil
+		return &IntSwitch{&u.mu, name, &u.sigsw[prog-1], msfSettings()}, nil
 	case len(name) > 5 && name[:5] == "place":
 		prog, _ := strconv.Atoi(name[5:])
 		if !(prog >= 1 && prog <= 24) {
 			return nil, fmt.Errorf("invalid switch %s", name)
 		}
-		return &IntSwitch{name, &u.placsw[prog-1], mplSettings()}, nil
+		return &IntSwitch{&u.mu, name, &u.placsw[prog-1], mplSettings()}, nil
 	case len(name) > 4 && name[:4] == "prod":
 		prog, _ := strconv.Atoi(name[4:])
 		if !(prog >= 1 && prog <= 24) {
 			return nil, fmt.Errorf("invalid switch %s", name)
 		}
-		return &IntSwitch{name, &u.prodsw[prog-1], prodSettings()}, nil
+		return &IntSwitch{&u.mu, name, &u.prodsw[prog-1], prodSettings()}, nil
 	}
 	return nil, fmt.Errorf("invalid switch %s", name)
-}
-
-func (u *Multiplier) SetSwitch(name, value string) error {
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	sw, err := u.lookupSwitch(name)
-	if err != nil {
-		return err
-	}
-	return sw.Set(value)
-}
-
-func (u *Multiplier) GetSwitch(name string) (string, error) {
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	sw, err := u.lookupSwitch(name)
-	if err != nil {
-		return "", err
-	}
-	return sw.Get(), nil
 }
 
 func (u *Multiplier) shiftprod(lhpp, rhpp int) {

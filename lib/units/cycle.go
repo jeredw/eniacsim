@@ -15,18 +15,19 @@ type Cycle struct {
 	addCycleMu sync.Mutex
 	addCycle   int
 	phase      int
+
+	switches chan [2]string // Sim controls to change mode
 }
 
 // CycleConn defines connections needed for the cycle unit
 type CycleConn struct {
-	Units       []Clocked      // Clocked units
-	Clear       func() bool    // Clear gate (from initiate unit)
-	Switches    chan [2]string // Sim controls to change mode
-	Reset       chan int       // Sim control to reset unit
-	Stop        chan int       // Triggered by debug breakpoints
-	CycleButton Button         // Sim control to step clock
-	TestButton  Button         // Interlock for test mode
-	TestCycles  int            // How many cycles to run in test mode
+	Units       []Clocked   // Clocked units
+	Clear       func() bool // Clear gate (from initiate unit)
+	Reset       chan int    // Sim control to reset unit
+	Stop        chan int    // Triggered by debug breakpoints
+	CycleButton Button      // Sim control to step clock
+	TestButton  Button      // Interlock for test mode
+	TestCycles  int         // How many cycles to run in test mode
 
 	TracePulse    func() // Update trace at the end of each pulse
 	TraceAddCycle func() // Update trace at the end of each add cycle
@@ -76,9 +77,10 @@ var phases = []Pulse{
 // NewCycle constructs a new Cycle instance.
 func NewCycle(io CycleConn) *Cycle {
 	return &Cycle{
-		Io:      io,
-		mode:    Continuous,
-		control: controlState{newMode: Continuous, buttonsPending: 0},
+		Io:       io,
+		mode:     Continuous,
+		control:  controlState{newMode: Continuous, buttonsPending: 0},
+		switches: make(chan [2]string),
 	}
 }
 
@@ -196,7 +198,7 @@ func (u *Cycle) readControls(update chan int) {
 			u.control.mu.Lock()
 			u.control.newMode = OneAdd
 			u.control.mu.Unlock()
-		case x := <-u.Io.Switches:
+		case x := <-u.switches:
 			u.control.mu.Lock()
 			u.control.newMode = parseOp(x, u.control.newMode)
 			u.control.mu.Unlock()
@@ -262,23 +264,6 @@ func (u *Cycle) ackButtons() {
 	}
 }
 
-func (u *Cycle) GetSwitch(name string) (string, error) {
-	u.control.mu.Lock()
-	defer u.control.mu.Unlock()
-	if name == "op" {
-		switch u.control.newMode {
-		case OnePulse:
-			return "1p", nil
-		case OneAdd:
-			return "1a", nil
-		case Continuous:
-			return "co", nil
-		}
-		return "?", nil
-	}
-	return "?", fmt.Errorf("unknown switch %s", name)
-}
-
 func parseOp(x [2]string, defaultValue int) int {
 	switch x[0] {
 	case "op":
@@ -306,4 +291,34 @@ func drain(c chan int) {
 			return
 		}
 	}
+}
+
+type opSwitch struct {
+	cycle *Cycle
+}
+
+func (s *opSwitch) Get() string {
+	s.cycle.control.mu.Lock()
+	defer s.cycle.control.mu.Unlock()
+	switch s.cycle.control.newMode {
+	case OnePulse:
+		return "1p"
+	case OneAdd:
+		return "1a"
+	case Continuous:
+		return "co"
+	}
+	return "?"
+}
+
+func (s *opSwitch) Set(value string) error {
+	s.cycle.switches <- [2]string{"op", value}
+	return nil
+}
+
+func (u *Cycle) FindSwitch(name string) (Switch, error) {
+	if name == "op" {
+		return &opSwitch{u}, nil
+	}
+	return nil, fmt.Errorf("unknown switch %s", name)
 }

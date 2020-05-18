@@ -120,12 +120,15 @@ func (u *Constant) FindJack(jack string) (*Jack, error) {
 }
 
 type selSwitch struct {
-	name string
-	prog int
-	data *int
+	owner sync.Locker
+	name  string
+	prog  int
+	data  *int
 }
 
 func (s *selSwitch) Get() string {
+	s.owner.Lock()
+	defer s.owner.Unlock()
 	constants := "abcdefghjk"
 	i := 2 * (s.prog - 1) / 6
 	switch *s.data {
@@ -146,6 +149,8 @@ func (s *selSwitch) Get() string {
 }
 
 func (s *selSwitch) Set(value string) error {
+	s.owner.Lock()
+	defer s.owner.Unlock()
 	if len(value) < 2 {
 		return fmt.Errorf("invalid switch %s setting %s", s.name, value)
 	}
@@ -171,7 +176,7 @@ func (s *selSwitch) Set(value string) error {
 	return nil
 }
 
-func (u *Constant) lookupSwitch(name string) (Switch, error) {
+func (u *Constant) FindSwitch(name string) (Switch, error) {
 	if len(name) < 2 {
 		return nil, fmt.Errorf("invalid switch")
 	}
@@ -181,53 +186,33 @@ func (u *Constant) lookupSwitch(name string) (Switch, error) {
 		if !(prog >= 1 && prog <= 30) {
 			return nil, fmt.Errorf("invalid switch %s", name)
 		}
-		return &selSwitch{name, prog, &u.sel[prog-1]}, nil
+		return &selSwitch{&u.mu, name, prog, &u.sel[prog-1]}, nil
 	case 'j', 'J':
 		if name[1] == 'l' {
-			return &ByteSwitch{name, &u.signj[0], constantSignSettings()}, nil
+			return &ByteSwitch{&u.mu, name, &u.signj[0], constantSignSettings()}, nil
 		}
 		if name[1] == 'r' {
-			return &ByteSwitch{name, &u.signj[1], constantSignSettings()}, nil
+			return &ByteSwitch{&u.mu, name, &u.signj[1], constantSignSettings()}, nil
 		}
 		digit, _ := strconv.Atoi(name[1:])
 		if !(digit >= 1 && digit <= 10) {
 			return nil, fmt.Errorf("invalid switch %s", name)
 		}
-		return &ByteSwitch{name, &u.j[digit-1], constantDigitSettings()}, nil
+		return &ByteSwitch{&u.mu, name, &u.j[digit-1], constantDigitSettings()}, nil
 	case 'k', 'K':
 		if name[1] == 'l' {
-			return &ByteSwitch{name, &u.signk[0], constantSignSettings()}, nil
+			return &ByteSwitch{&u.mu, name, &u.signk[0], constantSignSettings()}, nil
 		}
 		if name[1] == 'r' {
-			return &ByteSwitch{name, &u.signk[1], constantSignSettings()}, nil
+			return &ByteSwitch{&u.mu, name, &u.signk[1], constantSignSettings()}, nil
 		}
 		digit, _ := strconv.Atoi(name[1:])
 		if !(digit >= 1 && digit <= 10) {
 			return nil, fmt.Errorf("invalid switch %s", name)
 		}
-		return &ByteSwitch{name, &u.k[digit-1], constantDigitSettings()}, nil
+		return &ByteSwitch{&u.mu, name, &u.k[digit-1], constantDigitSettings()}, nil
 	}
 	return nil, fmt.Errorf("invalid switch %s", name)
-}
-
-func (u *Constant) GetSwitch(name string) (string, error) {
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	sw, err := u.lookupSwitch(name)
-	if err != nil {
-		return "", err
-	}
-	return sw.Get(), nil
-}
-
-func (u *Constant) SetSwitch(name, value string) error {
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	sw, err := u.lookupSwitch(name)
-	if err != nil {
-		return err
-	}
-	return sw.Set(value)
 }
 
 func (u *Constant) ReadCard(c string) {

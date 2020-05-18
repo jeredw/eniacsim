@@ -316,12 +316,12 @@ func (u *Divsr) FindJack(jack string) (*Jack, error) {
 	return nil, fmt.Errorf("invalid jack %s", jack)
 }
 
-func (u *Divsr) lookupSwitch(name string) (Switch, error) {
+func (u *Divsr) FindSwitch(name string) (Switch, error) {
 	if name == "da" {
-		return &IntSwitch{name, &u.divadap, adSettings()}, nil
+		return &IntSwitch{&u.mu, name, &u.divadap, adSettings()}, nil
 	}
 	if name == "ra" {
-		return &IntSwitch{name, &u.sradap, adSettings()}, nil
+		return &IntSwitch{&u.mu, name, &u.sradap, adSettings()}, nil
 	}
 	if len(name) < 3 {
 		return nil, fmt.Errorf("invalid switch %s", name)
@@ -332,43 +332,23 @@ func (u *Divsr) lookupSwitch(name string) (Switch, error) {
 	}
 	switch name[:2] {
 	case "nr":
-		return &IntSwitch{name, &u.numarg[sw-1], argSettings()}, nil
+		return &IntSwitch{&u.mu, name, &u.numarg[sw-1], argSettings()}, nil
 	case "nc":
-		return &BoolSwitch{name, &u.numcl[sw-1], clearSettings()}, nil
+		return &BoolSwitch{&u.mu, name, &u.numcl[sw-1], clearSettings()}, nil
 	case "dr":
-		return &IntSwitch{name, &u.denarg[sw-1], argSettings()}, nil
+		return &IntSwitch{&u.mu, name, &u.denarg[sw-1], argSettings()}, nil
 	case "dc":
-		return &BoolSwitch{name, &u.dencl[sw-1], clearSettings()}, nil
+		return &BoolSwitch{&u.mu, name, &u.dencl[sw-1], clearSettings()}, nil
 	case "pl":
-		return &IntSwitch{name, &u.places[sw-1], placeSettings()}, nil
+		return &IntSwitch{&u.mu, name, &u.places[sw-1], placeSettings()}, nil
 	case "ro":
-		return &IntSwitch{name, &u.roundoff[sw-1], roSettings()}, nil
+		return &IntSwitch{&u.mu, name, &u.roundoff[sw-1], roSettings()}, nil
 	case "an":
-		return &IntSwitch{name, &u.anssw[sw-1], anSettings()}, nil
+		return &IntSwitch{&u.mu, name, &u.anssw[sw-1], anSettings()}, nil
 	case "il":
-		return &IntSwitch{name, &u.ilocksw[sw-1], ilSettings()}, nil
+		return &IntSwitch{&u.mu, name, &u.ilocksw[sw-1], ilSettings()}, nil
 	}
 	return nil, fmt.Errorf("invalid switch %s", name)
-}
-
-func (u *Divsr) SetSwitch(name, value string) error {
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	sw, err := u.lookupSwitch(name)
-	if err != nil {
-		return err
-	}
-	return sw.Set(value)
-}
-
-func (u *Divsr) GetSwitch(name string) (string, error) {
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	sw, err := u.lookupSwitch(name)
-	if err != nil {
-		return "", err
-	}
-	return sw.Get(), nil
 }
 
 func (u *Divsr) divargs(prog int) {

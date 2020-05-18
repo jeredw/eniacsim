@@ -650,12 +650,12 @@ func accOpSettings() []IntSwitchSetting {
 	}
 }
 
-func (u *Accumulator) lookupSwitch(name string) (Switch, error) {
+func (u *Accumulator) FindSwitch(name string) (Switch, error) {
 	if name == "sf" {
-		return &IntSwitch{name, &u.figures, sfSettings()}, nil
+		return &IntSwitch{&u.mu, name, &u.figures, sfSettings()}, nil
 	}
 	if name == "sc" {
-		return &BoolSwitch{name, &u.selectiveClear, scSettings()}, nil
+		return &BoolSwitch{&u.mu, name, &u.selectiveClear, scSettings()}, nil
 	}
 	if len(name) < 3 {
 		return nil, fmt.Errorf("invalid switch %s", name)
@@ -667,35 +667,14 @@ func (u *Accumulator) lookupSwitch(name string) (Switch, error) {
 	prog--
 	switch name[:2] {
 	case "op":
-		return &IntSwitch{name, &u.operation[prog], accOpSettings()}, nil
+		return &IntSwitch{&u.mu, name, &u.operation[prog], accOpSettings()}, nil
 	case "cc":
-		return &BoolSwitch{name, &u.clear[prog], clearSettings()}, nil
+		return &BoolSwitch{&u.mu, name, &u.clear[prog], clearSettings()}, nil
 	case "rp":
 		if !(prog >= 4 && prog <= 11) {
 			return nil, fmt.Errorf("invalid switch %s", name)
 		}
-		return &IntSwitch{name, &u.repeat[prog-4], rpSettings()}, nil
+		return &IntSwitch{&u.mu, name, &u.repeat[prog-4], rpSettings()}, nil
 	}
 	return nil, fmt.Errorf("invalid switch %s", name)
-}
-
-func (u *Accumulator) SetSwitch(name, value string) error {
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	sw, err := u.lookupSwitch(name)
-	if err != nil {
-		return err
-	}
-	u.updateActiveProgram()
-	return sw.Set(value)
-}
-
-func (u *Accumulator) GetSwitch(name string) (string, error) {
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	sw, err := u.lookupSwitch(name)
-	if err != nil {
-		return "?", err
-	}
-	return sw.Get(), nil
 }
