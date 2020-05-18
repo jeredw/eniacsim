@@ -109,11 +109,6 @@ func main() {
 	printer.Io.MpPrinterDecades = func() string { return mp.PrinterDecades() }
 	for i := 0; i < 20; i++ {
 		printer.Io.Acc[i] = accumulator[i]
-		accumulator[i].Io.Sv = func() int { return divsr.Sv() }
-		accumulator[i].Io.Su2 = func() int { return divsr.Su2() }
-		accumulator[i].Io.Su3 = func() int { return divsr.Su3() }
-		accumulator[i].Io.Multl = func() bool { return multiplier.Multl() }
-		accumulator[i].Io.Multr = func() bool { return multiplier.Multr() }
 	}
 
 	go initiate.Run()

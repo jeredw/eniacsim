@@ -77,24 +77,6 @@ func NewDivsr() *Divsr {
 	return u
 }
 
-func (u *Divsr) Sv() int {
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	return u.sv
-}
-
-func (u *Divsr) Su2() int {
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	return u.su2
-}
-
-func (u *Divsr) Su3() int {
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	return u.su3
-}
-
 type divsrJson struct {
 	PlaceRing int     `json:"progRing"`
 	ProgRing  int     `json:"progRing"`

@@ -112,18 +112,6 @@ func NewMultiplier() *Multiplier {
 	return u
 }
 
-func (u *Multiplier) Multl() bool {
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	return u.multl
-}
-
-func (u *Multiplier) Multr() bool {
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	return u.multr
-}
-
 func (u *Multiplier) Stat() string {
 	u.mu.Lock()
 	defer u.mu.Unlock()

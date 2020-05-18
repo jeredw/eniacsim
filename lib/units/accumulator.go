@@ -38,30 +38,20 @@ type Accumulator struct {
 	sign   bool     // True if negative
 	decade [10]int  // Ten digits 0-9
 	carry  [10]bool // Carry ff per decade
+	carry2 [10]bool // Temp for ripple carries
 
 	inff1, inff2     [12]bool
 	repeating        bool
 	repeatCount      int
 	afterFirstRp     bool
-	carry2           [10]bool // Temp for ripple carries
 	lbuddy, rbuddy   int
 	plbuddy, prbuddy *Accumulator
 	programCache     int
 
 	unit       int // Unit number 0-19
-	Io         AccumulatorConn
 	tracePulse TraceFunc
 
 	mu sync.Mutex
-}
-
-// Connections to other units.
-type AccumulatorConn struct {
-	Sv    func() int
-	Su2   func() int
-	Su3   func() int
-	Multl func() bool
-	Multr func() bool
 }
 
 // Static connections to other non-accumulator units.
@@ -322,18 +312,6 @@ func Interconnect(units [20]*Accumulator, p1 []string, p2 []string) error {
 		unit2, _ = strconv.Atoi(p2[0][1:])
 	}
 	switch {
-	case p2[0] == "m" && p2[1] == "l":
-		units[unit1-1].lbuddy = -1
-	case p2[0] == "m" && p2[1] == "r":
-		units[unit1-1].lbuddy = -2
-	case p2[0] == "d" && p2[1] == "sv":
-		units[unit1-1].lbuddy = -3
-	case p2[0] == "d" && p2[1] == "su2q":
-		units[unit1-1].lbuddy = -4
-	case p2[0] == "d" && p2[1] == "su2s":
-		units[unit1-1].lbuddy = -5
-	case p2[0] == "d" && p2[1] == "su3":
-		units[unit1-1].lbuddy = -6
 	case p1[1] == "st1" || p1[1] == "il1":
 		if unit2 != -1 && unit1 != unit2 {
 			units[unit1-1].lbuddy = unit2 - 1
@@ -457,7 +435,7 @@ func (u *Accumulator) GetSwitch(name string) (string, error) {
 
 func (u *Accumulator) userProgram() int {
 	x := 0
-	if u.rbuddy >= 0 && u.rbuddy != u.unit {
+	if u.rbuddy != u.unit {
 		x = u.prbuddy.userProgram()
 	}
 	return x | u.programCache
@@ -486,42 +464,6 @@ func (u *Accumulator) activeProgram() int {
 	x := 0
 	if u.lbuddy == u.unit {
 		x = u.userProgram()
-	} else if u.lbuddy == -1 {
-		x = u.userProgram()
-		if u.Io.Multl() {
-			x |= opα
-		}
-	} else if u.lbuddy == -2 {
-		x = u.userProgram()
-		if u.Io.Multr() {
-			x |= opα
-		}
-	} else if u.lbuddy == -3 {
-		x = u.userProgram()
-		x |= u.Io.Sv()
-	} else if u.lbuddy == -4 {
-		x = u.userProgram()
-		/* Wiring for PX-5-134 for quotient */
-		su2 := u.Io.Su2()
-		x |= su2 & opα
-		x |= (su2 & su2qA) << 2
-		x |= (su2 & su2qS) << 3
-		x |= (su2 & su2qCLR) << 3
-	} else if u.lbuddy == -5 {
-		x = u.userProgram()
-		/* Wiring for PX-5-135 for shift */
-		su2 := u.Io.Su2()
-		x |= (su2 & su2sα) >> 1
-		x |= (su2 & su2sA) << 3
-		x |= (su2 & su2sCLR) << 2
-	} else if u.lbuddy == -6 {
-		x = u.userProgram()
-		/* Wiring for PX-5-136 for denominator */
-		su3 := u.Io.Su3()
-		x |= su3 & (opα | opβ | opγ)
-		x |= (su3 & su3A) << 2
-		x |= (su3 & su3S) << 3
-		x |= (su3 & su3CLR) << 3
 	} else {
 		x = u.plbuddy.st2() & 0x1c3ff
 	}
@@ -568,7 +510,7 @@ func (u *Accumulator) ripple() {
 			}
 		}
 	}
-	if u.lbuddy < 0 || u.lbuddy == u.unit {
+	if u.lbuddy == u.unit {
 		// This accumulator is operating as a single ten digit accumulator.
 		if u.carry[9] || u.carry2[9] {
 			u.sign = !u.sign
@@ -691,9 +633,9 @@ func (u *Accumulator) doOnepp() {
 		}
 	}
 	if program&(opAS|opS) != 0 && u.S.Connected() {
-		if ((u.lbuddy < 0 || u.lbuddy == u.unit) && u.rbuddy == u.unit && u.figures > 0) ||
+		if (u.lbuddy == u.unit && u.rbuddy == u.unit && u.figures > 0) ||
 			(u.rbuddy != u.unit && u.figures < 10) ||
-			(u.lbuddy != u.unit && u.lbuddy >= 0 && u.plbuddy.figures == 10 && u.figures > 0) ||
+			(u.lbuddy != u.unit && u.plbuddy.figures == 10 && u.figures > 0) ||
 			(u.rbuddy != u.unit && u.figures == 10 && u.prbuddy.figures == 0) {
 			u.S.Transmit(1 << uint(10-u.figures))
 		}

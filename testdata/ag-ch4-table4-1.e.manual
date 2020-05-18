@@ -1,0 +1,82 @@
+set a1 7
+
+s a1.op1 AS
+p a1.1i 1-1
+p a1.A 1
+p a1.S 2
+
+s a2.op1 α
+p a2.1i 1-1
+p a2.α 1
+
+s a3.op1 α
+p a3.1i 1-1
+p a3.α 2
+
+p i.io 1-1
+s cy.op 1p
+
+ts pf
+b i
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+n
+te /tmp/ag-ch4-table4-1.vcd
+q
