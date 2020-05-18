@@ -55,27 +55,7 @@ type Accumulator struct {
 	mu sync.Mutex
 }
 
-// Static connections to other non-accumulator units.
-type StaticWiring interface {
-	Sign() string
-	Value() string
-	Clear()
-}
-
-// Operations supported by common programming circuits.
-const (
-	opα = 1 << iota
-	opβ
-	opγ
-	opδ
-	opε
-	opA
-	opAS
-	opS
-	opClear
-	opCorrect
-)
-
+// NewAccumulator returns an Accumulator with I/O jacks configured.
 func NewAccumulator(unit int) *Accumulator {
 	u := &Accumulator{
 		unit:    unit,
@@ -111,6 +91,247 @@ func NewAccumulator(unit int) *Accumulator {
 	return u
 }
 
+// Clock updates unit state in response to a pulse on the cycling trunk.
+func (u *Accumulator) Clock(cyc Pulse) {
+	switch {
+	case cyc&Tenp != 0:
+		u.doTenp()
+	case cyc&Ninep != 0:
+		u.doNinep()
+	case cyc&Onepp != 0:
+		u.doOnepp()
+	case cyc&Ccg != 0:
+		u.doCcg()
+	case cyc&Rp != 0:
+		if !u.afterFirstRp {
+			u.doRp1()
+		} else {
+			u.doRp2()
+		}
+		u.afterFirstRp = !u.afterFirstRp
+	case cyc&Scg != 0:
+		if u.selectiveClear {
+			u.clearInternal()
+		}
+	case cyc&Cpp != 0:
+		u.doCpp(cyc)
+	}
+}
+
+func (u *Accumulator) doTenp() {
+	program := u.activeProgram()
+	if program&(opA|opAS|opS) != 0 {
+		for i := 0; i < 10; i++ {
+			u.decade[i]++
+			if u.decade[i] == 10 {
+				u.decade[i] = 0
+				u.carry[i] = true
+			}
+		}
+	}
+}
+
+func (u *Accumulator) doNinep() {
+	program := u.activeProgram()
+	if program&(opA|opAS) != 0 && u.A.Connected() {
+		n := 0
+		for i := 0; i < 10; i++ {
+			if u.carry[i] {
+				n |= 1 << uint(i)
+			}
+		}
+		if u.sign {
+			n |= 1 << 10
+		}
+		if n != 0 {
+			u.A.Transmit(n)
+		}
+	}
+	if program&(opAS|opS) != 0 && u.S.Connected() {
+		n := 0
+		for i := 0; i < 10; i++ {
+			if !u.carry[i] {
+				n |= 1 << uint(i)
+			}
+		}
+		if !u.sign {
+			n |= 1 << 10
+		}
+		if n != 0 {
+			u.S.Transmit(n)
+		}
+	}
+}
+
+func (u *Accumulator) doOnepp() {
+	program := u.activeProgram()
+	if program&opCorrect != 0 {
+		// Apply tens' complement correction to the lowest order decade.
+		if u.right == nil {
+			u.decade[0]++
+			if u.decade[0] > 9 {
+				u.decade[0] = 0
+				u.carry[0] = true
+			}
+		}
+	}
+	if program&(opAS|opS) != 0 && u.S.Connected() {
+		// Transmit a final +1 in the least significant decade on S.
+		//
+		// Behavior of figures switches for interconnected accumulators is
+		// explained in Technical Manual IV-22: "The significant figures switch of
+		// the left hand accumulator should be set to 10 and in the right hand
+		// accumulator to s' where 0 <= s' < 10 if 10 + s' significant figures are
+		// desired.  If fewer than 10 significant figures are desired, the left
+		// hand switch is set to this number and the right hand switch to 10."
+		if (u.left == nil && u.right == nil && u.figures > 0) ||
+			(u.right != nil && u.figures < 10) ||
+			(u.left != nil && u.left.figures == 10 && u.figures > 0) ||
+			(u.right != nil && u.figures == 10 && u.right.figures == 0) {
+			u.S.Transmit(1 << uint(10-u.figures))
+		}
+	}
+}
+
+func (u *Accumulator) doCcg() {
+	program := u.activeProgram()
+	if program&opClear != 0 {
+		u.clearInternal()
+	}
+	// (Carry is actually initated on Rp-1.)
+}
+
+func (u *Accumulator) clearInternal() {
+	for i := 0; i < 10; i++ {
+		u.decade[i] = 0
+		u.carry[i] = false
+		u.carry2[i] = false
+	}
+	if u.figures < 10 {
+		u.decade[9-u.figures] = 5
+	}
+	u.sign = false
+}
+
+func (u *Accumulator) doRp1() {
+	// The first Rp initiates carry-over and clears any carries set during
+	// digit reception.
+	program := u.activeProgram()
+	if program&(opα|opβ|opγ|opδ|opε) != 0 {
+		// Carry-over starts from the right accumulator of a pair.
+		if u.right == nil {
+			u.ripple()
+		}
+	}
+	// Carry propagation will set some carry ffs again as ripple occurs.  We
+	// track these in carry2.  This would happen over the next 5 pulse times
+	// but just do it here.
+	for i := 0; i < 10; i++ {
+		u.carry[i] = u.carry2[i]
+	}
+}
+
+func (u *Accumulator) ripple() {
+	for i := 0; i < 9; i++ {
+		if u.carry[i] || u.carry2[i] {
+			u.decade[i+1]++
+			if u.decade[i+1] == 10 {
+				u.decade[i+1] = 0
+				u.carry2[i+1] = true
+			}
+		}
+	}
+	if u.left == nil {
+		// Carry from final decade into sign.
+		if u.carry[9] || u.carry2[9] {
+			u.sign = !u.sign
+		}
+	} else {
+		// This is the right half of a pair of interconnected accumulators.
+		// Carry from final decade into decade 1 of left half.
+		if u.carry[9] || u.carry2[9] {
+			u.left.decade[0]++
+			if u.left.decade[0] == 10 {
+				u.left.decade[0] = 0
+				u.left.carry2[0] = true
+			}
+		}
+		u.left.ripple()
+	}
+}
+
+func (u *Accumulator) doCpp(cyc Pulse) {
+	for i := 0; i < 4; i++ {
+		if u.inff2[i] {
+			u.inff2[i] = false
+		}
+	}
+	if u.repeating {
+		u.repeatCount++
+		done := false
+		for i := 4; i < 12; i++ {
+			if u.inff2[i] && u.repeatCount == u.repeat[i-4]+1 {
+				u.inff2[i] = false
+				done = true
+				t := (i-4)*2 + 5
+				u.program[t].Transmit(1)
+			}
+		}
+		if done {
+			u.repeatCount = 0
+			u.repeating = false
+		}
+	}
+}
+
+func (u *Accumulator) doRp2() {
+	// The second Rp clears any leftover ripple carries.
+	for i := 0; i < 10; i++ {
+		u.carry[i] = false
+		u.carry2[i] = false
+	}
+	// Apply programs setup on Cpp; see the note in trigger().
+	for i := 0; i < 12; i++ {
+		if u.inff1[i] {
+			u.inff1[i] = false
+			u.inff2[i] = true
+			if i >= 4 {
+				u.repeating = true
+			}
+		}
+	}
+	u.updateActiveProgram()
+}
+
+func (u *Accumulator) updateActiveProgram() {
+	x := 0
+	for i := range u.inff2 {
+		if u.inff2[i] {
+			x |= u.operation[i]
+			if u.clear[i] {
+				if u.operation[i] == 0 || u.operation[i] >= opA {
+					if i < 4 || u.repeatCount == u.repeat[i-4] {
+						x |= opClear
+					}
+				} else {
+					x |= opCorrect
+				}
+			}
+		}
+	}
+	u.programCache = x
+}
+
+func (u *Accumulator) activeProgram() int {
+	if u.left != nil {
+		return u.programCache | u.left.programCache
+	}
+	if u.right != nil {
+		return u.programCache | u.right.programCache
+	}
+	return u.programCache
+}
+
 func (u *Accumulator) terminal(name string) string {
 	return fmt.Sprintf("a%d.%s", u.unit+1, name)
 }
@@ -128,6 +349,22 @@ func (u *Accumulator) newDigitInput(name string, programMask int) *Jack {
 	})
 }
 
+func (u *Accumulator) receive(value int) {
+	for i := 0; i < 10; i++ {
+		if value&1 == 1 {
+			u.decade[i]++
+			if u.decade[i] >= 10 {
+				u.carry[i] = true
+				u.decade[i] -= 10
+			}
+		}
+		value >>= 1
+	}
+	if value&1 == 1 {
+		u.sign = !u.sign
+	}
+}
+
 func (u *Accumulator) newProgramInput(name string, which int) *Jack {
 	return NewInput(u.terminal(name), func(j *Jack, val int) {
 		if val == 1 {
@@ -137,6 +374,28 @@ func (u *Accumulator) newProgramInput(name string, which int) *Jack {
 			}
 		}
 	})
+}
+
+func (u *Accumulator) trigger(input int) {
+	u.mu.Lock()
+	if u.afterFirstRp {
+		// So that simulator clocking order doesn't matter, programs are registered
+		// in inff1 and applied on the Rp pulse following Cpp.  (Pulse order is Rp,
+		// ..., Cpp, ..., Rp, so this input is during Cpp.)
+		u.inff1[input] = true
+	} else {
+		// Inputs from digit pulse adapters arrive before Cpp, and take effect for
+		// the current add cycle - in particular, a dummy program driven by digit
+		// pulses triggers its output on Cpp of the same add cycle as its input.
+		// (See Technical Manual IV-26, Table 4-3.)
+		u.inff2[input] = true
+		if input >= 4 {
+			u.repeating = true
+		}
+		// fttest2.e wires digit pulse adapters to non-dummy programs.
+		u.updateActiveProgram()
+	}
+	u.mu.Unlock()
 }
 
 func (u *Accumulator) newOutput(name string, width int) *Jack {
@@ -245,6 +504,13 @@ func (u *Accumulator) Reset() {
 	u.clearInternal()
 }
 
+// Static connections to other non-accumulator units.
+type StaticWiring interface {
+	Sign() string
+	Value() string
+	Clear()
+}
+
 func (u *Accumulator) Sign() string {
 	u.mu.Lock()
 	defer u.mu.Unlock()
@@ -273,18 +539,6 @@ func (u *Accumulator) Clear() {
 	u.mu.Lock()
 	defer u.mu.Unlock()
 	u.clearInternal()
-}
-
-func (u *Accumulator) clearInternal() {
-	for i := 0; i < 10; i++ {
-		u.decade[i] = 0
-		u.carry[i] = false
-		u.carry2[i] = false
-	}
-	if u.figures < 10 {
-		u.decade[9-u.figures] = 5
-	}
-	u.sign = false
 }
 
 func (u *Accumulator) Set(value int64) {
@@ -368,6 +622,20 @@ func (u *Accumulator) FindJack(jack string) (*Jack, error) {
 	return nil, fmt.Errorf("invalid jack: %s", jack)
 }
 
+// Operations supported by common programming circuits.
+const (
+	opα = 1 << iota
+	opβ
+	opγ
+	opδ
+	opε
+	opA
+	opAS
+	opS
+	opClear
+	opCorrect
+)
+
 func accOpSettings() []IntSwitchSetting {
 	return []IntSwitchSetting{
 		{"α", opα}, {"a", opα}, {"alpha", opα},
@@ -430,269 +698,4 @@ func (u *Accumulator) GetSwitch(name string) (string, error) {
 		return "?", err
 	}
 	return sw.Get(), nil
-}
-
-func (u *Accumulator) updateActiveProgram() {
-	x := 0
-	for i := range u.inff2 {
-		if u.inff2[i] {
-			x |= u.operation[i]
-			if u.clear[i] {
-				if u.operation[i] == 0 || u.operation[i] >= opA {
-					if i < 4 || u.repeatCount == u.repeat[i-4] {
-						x |= opClear
-					}
-				} else {
-					x |= opCorrect
-				}
-			}
-		}
-	}
-	u.programCache = x
-}
-
-func (u *Accumulator) activeProgram() int {
-	if u.left != nil {
-		return u.programCache | u.left.programCache
-	}
-	if u.right != nil {
-		return u.programCache | u.right.programCache
-	}
-	return u.programCache
-}
-
-func (u *Accumulator) doCpp(cyc Pulse) {
-	for i := 0; i < 4; i++ {
-		if u.inff2[i] {
-			u.inff2[i] = false
-		}
-	}
-	if u.repeating {
-		u.repeatCount++
-		done := false
-		for i := 4; i < 12; i++ {
-			if u.inff2[i] && u.repeatCount == u.repeat[i-4]+1 {
-				u.inff2[i] = false
-				done = true
-				t := (i-4)*2 + 5
-				u.program[t].Transmit(1)
-			}
-		}
-		if done {
-			u.repeatCount = 0
-			u.repeating = false
-		}
-	}
-}
-
-func (u *Accumulator) ripple() {
-	for i := 0; i < 9; i++ {
-		if u.carry[i] || u.carry2[i] {
-			u.decade[i+1]++
-			if u.decade[i+1] == 10 {
-				u.decade[i+1] = 0
-				u.carry2[i+1] = true
-			}
-		}
-	}
-	if u.left == nil {
-		// Carry from final decade into sign.
-		if u.carry[9] || u.carry2[9] {
-			u.sign = !u.sign
-		}
-	} else {
-		// This is the right half of a pair of interconnected accumulators.
-		// Carry from final decade into decade 1 of left half.
-		if u.carry[9] || u.carry2[9] {
-			u.left.decade[0]++
-			if u.left.decade[0] == 10 {
-				u.left.decade[0] = 0
-				u.left.carry2[0] = true
-			}
-		}
-		u.left.ripple()
-	}
-}
-
-func (u *Accumulator) doCcg() {
-	program := u.activeProgram()
-	if program&opClear != 0 {
-		u.clearInternal()
-	}
-}
-
-func (u *Accumulator) doRp() {
-	if !u.afterFirstRp {
-		// The first Rp initiates carry-over and clears any carries set during
-		// digit reception.
-		program := u.activeProgram()
-		if program&(opα|opβ|opγ|opδ|opε) != 0 {
-			// Carry-over starts from the right accumulator of a pair.
-			if u.right == nil {
-				u.ripple()
-			}
-		}
-		// Carry propagation will set some carry ffs again as ripple occurs.  We
-		// track these in carry2.  This would happen over the next 5 pulse times
-		// but just do it here.
-		for i := 0; i < 10; i++ {
-			u.carry[i] = u.carry2[i]
-		}
-	} else {
-		// The second Rp clears any leftover ripple carries.
-		for i := 0; i < 10; i++ {
-			u.carry[i] = false
-			u.carry2[i] = false
-		}
-		// Apply programs setup on Cpp; see the note in trigger().
-		for i := 0; i < 12; i++ {
-			if u.inff1[i] {
-				u.inff1[i] = false
-				u.inff2[i] = true
-				if i >= 4 {
-					u.repeating = true
-				}
-			}
-		}
-		u.updateActiveProgram()
-	}
-	u.afterFirstRp = !u.afterFirstRp
-}
-
-func (u *Accumulator) doTenp() {
-	program := u.activeProgram()
-	if program&(opA|opAS|opS) != 0 {
-		for i := 0; i < 10; i++ {
-			u.decade[i]++
-			if u.decade[i] == 10 {
-				u.decade[i] = 0
-				u.carry[i] = true
-			}
-		}
-	}
-}
-
-func (u *Accumulator) doNinep() {
-	program := u.activeProgram()
-	if program&(opA|opAS) != 0 {
-		if u.A.Connected() {
-			n := 0
-			for i := 0; i < 10; i++ {
-				if u.carry[i] {
-					n |= 1 << uint(i)
-				}
-			}
-			if u.sign {
-				n |= 1 << 10
-			}
-			if n != 0 {
-				u.A.Transmit(n)
-			}
-		}
-	}
-	if program&(opAS|opS) != 0 {
-		if u.S.Connected() {
-			n := 0
-			for i := 0; i < 10; i++ {
-				if !u.carry[i] {
-					n |= 1 << uint(i)
-				}
-			}
-			if !u.sign {
-				n |= 1 << 10
-			}
-			if n != 0 {
-				u.S.Transmit(n)
-			}
-		}
-	}
-}
-
-func (u *Accumulator) doOnepp() {
-	program := u.activeProgram()
-	if program&opCorrect != 0 {
-		// Apply tens' complement correction to the lowest order decade.
-		if u.right == nil {
-			u.decade[0]++
-			if u.decade[0] > 9 {
-				u.decade[0] = 0
-				u.carry[0] = true
-			}
-		}
-	}
-	if program&(opAS|opS) != 0 && u.S.Connected() {
-		// Transmit a final +1 in the least significant decade on S.
-		//
-		// Behavior of figures switches for interconnected accumulators is
-		// explained in Technical Manual IV-22: "The significant figures switch of
-		// the left hand accumulator should be set to 10 and in the right hand
-		// accumulator to s' where 0 <= s' < 10 if 10 + s' significant figures are
-		// desired.  If fewer than 10 significant figures are desired, the left
-		// hand switch is set to this number and the right hand switch to 10."
-		if (u.left == nil && u.right == nil && u.figures > 0) ||
-			(u.right != nil && u.figures < 10) ||
-			(u.left != nil && u.left.figures == 10 && u.figures > 0) ||
-			(u.right != nil && u.figures == 10 && u.right.figures == 0) {
-			u.S.Transmit(1 << uint(10-u.figures))
-		}
-	}
-}
-
-func (u *Accumulator) Clock(cyc Pulse) {
-	switch {
-	case cyc&Tenp != 0:
-		u.doTenp()
-	case cyc&Ninep != 0:
-		u.doNinep()
-	case cyc&Onepp != 0:
-		u.doOnepp()
-	case cyc&Ccg != 0:
-		u.doCcg()
-	case cyc&Rp != 0:
-		u.doRp()
-	case cyc&Scg != 0:
-		if u.selectiveClear {
-			u.Clear()
-		}
-	case cyc&Cpp != 0:
-		u.doCpp(cyc)
-	}
-}
-
-func (u *Accumulator) receive(value int) {
-	for i := 0; i < 10; i++ {
-		if value&1 == 1 {
-			u.decade[i]++
-			if u.decade[i] >= 10 {
-				u.carry[i] = true
-				u.decade[i] -= 10
-			}
-		}
-		value >>= 1
-	}
-	if value&1 == 1 {
-		u.sign = !u.sign
-	}
-}
-
-func (u *Accumulator) trigger(input int) {
-	u.mu.Lock()
-	if u.afterFirstRp {
-		// So that simulator clocking order doesn't matter, programs are registered
-		// in inff1 and applied on the Rp pulse following Cpp.  (Pulse order is Rp,
-		// ..., Cpp, ..., Rp, so this input is during Cpp.)
-		u.inff1[input] = true
-	} else {
-		// Inputs from digit pulse adapters arrive before Cpp, and take effect for
-		// the current add cycle - in particular, a dummy program driven by digit
-		// pulses triggers its output on Cpp of the same add cycle as its input.
-		// (See Technical Manual IV-26, Table 4-3.)
-		u.inff2[input] = true
-		if input >= 4 {
-			u.repeating = true
-		}
-		// fttest2.e wires digit pulse adapters to non-dummy programs.
-		u.updateActiveProgram()
-	}
-	u.mu.Unlock()
 }
