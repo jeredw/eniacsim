@@ -37,12 +37,13 @@ type Accumulator struct {
 
 	sign   bool     // True if negative
 	decade [10]int  // Ten digits 0-9
-	carry  [10]bool // Carry out of each digit position
+	carry  [10]bool // Carry ff per decade
 
-	inff1, inff2     [12]bool //
+	inff1, inff2     [12]bool
 	repeating        bool
 	repeatCount      int
 	afterFirstRp     bool
+	carry2           [10]bool // Temp for ripple carries
 	lbuddy, rbuddy   int
 	plbuddy, prbuddy *Accumulator
 	programCache     int
@@ -289,6 +290,7 @@ func (u *Accumulator) clearInternal() {
 	for i := 0; i < 10; i++ {
 		u.decade[i] = 0
 		u.carry[i] = false
+		u.carry2[i] = false
 	}
 	if u.figures < 10 {
 		u.decade[9-u.figures] = 5
@@ -306,6 +308,7 @@ func (u *Accumulator) Set(value int64) {
 	for i := 0; i < 10; i++ {
 		u.decade[i] = int(value % 10)
 		u.carry[i] = false
+		u.carry2[i] = false
 		value /= 10
 	}
 }
@@ -557,30 +560,26 @@ func (u *Accumulator) doCpp(cyc Pulse) {
 
 func (u *Accumulator) ripple() {
 	for i := 0; i < 9; i++ {
-		if u.carry[i] {
+		if u.carry[i] || u.carry2[i] {
 			u.decade[i+1]++
 			if u.decade[i+1] == 10 {
 				u.decade[i+1] = 0
-				u.carry[i+1] = true
+				u.carry2[i+1] = true
 			}
 		}
 	}
 	if u.lbuddy < 0 || u.lbuddy == u.unit {
-		if u.carry[9] {
-			/*
-			 * Connection PX-5-121 pins 14, 15
-			 */
+		// This accumulator is operating as a single ten digit accumulator.
+		if u.carry[9] || u.carry2[9] {
 			u.sign = !u.sign
 		}
 	} else {
-		/*
-		 * PX-5-110, pin 15 straight through
-		 */
-		if u.carry[9] {
+		// This is the right half of a pair of interconnected accumulators.
+		if u.carry[9] || u.carry2[9] {
 			u.plbuddy.decade[0]++
 			if u.plbuddy.decade[0] == 10 {
 				u.plbuddy.decade[0] = 0
-				u.plbuddy.carry[0] = true
+				u.plbuddy.carry2[0] = true
 			}
 		}
 		u.plbuddy.ripple()
@@ -589,17 +588,34 @@ func (u *Accumulator) ripple() {
 
 func (u *Accumulator) doCcg() {
 	program := u.activeProgram()
-	if program&(opα|opβ|opγ|opδ|opε) != 0 {
-		if u.rbuddy == u.unit {
-			u.ripple()
-		}
-	} else if program&opClear != 0 {
+	if program&opClear != 0 {
 		u.clearInternal()
 	}
 }
 
 func (u *Accumulator) doRp() {
-	if u.afterFirstRp {
+	if !u.afterFirstRp {
+		// The first Rp initiates carry-over and clears any carries set during
+		// digit reception.
+		program := u.activeProgram()
+		if program&(opα|opβ|opγ|opδ|opε) != 0 {
+			if u.rbuddy == u.unit {
+				u.ripple()
+			}
+		}
+		// Carry propagation will set some carry ffs again as ripple occurs.  We
+		// track these in carry2.  This would happen over the next 5 pulse times
+		// but just do it here.
+		for i := 0; i < 10; i++ {
+			u.carry[i] = u.carry2[i]
+		}
+	} else {
+		// The second Rp clears any leftover ripple carries.
+		for i := 0; i < 10; i++ {
+			u.carry[i] = false
+			u.carry2[i] = false
+		}
+		// Apply programs setup on Cpp; see the note in trigger().
 		for i := 0; i < 12; i++ {
 			if u.inff1[i] {
 				u.inff1[i] = false
@@ -608,9 +624,6 @@ func (u *Accumulator) doRp() {
 					u.repeating = true
 				}
 			}
-		}
-		for i := 0; i < 10; i++ {
-			u.carry[i] = false
 		}
 		u.updateActiveProgram()
 	}
