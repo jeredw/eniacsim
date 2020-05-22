@@ -91,7 +91,7 @@ func NewMultiplier() *Multiplier {
 		u.multin[i] = NewInput(fmt.Sprintf("m.%di", i+1), programInput(i))
 		u.multout[i] = NewOutput(fmt.Sprintf("m.%do", i+1), nil)
 	}
-	outs := "αβγδε"
+	outs := []rune("αβγδε")
 	for i := 0; i < 5; i++ {
 		u.R[i] = NewOutput(fmt.Sprintf("m.R%c", outs[i]), nil)
 		u.D[i] = NewOutput(fmt.Sprintf("m.D%c", outs[i]), nil)
