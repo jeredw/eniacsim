@@ -33489,11 +33489,11 @@
         "settings": [
             {
                 "degrees": -35,
-                "value": "f"
+                "value": "F"
             },
             {
                 "degrees": 0,
-                "value": "g"
+                "value": "G"
             }
         ],
         "simulatorName": "p.a10",
@@ -33503,11 +33503,11 @@
         "settings": [
             {
                 "degrees": -35,
-                "value": "g"
+                "value": "G"
             },
             {
                 "degrees": 0,
-                "value": "h"
+                "value": "H"
             }
         ],
         "simulatorName": "p.a8",
@@ -33517,11 +33517,11 @@
         "settings": [
             {
                 "degrees": -35,
-                "value": "h"
+                "value": "H"
             },
             {
                 "degrees": 0,
-                "value": "j"
+                "value": "J"
             }
         ],
         "simulatorName": "p.a4",
@@ -33531,11 +33531,11 @@
         "settings": [
             {
                 "degrees": -35,
-                "value": "j"
+                "value": "J"
             },
             {
                 "degrees": 0,
-                "value": "k"
+                "value": "K"
             }
         ],
         "simulatorName": "p.a2",
