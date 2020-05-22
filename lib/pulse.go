@@ -39,3 +39,17 @@ const (
 	// depending upon the settings of their selective clear switches.
 	Scg
 )
+
+// Digits represented as combinations of 1P/2P/2P'/4P.
+var BCD = []Pulse{
+	0,                           // 0
+	Onep,                        // 1
+	Twop,                        // 2
+	Onep | Twop,                 // 3
+	Fourp,                       // 4
+	Onep | Fourp,                // 5
+	Twop | Fourp,                // 6
+	Onep | Twop | Fourp,         // 7
+	Twop | Twopp | Fourp,        // 8
+	Onep | Twop | Twopp | Fourp, // 9
+}

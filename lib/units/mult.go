@@ -31,53 +31,8 @@ type Multiplier struct {
 
 // Connections to other units.
 type MultiplierConn struct {
-	A8 StaticWiring
-	A9 StaticWiring
-}
-
-type pulseset struct {
-	one, two, twop, four int
-}
-
-var table10 [10][10]pulseset = [10][10]pulseset{{},
-	{},
-	{{}, {}, {}, {}, {},
-		{1, 0, 0, 0}, {1, 0, 0, 0}, {1, 0, 0, 0}, {1, 0, 0, 0}, {1, 0, 0, 0}},
-	{{}, {}, {}, {}, {1, 0, 0, 0},
-		{1, 0, 0, 0}, {1, 0, 0, 0}, {0, 1, 0, 0}, {0, 1, 0, 0}, {0, 1, 0, 0}},
-	{{}, {}, {}, {1, 0, 0, 0}, {1, 0, 0, 0},
-		{0, 1, 0, 0}, {0, 1, 0, 0}, {0, 1, 0, 0}, {1, 1, 0, 0}, {1, 1, 0, 0}},
-	{{}, {}, {1, 0, 0, 0}, {1, 0, 0, 0}, {0, 1, 0, 0},
-		{0, 1, 0, 0}, {1, 1, 0, 0}, {1, 1, 0, 0}, {0, 1, 1, 0}, {0, 1, 1, 0}},
-	{{}, {}, {1, 0, 0, 0}, {1, 0, 0, 0}, {0, 1, 0, 0},
-		{1, 1, 0, 0}, {1, 1, 0, 0}, {0, 1, 1, 0}, {0, 1, 1, 0}, {1, 1, 1, 0}},
-	{{}, {}, {1, 0, 0, 0}, {0, 1, 0, 0}, {0, 1, 0, 0},
-		{1, 1, 0, 0}, {0, 0, 0, 1}, {0, 0, 0, 1}, {1, 0, 0, 1}, {0, 1, 0, 1}},
-	{{}, {}, {1, 0, 0, 0}, {0, 1, 0, 0}, {1, 1, 0, 0},
-		{0, 0, 0, 1}, {0, 0, 0, 1}, {1, 0, 0, 1}, {0, 1, 0, 1}, {1, 1, 0, 1}},
-	{{}, {}, {1, 0, 0, 0}, {0, 1, 0, 0}, {1, 0, 1, 0},
-		{0, 0, 0, 1}, {1, 1, 1, 0}, {0, 1, 0, 1}, {1, 0, 1, 1}, {0, 1, 1, 1}},
-}
-
-var table1 [10][10]pulseset = [10][10]pulseset{{},
-	{{}, {1, 0, 0, 0}, {0, 1, 0, 0}, {1, 0, 1, 0}, {0, 1, 1, 0},
-		{1, 0, 0, 1}, {0, 1, 0, 1}, {1, 0, 1, 1}, {0, 1, 1, 1}, {1, 1, 1, 1}},
-	{{}, {0, 1, 0, 0}, {0, 0, 0, 1}, {0, 0, 1, 1}, {0, 1, 1, 1},
-		{}, {0, 1, 0, 0}, {0, 1, 1, 0}, {0, 0, 1, 1}, {0, 1, 1, 1}},
-	{{}, {1, 1, 0, 0}, {0, 0, 1, 1}, {1, 1, 1, 1}, {0, 1, 0, 0},
-		{1, 1, 1, 0}, {0, 1, 1, 1}, {1, 0, 0, 0}, {0, 0, 0, 1}, {1, 0, 1, 1}},
-	{{}, {0, 1, 1, 0}, {0, 1, 1, 1}, {0, 1, 0, 0}, {0, 0, 1, 1},
-		{}, {0, 1, 1, 0}, {0, 1, 1, 1}, {0, 1, 0, 0}, {0, 0, 1, 1}},
-	{{}, {1, 0, 0, 1}, {}, {1, 0, 0, 1}, {},
-		{1, 0, 0, 1}, {}, {1, 0, 0, 1}, {}, {1, 0, 0, 1}},
-	{{}, {0, 0, 1, 1}, {0, 1, 0, 0}, {0, 1, 1, 1}, {0, 1, 1, 0},
-		{}, {0, 0, 1, 1}, {0, 1, 0, 0}, {0, 1, 1, 1}, {0, 0, 0, 1}},
-	{{}, {1, 0, 1, 1}, {0, 1, 1, 0}, {1, 0, 0, 0}, {0, 1, 1, 1},
-		{1, 1, 1, 0}, {0, 1, 0, 0}, {1, 1, 1, 1}, {0, 0, 1, 1}, {1, 1, 0, 0}},
-	{{}, {0, 1, 1, 1}, {0, 0, 1, 1}, {0, 1, 1, 0}, {0, 1, 0, 0},
-		{}, {0, 1, 1, 1}, {0, 0, 1, 1}, {0, 0, 0, 1}, {0, 1, 0, 0}},
-	{{}, {1, 1, 1, 1}, {0, 1, 1, 1}, {1, 0, 1, 1}, {0, 1, 0, 1},
-		{1, 0, 0, 1}, {0, 1, 1, 0}, {1, 0, 1, 0}, {0, 1, 0, 0}, {1, 0, 0, 0}},
+	Accumulator8 StaticWiring
+	Accumulator9 StaticWiring
 }
 
 func NewMultiplier() *Multiplier {
@@ -313,6 +268,21 @@ func (u *Multiplier) FindSwitch(name string) (Switch, error) {
 	return nil, fmt.Errorf("invalid switch %s", name)
 }
 
+func (u *Multiplier) partial(p Pulse) (lhpp, rhpp int) {
+	lhpp, rhpp = 0, 0
+	for i := 0; i < 10; i++ {
+		tensDigit := timesTens[u.ier[u.stage]-'0'][u.icand[i+2]-'0']
+		onesDigit := timesOnes[u.ier[u.stage]-'0'][u.icand[i+2]-'0']
+		if tensDigit&p != 0 {
+			lhpp |= 1 << uint(9-i)
+		}
+		if onesDigit&p != 0 {
+			rhpp |= 1 << uint(9-i)
+		}
+	}
+	return
+}
+
 func (u *Multiplier) shiftprod(lhpp, rhpp int) {
 	if lhpp != 0 {
 		u.lhppI.Transmit(lhpp >> uint(u.stage-2))
@@ -326,6 +296,32 @@ func (u *Multiplier) shiftprod(lhpp, rhpp int) {
 	if rhpp != 0 {
 		u.rhppII.Transmit((rhpp << uint(11-u.stage)) & 0x3ff)
 	}
+}
+
+var timesTens [10][10]Pulse = [10][10]Pulse{
+	{BCD[0], BCD[0], BCD[0], BCD[0], BCD[0], BCD[0], BCD[0], BCD[0], BCD[0], BCD[0]},
+	{BCD[0], BCD[0], BCD[0], BCD[0], BCD[0], BCD[0], BCD[0], BCD[0], BCD[0], BCD[0]},
+	{BCD[0], BCD[0], BCD[0], BCD[0], BCD[0], BCD[1], BCD[1], BCD[1], BCD[1], BCD[1]},
+	{BCD[0], BCD[0], BCD[0], BCD[0], BCD[1], BCD[1], BCD[1], BCD[2], BCD[2], BCD[2]},
+	{BCD[0], BCD[0], BCD[0], BCD[1], BCD[1], BCD[2], BCD[2], BCD[2], BCD[3], BCD[3]},
+	{BCD[0], BCD[0], BCD[1], BCD[1], BCD[2], BCD[2], BCD[3], BCD[3], BCD[4], BCD[4]},
+	{BCD[0], BCD[0], BCD[1], BCD[1], BCD[2], BCD[3], BCD[3], BCD[4], BCD[4], BCD[5]},
+	{BCD[0], BCD[0], BCD[1], BCD[2], BCD[2], BCD[3], BCD[4], BCD[4], BCD[5], BCD[6]},
+	{BCD[0], BCD[0], BCD[1], BCD[2], BCD[3], BCD[4], BCD[4], BCD[5], BCD[6], BCD[7]},
+	{BCD[0], BCD[0], BCD[1], BCD[2], BCD[3], BCD[4], BCD[5], BCD[6], BCD[7], BCD[8]},
+}
+
+var timesOnes [10][10]Pulse = [10][10]Pulse{
+	{BCD[0], BCD[0], BCD[0], BCD[0], BCD[0], BCD[0], BCD[0], BCD[0], BCD[0], BCD[0]},
+	{BCD[0], BCD[1], BCD[2], BCD[3], BCD[4], BCD[5], BCD[6], BCD[7], BCD[8], BCD[9]},
+	{BCD[0], BCD[2], BCD[4], BCD[6], BCD[8], BCD[0], BCD[2], BCD[4], BCD[6], BCD[8]},
+	{BCD[0], BCD[3], BCD[6], BCD[9], BCD[2], BCD[5], BCD[8], BCD[1], BCD[4], BCD[7]},
+	{BCD[0], BCD[4], BCD[8], BCD[2], BCD[6], BCD[0], BCD[4], BCD[8], BCD[2], BCD[6]},
+	{BCD[0], BCD[5], BCD[0], BCD[5], BCD[0], BCD[5], BCD[0], BCD[5], BCD[0], BCD[5]},
+	{BCD[0], BCD[6], BCD[2], BCD[8], BCD[4], BCD[0], BCD[6], BCD[2], BCD[8], BCD[4]},
+	{BCD[0], BCD[7], BCD[4], BCD[1], BCD[8], BCD[5], BCD[2], BCD[9], BCD[6], BCD[3]},
+	{BCD[0], BCD[8], BCD[6], BCD[4], BCD[2], BCD[0], BCD[8], BCD[6], BCD[4], BCD[2]},
+	{BCD[0], BCD[9], BCD[8], BCD[7], BCD[6], BCD[5], BCD[4], BCD[3], BCD[2], BCD[1]},
 }
 
 func (u *Multiplier) Clock(c Pulse) {
@@ -400,10 +396,10 @@ func (u *Multiplier) Clock(c Pulse) {
 			}
 		}
 		if u.iercl[which] == 1 {
-			u.Io.A8.Clear()
+			u.Io.Accumulator8.Clear()
 		}
 		if u.icandcl[which] == 1 {
-			u.Io.A9.Clear()
+			u.Io.Accumulator9.Clear()
 		}
 	case c&Onep != 0 && u.stage == 1:
 		u.multl = true
@@ -426,62 +422,18 @@ func (u *Multiplier) Clock(c Pulse) {
 			u.lhppI.Transmit(1 << uint(u.sigfig-1))
 		}
 	case c&Onep != 0 && u.stage >= 2 && u.stage < 12:
-		u.ier = u.Io.A8.Value()
-		u.icand = u.Io.A9.Value()
-		lhpp := 0
-		rhpp := 0
-		for i := 0; i < 10; i++ {
-			ps10 := table10[u.ier[u.stage]-'0'][u.icand[i+2]-'0']
-			ps1 := table1[u.ier[u.stage]-'0'][u.icand[i+2]-'0']
-			if ps10.one == 1 {
-				lhpp |= 1 << uint(9-i)
-			}
-			if ps1.one == 1 {
-				rhpp |= 1 << uint(9-i)
-			}
-		}
+		u.ier = u.Io.Accumulator8.Value()
+		u.icand = u.Io.Accumulator9.Value()
+		lhpp, rhpp := u.partial(c)
 		u.shiftprod(lhpp, rhpp)
 	case c&Twop != 0 && u.stage >= 2 && u.stage < 12:
-		lhpp := 0
-		rhpp := 0
-		for i := 0; i < 10; i++ {
-			ps10 := table10[u.ier[u.stage]-'0'][u.icand[i+2]-'0']
-			ps1 := table1[u.ier[u.stage]-'0'][u.icand[i+2]-'0']
-			if ps10.two == 1 {
-				lhpp |= 1 << uint(9-i)
-			}
-			if ps1.two == 1 {
-				rhpp |= 1 << uint(9-i)
-			}
-		}
+		lhpp, rhpp := u.partial(c)
 		u.shiftprod(lhpp, rhpp)
 	case c&Twopp != 0 && u.stage >= 2 && u.stage < 12:
-		lhpp := 0
-		rhpp := 0
-		for i := 0; i < 10; i++ {
-			ps10 := table10[u.ier[u.stage]-'0'][u.icand[i+2]-'0']
-			ps1 := table1[u.ier[u.stage]-'0'][u.icand[i+2]-'0']
-			if ps10.twop == 1 {
-				lhpp |= 1 << uint(9-i)
-			}
-			if ps1.twop == 1 {
-				rhpp |= 1 << uint(9-i)
-			}
-		}
+		lhpp, rhpp := u.partial(c)
 		u.shiftprod(lhpp, rhpp)
 	case c&Fourp != 0 && u.stage >= 2 && u.stage < 12:
-		lhpp := 0
-		rhpp := 0
-		for i := 0; i < 10; i++ {
-			ps10 := table10[u.ier[u.stage]-'0'][u.icand[i+2]-'0']
-			ps1 := table1[u.ier[u.stage]-'0'][u.icand[i+2]-'0']
-			if ps10.four == 1 {
-				lhpp |= 1 << uint(9-i)
-			}
-			if ps1.four == 1 {
-				rhpp |= 1 << uint(9-i)
-			}
-		}
+		lhpp, rhpp := u.partial(c)
 		u.shiftprod(lhpp, rhpp)
 	case c&Onepp != 0 && u.stage >= 2 && u.stage < 12:
 		minplace := 10

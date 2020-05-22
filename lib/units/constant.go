@@ -369,19 +369,6 @@ func (u *Constant) selectConstant(program int) {
 	}
 }
 
-var digitPulses = []Pulse{
-	0,                             // 0
-	Onep,                          // 1
-	Twop,                          // 2
-	(Onep | Twop),                 // 3
-	Fourp,                         // 4
-	(Onep | Fourp),                // 5
-	(Twop | Fourp),                // 6
-	(Onep | Twop | Fourp),         // 7
-	(Twop | Twopp | Fourp),        // 8
-	(Onep | Twop | Twopp | Fourp), // 9
-}
-
 func (u *Constant) Clock(cyc Pulse) {
 	//	u.mu.Lock()
 	//	defer u.mu.Unlock()
@@ -416,7 +403,7 @@ func (u *Constant) Clock(cyc Pulse) {
 		} else if cyc&Ninep != 0 {
 			n := 0
 			for i := 0; i < 10; i++ {
-				if cyc&digitPulses[u.value[i]] != 0 {
+				if cyc&BCD[u.value[i]] != 0 {
 					n |= 1 << uint(i)
 				}
 			}

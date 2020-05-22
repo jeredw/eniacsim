@@ -103,8 +103,8 @@ func main() {
 	initiate.Io.Print = func() string { return printer.Print() }
 	divsr.Io.A2 = accumulator[2]
 	divsr.Io.A4 = accumulator[4]
-	multiplier.Io.A8 = accumulator[8]
-	multiplier.Io.A9 = accumulator[9]
+	multiplier.Io.Accumulator8 = accumulator[8]
+	multiplier.Io.Accumulator9 = accumulator[9]
 	printer.Io.MpPrinterDecades = func() string { return mp.PrinterDecades() }
 	for i := 0; i < 20; i++ {
 		printer.Io.Accumulator[i] = accumulator[i]
