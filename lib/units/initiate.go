@@ -48,8 +48,8 @@ func NewInitiate(io InitiateConn) *Initiate {
 		}
 	}
 	for i := 0; i < 6; i++ {
-		u.jack[2*i] = NewInput(fmt.Sprintf("i.C%di", i+1), clearInput(i))
-		u.jack[2*i+1] = NewOutput(fmt.Sprintf("i.C%do", i+1), nil)
+		u.jack[2*i] = NewInput(fmt.Sprintf("i.Ci%d", i+1), clearInput(i))
+		u.jack[2*i+1] = NewOutput(fmt.Sprintf("i.Co%d", i+1), nil)
 	}
 	u.jack[12] = NewInput("i.Rl", func(*Jack, int) {
 		u.mu.Lock()
@@ -191,19 +191,25 @@ func (u *Initiate) Clock(cyc Pulse) {
 		if u.gate69 == 1 {
 			u.gate66 = 0
 			u.gate69 = 0
+			u.mu.Unlock()
 			u.jack[17].Transmit(1)
+			u.mu.Lock()
 		} else if u.gate66 == 1 {
 			u.gate69 = 1
 		}
 		stepping := u.Io.Stepping()
 		for i, ff := range u.clrff {
 			if ff {
+				u.mu.Unlock()
 				u.jack[2*i+1].Transmit(1)
+				u.mu.Lock()
 				u.clrff[i] = false
 			}
 		}
 		if u.rdsync {
+			u.mu.Unlock()
 			u.jack[14].Transmit(1)
+			u.mu.Lock()
 			u.rdff = false
 			u.rdilock = false
 			u.rdsync = false
@@ -237,7 +243,9 @@ func (u *Initiate) Clock(cyc Pulse) {
 			if u.Io.Ppunch != nil {
 				u.Io.Ppunch <- s
 			}
+			u.mu.Unlock()
 			u.jack[16].Transmit(1)
+			u.mu.Lock()
 			u.lastPrint = u.Io.AddCycle()
 			u.printPhase1 = false
 			u.printPhase2 = true
