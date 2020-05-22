@@ -1,12 +1,13 @@
 package lib
 
 import (
-  "unicode"
+	"unicode"
 )
 
-// ENIAC had a printer and card reader that used 80-column/12 row IBM cards.
-// In this program cards are represented as ASCII strings that indicate what
-// holes are punched in correspondence with IBM code points.
+// ENIAC's IBM card punch and reader used 80 column cards.  This program
+// represents cards as ASCII strings where characters corresponding to IBM code
+// points indicate what rows are punched.
+//
 //     ______________________________________________
 //    /&-0123456789ABCDEFGHIJKLMNOPQR/STUVWXYZ
 //12|  x           xxxxxxxxx
@@ -23,31 +24,31 @@ import (
 // 9|             x        x        x        x
 //  |________________________________________________
 //
-// In ENIAC cards, digits are represented as themselves, and negative values
-// are indicated by an 11 punch in any column associated with a number.
+// ENIAC stores negative numbers using ten's complement but cards use signed
+// magnitude.  Digits on cards are represented as a punch in the corresponding
+// row.  Negative numbers are indicated by an 11 punch in any digit position,
+// e.g. the first digit.
 
-// ToIBMCard converts ENIAC signed digits to IBM punched card encoding.
-func ToIBMCard(sign byte, digits string) string {
+// TensComplementToIBMCard converts a sign and ten's complement digits to a
+// signed magnitude number in IBM card code.
+func TensComplementToIBMCard(sign byte, digits string) string {
 	if sign == 'P' {
 		return digits
 	}
 
-  // The number is negative, so convert it to tens' complement with an 11-punch
-  // in the leftmost digit (see the diagram above).  In ASCII, a digit with an
-  // 11-punch is 'J' + (1 through 9).
-	var nz int // rightmost nonzero digit
-	for nz = len(digits) - 1; nz >= 0 && digits[nz] == '0'; nz-- {
-	}
+	// Compute magnitude of digits and store the accompanying sign with an
+	// 11-punch in the leftmost digit (see diagram).
+	nz := findFirstNonZero(digits)
 	if nz < 0 {
 		// negative 0 is still 0
 		return digits
 	}
-  if nz == 0 {
+	if nz == 0 {
 		// special case for 10's comp and 11-punch
 		// -[123456789]000000... -> [RQPONMLKJ]000000...
 		return string('J'+'9'-digits[0]) + digits[1:]
 	}
-  // nz > 0
+	// nz > 0
 	sc := string('J' + '9' - digits[0] - 1)
 	if sc == "I" {
 		// 0 + 11-punch is an illegal encoding, so just use "-" which is 11-punch
@@ -63,32 +64,40 @@ func ToIBMCard(sign byte, digits string) string {
 	return sc
 }
 
-// FromIBMCard converts an IBM card field to a sign and digits.
-func FromIBMCard(field string) (sign bool, digits []int) {
-  sign = false
+// IBMCardToNinesComplement converts a signed magnitude IBM card field to nines
+// complement digits.  Tens' complement correction is added back in the
+// constant transmitter unit.
+func IBMCardToNinesComplement(field string) (sign bool, digits []int) {
+	sign = false
 	for _, c := range field {
 		if c == '-' || c == ']' || c == '}' || c >= 'J' && c <= 'R' {
 			sign = true
-      break
+			break
 		}
 	}
-  numDigits := len(field)
-  digits = make([]int, numDigits)
+	numDigits := len(field)
+	digits = make([]int, numDigits)
 	if sign == false {
-		for j, c := range field {
+		for i, c := range field {
 			if unicode.IsDigit(c) {
-        digits[(numDigits-1)-j] = runeToDigit(c)
+				digits[i] = runeToDigit(c)
 			}
-    }
+		}
 		return
 	}
-	var nz int // rightmost nonzero digit
-	for nz = numDigits - 1; nz >= 0 && field[nz] == '0'; nz-- {
+	for i := 0; i < numDigits; i++ {
+		digits[i] = 9 - runeToDigit(rune(field[i]))
 	}
-	for ; nz >= 0; nz-- {
-		digits[(numDigits-1)-nz] = 9 - runeToDigit(rune(field[nz]))
+	return
+}
+
+func findFirstNonZero(digits string) int {
+	for i := len(digits) - 1; i >= 0; i-- {
+		if digits[i] != '0' {
+			return i
+		}
 	}
-  return
+	return -1
 }
 
 func runeToDigit(c rune) int {

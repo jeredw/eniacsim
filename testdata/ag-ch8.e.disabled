@@ -1,5 +1,6 @@
-# Goldstine Technical Manual Chapter 8 Example
+# Goldstine Technical Manual Chapter 8+9 Example
 # Figure 8-3, Tables 8-11, 8-13
+# Table 9-3 appended to print results
 
 # Initiating Unit
 p 2-3 i.Ri
@@ -7,11 +8,19 @@ p 2-7 i.Rl
 p i.Ro 1-1
 
 # Master Programmer
+# A = Main Sequence stepper
 p 1-3 p.Ai
+# "The output of stage 1 of stepper A stimulates the sequence in which
+# constants from the first card are put in storage in accumulators."
 p p.A1o 1-4
+# "The output of stage 2 stimulates the reader and also goes to stepper H which
+# controls the multiplication sequence"
 p p.A2o 2-1
+# "The output of stage 3 provides an interlock pulse for the reader"
 p p.A3o 2-7
+# "Control is shifted to stepper H again by the output of stage 4"
 p p.A4o 2-2
+# "The output of stage 5 stimulates the reader and printer"
 p p.A5o 2-5
 s p.a20 A
 s p.d20s1 1
@@ -21,6 +30,11 @@ s p.d20s4 1
 s p.d20s5 1
 s p.cA 5
 
+# B = Distinguishes between first and second card reading
+# "Stepper B is used to determine whether reading is the first for a system of
+# equations (stage 1) or the second (stage 2).  For the first reading, stepper
+# B shifts control to stepper C which counts the number of solutions and then
+# routes control to stepper A which directs the main sequences of the problem."
 p 1-1 p.Bi
 p p.B1o 1-2
 p p.B2o 1-3
@@ -28,6 +42,7 @@ s p.d19s1 1
 s p.d19s2 1
 s p.cB 2
 
+# C = Stepper for counting number of solutions
 p 1-2 p.Ci
 p p.C1o 1-3
 s p.a18 C
@@ -38,6 +53,7 @@ s p.d14s1 0
 s p.d14s2 1
 s p.cC 2
 
+# D = Multiplication selector stepper
 p 2-6 p.Di
 p p.D1o 7-1
 p p.D2o 8-1
@@ -51,9 +67,13 @@ s p.d12s2 1
 s p.d12s3 1
 s p.d12s4 1
 s p.d12s5 1
+# "Stepper D is configured for six stages, but only five of the stages have the
+# decade switches (the switches that set the endpoint of the counter)
+# specified."
 s p.d12s6 1
 s p.cD 6
 
+# E = ai selector for multplication sequence A
 p 2-8 p.Edi
 p 9-2 p.Ei
 p p.E1o 9-3
@@ -61,6 +81,8 @@ p p.E2o 9-5
 p p.E3o 9-7
 p p.E4o 9-9
 p p.E5o 9-11
+# "Similarly, Stepper E is used, but no values are shown for its decade
+# switches."
 s p.d11s1 1
 s p.d11s2 1
 s p.d11s3 1
@@ -68,6 +90,8 @@ s p.d11s4 1
 s p.d11s5 1
 s p.cE 5
 
+# F = (presumably ai selector for multiplication sequence B)
+# This isn't actually wired up in this example.
 p 2-4 p.Fdi
 p 10-2 p.Fi
 p p.F1o 9-11
@@ -77,8 +101,12 @@ p p.F4o 9-5
 p p.F5o 9-3
 s p.cF 5
 
+# G = distinguishes between multiplication sequence A and B
+# (Since only the first multiplication sequence is setup this does nothing.)
 p 9-1 p.Gi
 p p.G1o 9-2
+# Fig 8.2 clearly has this as 10-2.  9-1 is a hack to stay on sequence A.
+#p p.G2o 10-2
 p p.G2o 9-1
 s p.a10 G
 s p.a8 G
@@ -86,6 +114,7 @@ s p.d8s1 5
 s p.d8s2 5
 s p.cG 2
 
+# "... controls the multiplication sequence"
 p 2-2 p.Hi
 p p.H1o 2-6
 p p.H2o 1-3
@@ -101,6 +130,8 @@ s p.a4 J
 s p.a2 J
 
 p 10-3 p.Ki
+# "... two stages of that stepper are used, but wiring is shown for Stages 1
+# and 3.  The corrections for these issues are obvious"
 p p.K1o 10-4
 p p.K2o 10-5
 s p.d1s1 1
@@ -125,6 +156,7 @@ p ad.dp.2.4 3-11
 p ad.dp.2.3 4-1
 p ad.dp.2.2 4-2
 p ad.dp.2.1 4-3
+# Table 8-14 has 3-3, but this has no effect and seems to be a typo.
 p ad.dp.2.11 4-4
 p f1.NC 6-10
 p 6-11 f1.1i
@@ -154,6 +186,8 @@ p 3-2 a1.3i
 p 7-6 a1.5i
 p a1.5o 6-11
 p 9-3 a1.6i
+# "This new program is triggered by a control signal on Line 7-11, which is the
+# new output of Accumulator 1, Program 6."
 # p a1.6o 7-11
 p a1.6o 7-8
 p 1-4 a1.7i
@@ -215,7 +249,7 @@ s a3.rp6 9
 # s a3.op8 0
 # s a3.rp8 9
 
-#Accumulator 4
+# Accumulator 4
 p 5 a4.α
 p a4.A 5
 p 1-10 a4.1i
@@ -267,7 +301,7 @@ s a6.rp5 7
 s a6.op6 0
 s a6.rp6 1
 
-#Accumulator 7
+# Accumulator 7
 p 5 a7.α
 p a7.A 5
 p 2-10 a7.1i
@@ -333,7 +367,8 @@ p ad.s.1.5 a9.β
 p 3 a9.γ
 p 4 a9.δ
 p a9.S 6
-p 5-9 a9.5i
+# a9.1i-4i = m.Rα-Rδ in the multiplier section.
+p 5-9 a9.5i  # 5-9 = RS
 s a9.sf 10
 s a9.op1 α
 s a9.op2 β
@@ -350,13 +385,16 @@ p ad.s.2.5 a10.β
 p 3 a10.γ
 p 1 a10.ε
 p a10.S 7
-p 5-10 a10.3i
 p 7-4 a10.1i
 p 7-9 a10.2i
+p 5-10 a10.3i  # 5-10 = m.DS
+# a10.4i = m.Dε in the multiplier section.
 p 7-2 a10.5i
 p a10.5o 7-3
 s a10.sf 10
 s a10.op1 β
+# "the operation for Program 2 is blank on the setup diagram. Fortunately, the
+# setup table does show that the correct operation is receiving on the β input"
 s a10.op2 β
 s a10.op3 S
 s a10.op4 ε
@@ -399,6 +437,9 @@ p 8-7 m.12i
 p 8-8 m.13i
 p m.13o 8-9
 p 8-9 m.14i
+# "we have created a new program on the multiplier (Program 15) that operates
+# the same as Program 5 except that the multiplicand operation is set to 0 to
+# preserve the value used in the previous multiplication."
 # p 7-11 m.15i
 # p m.15o 7-9
 s m.ieracc1 α
@@ -509,10 +550,11 @@ s m.prod14 AC
 
 # Accumulator 11
 p a11.A 7
-p 9 a11.α
+p 9 a11.α  # m.lhppI
 p 6 a11.β
-p 5-11 a11.3i
-p 5-9 a11.4i
+p 5-11 a11.3i  # 5-11 = m.F
+# Looks like AS in Fig 8-3 but it's clearly m.RS from multiplier wiring.
+p 5-9 a11.4i  # 5-9 = m.RS
 p 2-1 a11.5i
 p a11.5o 2-2
 p 7-1 a11.6i
@@ -561,10 +603,11 @@ s a12.rp6 1
 # Accumulator 13
 p a13.A 1
 p a13.S 2
-p 8 a13.α
+p 8 a13.α  # m.rhppI
 p 7 a13.β
-p 5-11 a13.3i
-p 5-10 a13.4i
+# a13.1i-2i = m.AC, m.ASC in multiplier section.
+p 5-11 a13.3i  # 5-11 = m.F
+p 5-10 a13.4i  # 5-10 = m.DS
 p 7-1 a13.5i
 p a13.5o 7-2
 s a13.sf 10
@@ -573,6 +616,9 @@ s a13.op1 A
 s a13.cc1 C
 s a13.op2 AS
 s a13.cc2 C
+# "operations for Programs 3 and 4 are both A.  However, these are both driven
+# by multiplier signals that need input operations. Comparing them with the
+# setup table shows that they should both be β instead."
 s a13.op3 β
 s a13.cc3 0
 s a13.op4 β
@@ -592,6 +638,10 @@ s a14.sf 6
 s a14.sc SC
 s a14.op5 α
 s a14.cc5 0
+# "On Accumulator 14, the repeat count for Program 5 looks like a 3 in the
+# scan. However, it is actually a nine as confirmed by the notations on the
+# setup table, reference to other scans of the report, and reference to an
+# original copy in the archives."
 s a14.rp5 9
 
 # Function Table 2
@@ -610,6 +660,7 @@ p ad.dp.4.6 5-1
 p ad.dp.4.5 5-2
 p ad.dp.4.4 5-3
 p ad.dp.4.3 5-4
+# Table 8-14 has 4-5 here, seems to be a typo, has no effect.
 p ad.dp.4.2 5-5
 p ad.dp.4.1 5-6
 p ad.dp.4.11 5-7
@@ -637,6 +688,16 @@ s f2.rp4 7
 s f2.op5 A-1
 s f2.cl5 0
 s f2.rp5 7
+s f2.mpm1 T
+s f2.mpm2 T
+s f2.A1D D
+s f2.A2D D
+s f2.A3D D
+s f2.A4D D
+s f2.B1D D
+s f2.B2D D
+s f2.B3D D
+s f2.B4D D
 s f2.RA0L5 9
 s f2.RA1L4 9
 s f2.RA3L5 9
@@ -651,7 +712,7 @@ p f3.A ad.dp.5.0
 p ad.dp.5.11 5-8
 p ad.dp.5.6 5-9
 p ad.dp.5.5 5-10
-p ad.dp.5.4 5-11
+p ad.dp.5.4 5-11  # 5-11 = m.F??
 p ad.dp.5.3 6-1
 p ad.dp.5.2 6-2
 p ad.dp.5.1 6-4
@@ -779,6 +840,7 @@ p 11-7 a20.5i
 p a20.5o 2-8
 s a20.sf 6
 s a20.sc SC
+# "changing the operation from 0 to α yields the expected behavior"
 s a20.op5 α
 s a20.cc5 0
 s a20.rp5 1
@@ -824,6 +886,7 @@ s c.s26 Jr
 s c.s27 Kl
 s c.s28 Kr
 
+# ai = 0.1i
 s c.jl P
 s c.jr P
 s c.j10 2
@@ -849,6 +912,38 @@ s c.k3 0
 s c.k2 0
 s c.k1 0
 
-f r ch8.card
+# Table 9-3: Print results
+p 2-5 i.Pi
+p i.Po 2-10
+s pr.1 P
+s pr.4 P
+s pr.5 P
+s pr.7 P
+s pr.8 P
+s pr.9 P
+s pr.10 P
+s pr.11 P
+s pr.12 P
+s pr.13 P
+s pr.14 P
+s pr.15 P
+s pr.16 P
+s pr.4-5 C
+s pr.7-8 C
+s pr.9-10 C
+s pr.11-12 C
+s pr.13-14 C
+s pr.15-16 C
 
-b i
+p 2-5 a14.6i
+p a14.6o 2-3
+s a14.op6 0
+s a14.cc6 0
+s a14.rp6 1
+
+#p 2-10 i.Ci1
+#p i.Co1 2-7
+
+f r testdata/ch8.card
+
+b r

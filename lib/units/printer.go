@@ -48,8 +48,7 @@ func (u *Printer) Reset() {
 
 // Print an 80-column punched card from groups of 5-digit fields.
 //
-// Groups are converted from signed magnitude to signed tens' complement for 80
-// col/12 row IBM cards.
+// Groups are converted from signed tens' complement to signed magnitude.
 func (u *Printer) Print() string {
 	u.mu.Lock()
 	defer u.mu.Unlock()
@@ -82,7 +81,7 @@ func (u *Printer) Print() string {
 	for i := 0; i < 16; i++ {
 		if !u.coupling[i] || i == 15 {
 			groupEnd = (i + 1) * 5
-			ibmDigits += ToIBMCard(signs[i], digits[groupStart:groupEnd])
+			ibmDigits += TensComplementToIBMCard(signs[i], digits[groupStart:groupEnd])
 			groupStart = groupEnd
 		}
 	}

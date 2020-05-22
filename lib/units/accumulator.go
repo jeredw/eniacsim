@@ -36,7 +36,7 @@ type Accumulator struct {
 	selectiveClear bool     // If true, initiate unit may trigger clear
 
 	sign   bool     // True if negative
-	decade [10]int  // Ten digits 0-9
+	decade [10]int  // Ten digits 0-9.  Index 0 is least significant.
 	carry  [10]bool // Carry ff per decade
 	carry2 [10]bool // Temp for ripple carries
 
