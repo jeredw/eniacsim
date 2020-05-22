@@ -643,7 +643,7 @@ func accOpSettings() []IntSwitchSetting {
 		{"γ", opγ}, {"g", opγ}, {"gamma", opγ},
 		{"δ", opδ}, {"d", opδ}, {"delta", opδ},
 		{"ε", opε}, {"e", opε}, {"epsilon", opε},
-		{"0", 0}, // Must be 0 for userProgram().
+		{"0", 0}, // Must be 0 for updateActiveProgram().
 		{"A", opA},
 		{"AS", opAS},
 		{"S", opS},

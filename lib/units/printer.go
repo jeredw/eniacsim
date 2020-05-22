@@ -21,7 +21,7 @@ type Printer struct {
 // Connections to printer.
 type PrinterConn struct {
 	MpPrinterDecades func() string
-	Acc              [20]StaticWiring
+	Accumulator      [20]StaticWiring
 }
 
 // Reset values for coupling switches - by default group digits from the same
@@ -49,36 +49,20 @@ func (u *Printer) Reset() {
 // Print an 80-column punched card from groups of 5-digit fields.
 //
 // Groups are converted from signed magnitude to signed tens' complement for 80
-// col/12 row IBM cards.  Negative values are indicated by an 11 punch in any
-// column associated with a group.
-//     ______________________________________________
-//    /&-0123456789ABCDEFGHIJKLMNOPQR/STUVWXYZ
-//12|  x           xxxxxxxxx
-//11|   x                   xxxxxxxxx
-// 0|    x                           xxxxxxxxx
-// 1|     x        x        x        x
-// 2|      x        x        x        x
-// 3|       x        x        x        x
-// 4|        x        x        x        x
-// 5|         x        x        x        x
-// 6|          x        x        x        x
-// 7|           x        x        x        x
-// 8|            x        x        x        x
-// 9|             x        x        x        x
-//  |________________________________________________
+// col/12 row IBM cards.
 func (u *Printer) Print() string {
 	u.mu.Lock()
 	defer u.mu.Unlock()
 
 	mpd := u.Io.MpPrinterDecades()
-	a13 := u.Io.Acc[13-1].Value()
-	a14 := u.Io.Acc[14-1].Value()
-	a15 := u.Io.Acc[15-1].Value()
-	a16 := u.Io.Acc[16-1].Value()
-	a17 := u.Io.Acc[17-1].Value()
-	a18 := u.Io.Acc[18-1].Value()
-	a19 := u.Io.Acc[19-1].Value()
-	a20 := u.Io.Acc[20-1].Value()
+	a13 := u.Io.Accumulator[13-1].Value()
+	a14 := u.Io.Accumulator[14-1].Value()
+	a15 := u.Io.Accumulator[15-1].Value()
+	a16 := u.Io.Accumulator[16-1].Value()
+	a17 := u.Io.Accumulator[17-1].Value()
+	a18 := u.Io.Accumulator[18-1].Value()
+	a19 := u.Io.Accumulator[19-1].Value()
+	a20 := u.Io.Accumulator[20-1].Value()
 
 	// digits will contain 80 digits (5 MP decades, a13, a14, a15[lo], a16-a20)
 	// and signs will contain 16 signs for the corresponding 5-digit fields.
@@ -98,7 +82,7 @@ func (u *Printer) Print() string {
 	for i := 0; i < 16; i++ {
 		if !u.coupling[i] || i == 15 {
 			groupEnd = (i + 1) * 5
-			ibmDigits += toIBMCard(signs[i], digits[groupStart:groupEnd])
+			ibmDigits += ToIBMCard(signs[i], digits[groupStart:groupEnd])
 			groupStart = groupEnd
 		}
 	}
@@ -111,41 +95,6 @@ func (u *Printer) Print() string {
 		}
 	}
 	return card
-}
-
-func toIBMCard(sign byte, digits string) string {
-	if sign == 'P' {
-		return digits
-	}
-
-	// The number is negative, so convert it to tens' complement with an 11-punch
-	// in the leftmost digit (see the diagram for Print).  In ASCII, a digit with
-	// an 11-punch is 'J' + (1 through 9).
-	var nz int // rightmost nonzero digit
-	for nz = len(digits) - 1; nz >= 0 && digits[nz] == '0'; nz-- {
-	}
-	if nz < 0 {
-		// negative 0 is still 0
-		return digits
-	} else if nz == 0 {
-		// special case for 10's comp and 11-punch
-		// -[123456789]000000... -> [RQPONMLKJ]000000...
-		return string('J'+'9'-digits[0]) + digits[1:]
-	} else {
-		sc := string('J' + '9' - digits[0] - 1)
-		if sc == "I" {
-			// 0 + 11-punch is an illegal encoding, so just use "-" which is 11-punch
-			// on its own.
-			sc = "-"
-		}
-		// 10^k - n = ((10^k-1) - n) + 1
-		for i := 1; i < nz; i++ {
-			sc += string('0' + '9' - digits[i])
-		}
-		sc += string('0' + '9' - digits[nz] + 1)
-		sc += digits[nz+1:]
-		return sc
-	}
 }
 
 func (u *Printer) FindSwitch(name string) (Switch, error) {

@@ -107,7 +107,7 @@ func main() {
 	multiplier.Io.A9 = accumulator[9]
 	printer.Io.MpPrinterDecades = func() string { return mp.PrinterDecades() }
 	for i := 0; i < 20; i++ {
-		printer.Io.Acc[i] = accumulator[i]
+		printer.Io.Accumulator[i] = accumulator[i]
 	}
 
 	go initiate.Run()

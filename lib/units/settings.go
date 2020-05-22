@@ -267,15 +267,15 @@ func couplingSettings() []BoolSwitchSetting {
 	}
 }
 
-func constantSignSettings() []ByteSwitchSetting {
-	return []ByteSwitchSetting{
-		{"P", 0}, {"p", 0},
-		{"M", 1}, {"m", 1},
+func constantSignSettings() []BoolSwitchSetting {
+	return []BoolSwitchSetting{
+		{"P", false}, {"p", false},
+		{"M", true}, {"m", true},
 	}
 }
 
-func constantDigitSettings() []ByteSwitchSetting {
-	return []ByteSwitchSetting{
+func constantDigitSettings() []IntSwitchSetting {
+	return []IntSwitchSetting{
 		{"0", 0},
 		{"1", 1},
 		{"2", 2},
