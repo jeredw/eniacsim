@@ -268,7 +268,7 @@ func (u *Multiplier) FindSwitch(name string) (Switch, error) {
 	return nil, fmt.Errorf("invalid switch %s", name)
 }
 
-func (u *Multiplier) partial(p Pulse) (lhpp, rhpp int) {
+func (u *Multiplier) partialProducts(p Pulse) (lhpp, rhpp int) {
 	lhpp, rhpp = 0, 0
 	for i := 0; i < 10; i++ {
 		tensDigit := timesTens[u.ier[u.stage]-'0'][u.icand[i+2]-'0']
@@ -283,7 +283,7 @@ func (u *Multiplier) partial(p Pulse) (lhpp, rhpp int) {
 	return
 }
 
-func (u *Multiplier) shiftprod(lhpp, rhpp int) {
+func (u *Multiplier) shiftProducts(lhpp, rhpp int) {
 	if lhpp != 0 {
 		u.lhppI.Transmit(lhpp >> uint(u.stage-2))
 	}
@@ -324,91 +324,43 @@ var timesOnes [10][10]Pulse = [10][10]Pulse{
 	{BCD[0], BCD[9], BCD[8], BCD[7], BCD[6], BCD[5], BCD[4], BCD[3], BCD[2], BCD[1]},
 }
 
+func (u *Multiplier) activeProgram() int {
+	for i := range u.multff {
+		if u.multff[i] {
+			return i
+		}
+	}
+	return -1
+}
+
+func (u *Multiplier) places() int {
+	if i := u.activeProgram(); i != -1 {
+		if u.placsw[i]+2 < 10 {
+			return u.placsw[i] + 2
+		}
+	}
+	return 10
+}
+
 func (u *Multiplier) Clock(c Pulse) {
-	//	u.mu.Lock()
-	//	defer u.mu.Unlock()
 	switch {
 	case c&Cpp != 0:
-		if u.f44 {
-			u.stage = 1
-			u.f44 = false
-		} else if u.stage == 12 {
-			u.reset1ff = true
-			u.reset3ff = true
-			u.F.Transmit(1)
-			u.stage++
-		} else if u.stage == 13 {
-			which := -1
-			for i, f := range u.multff {
-				if f {
-					which = i
-					break
-				}
-			}
-			if which != -1 {
-				u.multout[which].Transmit(1)
-				u.multff[which] = false
-				switch u.prodsw[which] {
-				case 0:
-					u.A.Transmit(1)
-				case 1:
-					u.S.Transmit(1)
-				case 2:
-					u.AS.Transmit(1)
-				case 4:
-					u.AC.Transmit(1)
-				case 5:
-					u.SC.Transmit(1)
-				case 6:
-					u.ASC.Transmit(1)
-				}
-			}
-			u.reset1ff = false
-			u.reset3ff = false
-			u.stage = 0
-		} else if u.stage != 0 {
-			minplace := 10
-			for i := 0; i < 24; i++ {
-				if u.multff[i] && u.placsw[i]+2 < minplace {
-					minplace = u.placsw[i] + 2
-				}
-			}
-			if u.stage == minplace+1 {
-				if u.ier[0] == 'M' {
-					u.DS.Transmit(1)
-				}
-				if u.icand[0] == 'M' {
-					u.RS.Transmit(1)
-				}
-				u.multl = false
-				u.multr = false
-				u.stage = 12
-			} else {
-				u.stage++
-			}
-		}
+		u.doCpp()
 	case c&Ccg != 0 && u.stage == 13:
-		which := -1
-		for i, f := range u.multff {
-			if f {
-				which = i
-				break
+		if i := u.activeProgram(); i != -1 {
+			if u.iercl[i] == 1 {
+				u.Io.Accumulator8.Clear()
 			}
-		}
-		if u.iercl[which] == 1 {
-			u.Io.Accumulator8.Clear()
-		}
-		if u.icandcl[which] == 1 {
-			u.Io.Accumulator9.Clear()
+			if u.icandcl[i] == 1 {
+				u.Io.Accumulator9.Clear()
+			}
 		}
 	case c&Onep != 0 && u.stage == 1:
 		u.multl = true
 		u.multr = true
 		u.sigfig = -1
-		for i := 0; i < 24; i++ {
-			if u.multff[i] {
-				u.sigfig = u.sigsw[i]
-			}
+		if i := u.activeProgram(); i != -1 {
+			u.sigfig = u.sigsw[i]
 		}
 		if u.sigfig == 0 && u.lhppII.Connected() {
 			u.lhppII.Transmit(1 << 10)
@@ -421,33 +373,68 @@ func (u *Multiplier) Clock(c Pulse) {
 		} else if u.sigfig > 0 && u.sigfig < 9 {
 			u.lhppI.Transmit(1 << uint(u.sigfig-1))
 		}
-	case c&Onep != 0 && u.stage >= 2 && u.stage < 12:
-		u.ier = u.Io.Accumulator8.Value()
-		u.icand = u.Io.Accumulator9.Value()
-		lhpp, rhpp := u.partial(c)
-		u.shiftprod(lhpp, rhpp)
-	case c&Twop != 0 && u.stage >= 2 && u.stage < 12:
-		lhpp, rhpp := u.partial(c)
-		u.shiftprod(lhpp, rhpp)
-	case c&Twopp != 0 && u.stage >= 2 && u.stage < 12:
-		lhpp, rhpp := u.partial(c)
-		u.shiftprod(lhpp, rhpp)
-	case c&Fourp != 0 && u.stage >= 2 && u.stage < 12:
-		lhpp, rhpp := u.partial(c)
-		u.shiftprod(lhpp, rhpp)
-	case c&Onepp != 0 && u.stage >= 2 && u.stage < 12:
-		minplace := 10
-		for i := 0; i < 24; i++ {
-			if u.multff[i] && u.placsw[i]+2 < minplace {
-				minplace = u.placsw[i] + 2
-			}
+	case c&(Onep|Twop|Twopp|Fourp) != 0 && u.stage >= 2 && u.stage < 12:
+		if c&Onep != 0 {
+			u.ier = u.Io.Accumulator8.Value()
+			u.icand = u.Io.Accumulator9.Value()
 		}
-		if u.stage == minplace+1 && u.ier[0] == 'M' && u.icand[0] == 'M' {
+		lhpp, rhpp := u.partialProducts(c)
+		u.shiftProducts(lhpp, rhpp)
+	case c&Onepp != 0 && u.stage >= 2 && u.stage < 12:
+		if u.stage == u.places()+1 && u.ier[0] == 'M' && u.icand[0] == 'M' {
 			u.rhppI.Transmit(1 << 10)
 		}
 	case c&Rp != 0 && u.buffer61:
 		u.buffer61 = false
 		u.f44 = true
+	}
+}
+
+func (u *Multiplier) doCpp() {
+	if u.f44 {
+		u.stage = 1
+		u.f44 = false
+	} else if u.stage == 12 {
+		u.reset1ff = true
+		u.reset3ff = true
+		u.F.Transmit(1)
+		u.stage++
+	} else if u.stage == 13 {
+		if i := u.activeProgram(); i != -1 {
+			u.multout[i].Transmit(1)
+			u.multff[i] = false
+			switch u.prodsw[i] {
+			case 0:
+				u.A.Transmit(1)
+			case 1:
+				u.S.Transmit(1)
+			case 2:
+				u.AS.Transmit(1)
+			case 4:
+				u.AC.Transmit(1)
+			case 5:
+				u.SC.Transmit(1)
+			case 6:
+				u.ASC.Transmit(1)
+			}
+		}
+		u.reset1ff = false
+		u.reset3ff = false
+		u.stage = 0
+	} else if u.stage != 0 {
+		if u.stage == u.places()+1 {
+			if u.ier[0] == 'M' {
+				u.DS.Transmit(1)
+			}
+			if u.icand[0] == 'M' {
+				u.RS.Transmit(1)
+			}
+			u.multl = false
+			u.multr = false
+			u.stage = 12
+		} else {
+			u.stage++
+		}
 	}
 }
 
