@@ -460,21 +460,10 @@ func (u *Accumulator) AttachTracer(tracer Tracer) {
 	defer u.mu.Unlock()
 	u.tracer = tracer
 	sign := u.terminal("sign")
-	tracer.RegisterValueCallback(func() {
-		s := int64(0)
-		if u.sign {
-			s = 1
-		}
-		tracer.LogValue(sign, 1, s)
-	})
 	decade := u.terminal("decade")
 	tracer.RegisterValueCallback(func() {
-		var n int64
-		for i := 9; i >= 0; i-- {
-			n <<= 4
-			n += int64(u.decade[i])
-		}
-		tracer.LogValue(decade, 40, n)
+		tracer.LogValue(sign, 1, BoolToInt64(u.sign))
+		tracer.LogValue(decade, 40, TenDigitsToInt64BCD(u.decade))
 	})
 }
 

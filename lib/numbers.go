@@ -4,6 +4,50 @@ import (
 	"unicode"
 )
 
+// Digits represented as combinations of 1P/2P/2P'/4P.
+var BCD = []Pulse{
+	0,                           // 0
+	Onep,                        // 1
+	Twop,                        // 2
+	Onep | Twop,                 // 3
+	Fourp,                       // 4
+	Onep | Fourp,                // 5
+	Twop | Fourp,                // 6
+	Onep | Twop | Fourp,         // 7
+	Twop | Twopp | Fourp,        // 8
+	Onep | Twop | Twopp | Fourp, // 9
+}
+
+func TenDigitsToInt64BCD(digits [10]int) int64 {
+	var n int64
+	for i := range digits {
+		n = (n << 4) + int64(digits[i])
+	}
+	return n
+}
+
+func DigitsToInt64BCD(digits []int) int64 {
+	var n int64
+	for i := range digits {
+		n = (n << 4) + int64(digits[i])
+	}
+	return n
+}
+
+func BoolToInt64(b bool) int64 {
+	if b {
+		return int64(1)
+	}
+	return int64(0)
+}
+
+func ToBin(b bool) string {
+	if b {
+		return "1"
+	}
+	return "0"
+}
+
 // ENIAC's IBM card punch and reader used 80 column cards.  This program
 // represents cards as ASCII strings where characters corresponding to IBM code
 // points indicate what rows are punched.

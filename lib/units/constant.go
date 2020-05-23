@@ -37,8 +37,8 @@ type Constant struct {
 	kSign [2]bool
 	k     [10]int
 
-	value  []int // Digits for selected constant.  Index 0 is least significant.
 	sign   bool
+	value  []int // Digits for selected constant.  Index 0 is least significant.
 	pos1pp int
 
 	inff1, inff2 [30]bool
@@ -82,6 +82,10 @@ func (u *Constant) AttachTracer(tracer Tracer) {
 	u.mu.Lock()
 	defer u.mu.Unlock()
 	u.tracer = tracer
+	u.tracer.RegisterValueCallback(func() {
+		u.tracer.LogValue("c.sign", 1, BoolToInt64(u.sign))
+		u.tracer.LogValue("c.constant", 40, DigitsToInt64BCD(u.value))
+	})
 }
 
 func (u *Constant) Stat() string {
