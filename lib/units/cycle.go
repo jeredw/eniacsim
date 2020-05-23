@@ -93,18 +93,18 @@ func (u *Cycle) AddCycle() int {
 }
 
 // Stepping returns whether the clock is being single stepped
-func (u Cycle) Stepping() bool {
+func (u *Cycle) Stepping() bool {
 	return u.mode == OneAdd || u.mode == OnePulse
 }
 
 // Mode exposes the clock mode enum for the tk gui
-func (u Cycle) Mode() int {
+func (u *Cycle) Mode() int {
 	return u.mode
 }
 
 // Stat returns the current phase of the pulse train
 // FIXME: Do we really need this?  Delete if possible
-func (u Cycle) Stat() string {
+func (u *Cycle) Stat() string {
 	// data race: written by Run()
 	if u.phase >= len(phases) {
 		return "0"

@@ -78,7 +78,7 @@ func NewDivsr() *Divsr {
 }
 
 type divsrJson struct {
-	PlaceRing int     `json:"progRing"`
+	PlaceRing int     `json:"placeRing"`
 	ProgRing  int     `json:"progRing"`
 	Program   [8]bool `json:"program"`
 	Ffs       string  `json:"ffs"`
