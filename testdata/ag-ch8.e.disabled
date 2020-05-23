@@ -403,7 +403,9 @@ s a10.rp5 1
 
 # Multiplier
 p m.lhppI 9
+p m.L a11
 p m.rhppI 8
+p m.R a13
 p m.Rα a9.1i
 p m.Rβ a9.2i
 p m.Rγ a9.3i

@@ -274,8 +274,8 @@ func (u *Constant) readCardField(i int, field string) {
 	if tenDigitNumber {
 		u.readConstant(i, 0, field)
 	} else {
-		u.readConstant(i, 0, field[:5])
-		u.readConstant(i, 5, field[5:])
+		u.readConstant(i, 0, field[5:])
+		u.readConstant(i, 5, field[:5])
 	}
 }
 

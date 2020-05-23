@@ -31,8 +31,8 @@ type Multiplier struct {
 
 // Connections to other units.
 type MultiplierConn struct {
-	Accumulator8 StaticWiring
-	Accumulator9 StaticWiring
+	Ier   StaticWiring
+	Icand StaticWiring
 }
 
 func NewMultiplier() *Multiplier {
@@ -349,10 +349,10 @@ func (u *Multiplier) Clock(c Pulse) {
 	case c&Ccg != 0 && u.stage == 13:
 		if i := u.activeProgram(); i != -1 {
 			if u.iercl[i] == 1 {
-				u.Io.Accumulator8.Clear()
+				u.Io.Ier.Clear()
 			}
 			if u.icandcl[i] == 1 {
-				u.Io.Accumulator9.Clear()
+				u.Io.Icand.Clear()
 			}
 		}
 	case c&Onep != 0 && u.stage == 1:
@@ -375,8 +375,8 @@ func (u *Multiplier) Clock(c Pulse) {
 		}
 	case c&(Onep|Twop|Twopp|Fourp) != 0 && u.stage >= 2 && u.stage < 12:
 		if c&Onep != 0 {
-			u.ier = u.Io.Accumulator8.Value()
-			u.icand = u.Io.Accumulator9.Value()
+			u.ier = u.Io.Ier.Value()
+			u.icand = u.Io.Icand.Value()
 		}
 		lhpp, rhpp := u.partialProducts(c)
 		u.shiftProducts(lhpp, rhpp)
