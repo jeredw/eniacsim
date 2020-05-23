@@ -21,10 +21,10 @@ type Multiplier struct {
 	multff                                                [24]bool
 	iersw, iercl, icandsw, icandcl, sigsw, placsw, prodsw [24]int
 	reset1ff, reset3ff                                    bool
-	multl, multr                                          bool
 	buffer61, f44                                         bool
 	ier, icand                                            string
 	sigfig                                                int
+	multl, multr                                          bool
 
 	mu sync.Mutex
 }
@@ -388,6 +388,16 @@ func (u *Multiplier) Clock(c Pulse) {
 		u.buffer61 = false
 		u.f44 = true
 	}
+}
+
+type ProductController interface {
+	ShouldReceive() bool
+}
+
+func (u *Multiplier) ShouldReceive() bool {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	return u.multl || u.multr
 }
 
 func (u *Multiplier) doCpp() {

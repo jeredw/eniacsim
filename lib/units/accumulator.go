@@ -49,6 +49,8 @@ type Accumulator struct {
 	left  *Accumulator
 	right *Accumulator
 
+	multiplier ProductController
+
 	unit       int // Unit number 0-19
 	tracePulse TraceFunc
 
@@ -323,6 +325,9 @@ func (u *Accumulator) updateActiveProgram() {
 }
 
 func (u *Accumulator) activeProgram() int {
+	if u.multiplier != nil && u.multiplier.ShouldReceive() {
+		return opα
+	}
 	if u.left != nil {
 		return u.programCache | u.left.programCache
 	}
@@ -677,4 +682,8 @@ func (u *Accumulator) FindSwitch(name string) (Switch, error) {
 		return &IntSwitch{&u.mu, name, &u.repeat[prog-4], rpSettings()}, nil
 	}
 	return nil, fmt.Errorf("invalid switch %s", name)
+}
+
+func (u *Accumulator) ConnectMultiplier(multiplier ProductController) {
+	u.multiplier = multiplier
 }

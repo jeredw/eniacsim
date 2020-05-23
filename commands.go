@@ -198,13 +198,17 @@ func doPlug(w io.Writer, command string, f []string) {
 
 	p1 := strings.Split(f[1], ".")
 	p2 := strings.Split(f[2], ".")
-	// Ugly special case of 20 digit interconnects
-	if len(p1) == 2 && p1[0][0] == 'a' && len(p1[1]) >= 2 &&
-		len(p2) == 2 && p2[0][0] == 'a' && len(p2[1]) >= 2 &&
-		(p1[1][:2] == "il" || p1[1][:2] == "ir") &&
-		(p2[1][:2] == "il" || p2[1][:2] == "ir") {
-		// Handle commands like p aXX.{st,su,il,ir} *
-		err := units.Interconnect(accumulator, p1, p2)
+
+	handled, err := doInterconnect(p1, p2)
+	if handled {
+		if err != nil {
+			fmt.Fprintf(w, "Interconnect: %s\n", err)
+		}
+		return
+	}
+
+	handled, err = doMultiplierInterconnect(f[1], f[2])
+	if handled {
 		if err != nil {
 			fmt.Fprintf(w, "Interconnect: %s\n", err)
 		}
@@ -525,4 +529,34 @@ func doTraceEnd(w io.Writer, f []string) {
 	bw := bufio.NewWriter(fd)
 	log.WriteVcd(bw, time.Now())
 	bw.Flush()
+}
+
+func doInterconnect(p1 []string, p2 []string) (bool, error) {
+	// Handle commands like p aXX.{st,su,il,ir} *
+	if len(p1) == 2 && p1[0][0] == 'a' && len(p1[1]) >= 2 &&
+		len(p2) == 2 && p2[0][0] == 'a' && len(p2[1]) >= 2 &&
+		(p1[1][:2] == "il" || p1[1][:2] == "ir") &&
+		(p2[1][:2] == "il" || p2[1][:2] == "ir") {
+		return true, units.Interconnect(accumulator, p1, p2)
+	}
+	return false, nil
+}
+
+func doMultiplierInterconnect(f1 string, f2 string) (bool, error) {
+	// Handle p m.[LR] aXX
+	if strings.HasPrefix(f2, "m.") {
+		f1, f2 = f2, f1
+	}
+	if f1 == "m.L" || f1 == "m.l" || f1 == "m.R" || f1 == "m.r" {
+		if len(f2) < 2 || !strings.HasPrefix(f2, "a") {
+			return true, fmt.Errorf("multiplier left/right must be connected to accum")
+		}
+		unit, _ := strconv.Atoi(f2[1:])
+		if !(unit >= 1 && unit <= 20) {
+			return true, fmt.Errorf("invalid accumulator")
+		}
+		accumulator[unit-1].ConnectMultiplier(multiplier)
+		return true, nil
+	}
+	return false, nil
 }

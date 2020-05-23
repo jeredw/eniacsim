@@ -126,7 +126,9 @@ p a7.A 5
 
 # Multiplier w/ ACCs 9, 10, 11, 13
 p m.lhppI 9
+p m.L a11
 p m.rhppI 8
+p m.R a13
 p m.Rα a9.1i
 p m.Dα a10.1i
 p m.Dβ a10.2i

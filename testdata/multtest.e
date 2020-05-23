@@ -21,8 +21,10 @@ p a10.S 6
 p a11.A 6
 p 6 a13.β
 p m.lhppI 8
+p m.L a11
 p 8 a11.α
 p m.rhppI 9
+p m.R a13
 p 9 a13.α
 s m.ieracc1 α
 s m.iercl1 C
