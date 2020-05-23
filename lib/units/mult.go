@@ -26,7 +26,8 @@ type Multiplier struct {
 	sigfig                                                int
 	multl, multr                                          bool
 
-	mu sync.Mutex
+	tracer Tracer
+	mu     sync.Mutex
 }
 
 // Connections to other units.
@@ -37,34 +38,60 @@ type MultiplierConn struct {
 
 func NewMultiplier() *Multiplier {
 	u := &Multiplier{}
-	programInput := func(prog int) JackHandler {
-		return func(*Jack, int) {
-			u.multargs(prog)
-		}
-	}
 	for i := 0; i < 24; i++ {
-		u.multin[i] = NewInput(fmt.Sprintf("m.%di", i+1), programInput(i))
-		u.multout[i] = NewOutput(fmt.Sprintf("m.%do", i+1), nil)
+		u.multin[i] = u.newProgramInput(i)
+		u.multout[i] = u.newOutput(fmt.Sprintf("m.%do", i+1), 1)
 	}
 	outs := []rune("αβγδε")
 	for i := 0; i < 5; i++ {
-		u.R[i] = NewOutput(fmt.Sprintf("m.R%c", outs[i]), nil)
-		u.D[i] = NewOutput(fmt.Sprintf("m.D%c", outs[i]), nil)
+		u.R[i] = u.newOutput(fmt.Sprintf("m.R%c", outs[i]), 1)
+		u.D[i] = u.newOutput(fmt.Sprintf("m.D%c", outs[i]), 1)
 	}
-	u.A = NewOutput("m.A", nil)
-	u.S = NewOutput("m.S", nil)
-	u.AS = NewOutput("m.AS", nil)
-	u.AC = NewOutput("m.AC", nil)
-	u.SC = NewOutput("m.SC", nil)
-	u.ASC = NewOutput("m.ASC", nil)
-	u.RS = NewOutput("m.RS", nil)
-	u.DS = NewOutput("m.DS", nil)
-	u.F = NewOutput("m.F", nil)
-	u.lhppI = NewOutput("m.lhppI", nil)
-	u.lhppII = NewOutput("m.lhppII", nil)
-	u.rhppI = NewOutput("m.rhppI", nil)
-	u.rhppII = NewOutput("m.rhppII", nil)
+	u.A = u.newOutput("m.A", 1)
+	u.S = u.newOutput("m.S", 1)
+	u.AS = u.newOutput("m.AS", 1)
+	u.AC = u.newOutput("m.AC", 1)
+	u.SC = u.newOutput("m.SC", 1)
+	u.ASC = u.newOutput("m.ASC", 1)
+	u.RS = u.newOutput("m.RS", 1)
+	u.DS = u.newOutput("m.DS", 1)
+	u.F = u.newOutput("m.F", 1)
+	u.lhppI = u.newOutput("m.lhppI", 10)
+	u.lhppII = u.newOutput("m.lhppII", 10)
+	u.rhppI = u.newOutput("m.rhppI", 10)
+	u.rhppII = u.newOutput("m.rhppII", 10)
 	return u
+}
+
+func (u *Multiplier) newProgramInput(program int) *Jack {
+	return NewInput(fmt.Sprintf("m.%di", program+1), func(j *Jack, val int) {
+		u.multargs(program)
+		if u.tracer != nil {
+			u.tracer.LogPulse(j.Name, 1, int64(val))
+		}
+	})
+}
+
+func (u *Multiplier) newOutput(name string, width int) *Jack {
+	return NewOutput(name, func(j *Jack, val int) {
+		if u.tracer != nil {
+			u.tracer.LogPulse(j.Name, width, int64(val))
+		}
+	})
+}
+
+func (u *Multiplier) AttachTracer(tracer Tracer) {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	u.tracer = tracer
+	u.tracer.RegisterValueCallback(func() {
+		ierSign, ier := StringToSignAndDigits(u.ier)
+		icandSign, icand := StringToSignAndDigits(u.icand)
+		u.tracer.LogValue("m.ierSign", 1, BoolToInt64(ierSign))
+		u.tracer.LogValue("m.ier", 40, DigitsToInt64BCD(ier))
+		u.tracer.LogValue("m.icandSign", 1, BoolToInt64(icandSign))
+		u.tracer.LogValue("m.icand", 40, DigitsToInt64BCD(icand))
+	})
 }
 
 func (u *Multiplier) Stat() string {

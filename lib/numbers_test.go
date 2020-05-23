@@ -66,7 +66,7 @@ func sliceEquals(a, b []int) bool {
 
 func TestIBMCardToNinesComplement_P(t *testing.T) {
 	gotSign, gotDigits := IBMCardToNinesComplement("42")
-	expectedSign, expectedDigits := false, []int{4, 2}
+	expectedSign, expectedDigits := false, []int{2, 4}
 	if gotSign != expectedSign {
 		t.Errorf("expected sign %v got %v", expectedSign, gotSign)
 	}
@@ -88,7 +88,7 @@ func TestIBMCardToNinesComplement_N0(t *testing.T) {
 
 func TestIBMCardToNinesComplement_N10(t *testing.T) {
 	gotSign, gotDigits := IBMCardToNinesComplement("R0")
-	expectedSign, expectedDigits := true, []int{0, 9}
+	expectedSign, expectedDigits := true, []int{9, 0}
 	if gotSign != expectedSign {
 		t.Errorf("expected sign %v got %v", expectedSign, gotSign)
 	}
@@ -99,7 +99,7 @@ func TestIBMCardToNinesComplement_N10(t *testing.T) {
 
 func TestIBMCardToNinesComplement_N123000(t *testing.T) {
 	gotSign, gotDigits := IBMCardToNinesComplement("Q77000")
-	expectedSign, expectedDigits := true, []int{1, 2, 2, 9, 9, 9}
+	expectedSign, expectedDigits := true, []int{9, 9, 9, 2, 2, 1}
 	if gotSign != expectedSign {
 		t.Errorf("expected sign %v got %v", expectedSign, gotSign)
 	}
@@ -110,7 +110,7 @@ func TestIBMCardToNinesComplement_N123000(t *testing.T) {
 
 func TestIBMCardToNinesComplement_N123(t *testing.T) {
 	gotSign, gotDigits := IBMCardToNinesComplement("O79")
-	expectedSign, expectedDigits := true, []int{3, 2, 0}
+	expectedSign, expectedDigits := true, []int{0, 2, 3}
 	if gotSign != expectedSign {
 		t.Errorf("expected sign %v got %v", expectedSign, gotSign)
 	}
@@ -121,7 +121,7 @@ func TestIBMCardToNinesComplement_N123(t *testing.T) {
 
 func TestIBMCardToNinesComplement_N1(t *testing.T) {
 	gotSign, gotDigits := IBMCardToNinesComplement("-000000001")
-	expectedSign, expectedDigits := true, []int{9, 9, 9, 9, 9, 9, 9, 9, 9, 8}
+	expectedSign, expectedDigits := true, []int{8, 9, 9, 9, 9, 9, 9, 9, 9, 9}
 	if gotSign != expectedSign {
 		t.Errorf("expected sign %v got %v", expectedSign, gotSign)
 	}

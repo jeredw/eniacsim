@@ -529,8 +529,6 @@ func (u *Ft) subtrlookup(c Pulse) {
 }
 
 func (u *Ft) Clock(p Pulse) {
-	//  u.mu.Lock()
-	//  defer u.mu.Unlock()
 	if u.px4119 {
 		if p&Cpp != 0 {
 			p |= Ninep

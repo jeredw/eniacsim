@@ -189,8 +189,8 @@ func pmSettings() []IntSwitchSetting {
 
 func ninepSettings() []BoolSwitchSetting {
 	return []BoolSwitchSetting{
-		{"C", true}, {"c", true},
-		{"Cpp", false}, {"cpp", false},
+		{"C", false}, {"c", false},
+		{"Cpp", true}, {"cpp", true},
 	}
 }
 

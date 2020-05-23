@@ -503,6 +503,7 @@ func doTraceStart(w io.Writer, f []string) {
 	for i := range accumulator {
 		accumulator[i].AttachTracer(waves)
 	}
+	multiplier.AttachTracer(waves)
 	constant.AttachTracer(waves)
 	cycle.AttachTracer(waves)
 }

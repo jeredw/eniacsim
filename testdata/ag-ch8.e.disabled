@@ -360,7 +360,7 @@ s a8.rp8 7
 s a8.op9 0
 s a8.rp9 1
 
-# Accumulator 9
+# Accumulator 9 (ier)
 p 5 a9.α
 p 5 ad.s.1.5
 p ad.s.1.5 a9.β
@@ -377,7 +377,7 @@ s a9.op4 δ
 s a9.op5 S
 s a9.rp5 1
 
-# Accumulator 10
+# Accumulator 10 (icand)
 p 5 ad.d.2.5
 p ad.d.2.5 a10.α
 p 5 ad.s.2.5
@@ -550,7 +550,7 @@ s m.prod14 AC
 # s m.icandcl15 C
 # s m.prod15 ASC
 
-# Accumulator 11
+# Accumulator 11 (lhpp)
 p a11.A 7
 p 9 a11.α  # m.lhppI
 p 6 a11.β
@@ -602,7 +602,7 @@ s a12.op6 α
 s a12.cc6 0
 s a12.rp6 1
 
-# Accumulator 13
+# Accumulator 13 (rhpp)
 p a13.A 1
 p a13.S 2
 p 8 a13.α  # m.rhppI

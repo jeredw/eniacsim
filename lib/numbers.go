@@ -20,7 +20,7 @@ var BCD = []Pulse{
 
 func TenDigitsToInt64BCD(digits [10]int) int64 {
 	var n int64
-	for i := range digits {
+	for i := 9; i >= 0; i-- {
 		n = (n << 4) + int64(digits[i])
 	}
 	return n
@@ -28,7 +28,7 @@ func TenDigitsToInt64BCD(digits [10]int) int64 {
 
 func DigitsToInt64BCD(digits []int) int64 {
 	var n int64
-	for i := range digits {
+	for i := len(digits) - 1; i >= 0; i-- {
 		n = (n << 4) + int64(digits[i])
 	}
 	return n
@@ -46,6 +46,22 @@ func ToBin(b bool) string {
 		return "1"
 	}
 	return "0"
+}
+
+func StringToSignAndDigits(s string) (sign bool, digits []int) {
+	if len(s) < 3 {
+		return false, []int{}
+	}
+	sign = false
+	if s[0] == 'M' {
+		sign = true
+	}
+	numDigits := len(s) - 2
+	digits = make([]int, numDigits)
+	for i := 0; i < numDigits; i++ {
+		digits[i] = int(s[2+(numDigits-1-i)] - '0')
+	}
+	return
 }
 
 // ENIAC's IBM card punch and reader used 80 column cards.  This program
@@ -124,13 +140,13 @@ func IBMCardToNinesComplement(field string) (sign bool, digits []int) {
 	if sign == false {
 		for i, c := range field {
 			if unicode.IsDigit(c) {
-				digits[i] = runeToDigit(c)
+				digits[numDigits-1-i] = runeToDigit(c)
 			}
 		}
 		return
 	}
 	for i := 0; i < numDigits; i++ {
-		digits[i] = 9 - runeToDigit(rune(field[i]))
+		digits[numDigits-1-i] = 9 - runeToDigit(rune(field[i]))
 	}
 	return
 }
