@@ -27,7 +27,7 @@ var debugger *Debugger
 var trays *Trays
 var adapters *Adapters
 
-var log *trace
+var waves *wavedump
 
 func main() {
 	flag.Usage = func() {

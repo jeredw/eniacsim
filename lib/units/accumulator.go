@@ -46,13 +46,12 @@ type Accumulator struct {
 	afterFirstRp bool
 	programCache int
 
-	left  *Accumulator
-	right *Accumulator
-
+	left       *Accumulator
+	right      *Accumulator
 	multiplier ProductController
 
-	unit       int // Unit number 0-19
-	tracePulse TraceFunc
+	unit   int // Unit number 0-19
+	tracer Tracer
 
 	mu sync.Mutex
 }
@@ -347,8 +346,8 @@ func (u *Accumulator) newDigitInput(name string, programMask int) *Jack {
 		defer u.mu.Unlock()
 		if u.activeProgram()&programMask != 0 {
 			u.receive(val)
-			if u.tracePulse != nil {
-				u.tracePulse(j.Name, 11, int64(val))
+			if u.tracer != nil {
+				u.tracer.LogPulse(j.Name, 11, int64(val))
 			}
 		}
 	})
@@ -374,8 +373,8 @@ func (u *Accumulator) newProgramInput(name string, which int) *Jack {
 	return NewInput(u.terminal(name), func(j *Jack, val int) {
 		if val == 1 {
 			u.trigger(which)
-			if u.tracePulse != nil {
-				u.tracePulse(j.Name, 1, int64(val))
+			if u.tracer != nil {
+				u.tracer.LogPulse(j.Name, 1, int64(val))
 			}
 		}
 	})
@@ -405,8 +404,8 @@ func (u *Accumulator) trigger(input int) {
 
 func (u *Accumulator) newOutput(name string, width int) *Jack {
 	return NewOutput(u.terminal(name), func(j *Jack, val int) {
-		if u.tracePulse != nil {
-			u.tracePulse(j.Name, width, int64(val))
+		if u.tracer != nil {
+			u.tracer.LogPulse(j.Name, width, int64(val))
 		}
 	})
 }
@@ -456,29 +455,27 @@ func (u *Accumulator) State() json.RawMessage {
 	return result
 }
 
-func (u *Accumulator) AttachTrace(tracePulse TraceFunc) []func(TraceFunc) {
+func (u *Accumulator) AttachTracer(tracer Tracer) {
 	u.mu.Lock()
 	defer u.mu.Unlock()
-	u.tracePulse = tracePulse
+	u.tracer = tracer
 	sign := u.terminal("sign")
+	tracer.RegisterValueCallback(func() {
+		s := int64(0)
+		if u.sign {
+			s = 1
+		}
+		tracer.LogValue(sign, 1, s)
+	})
 	decade := u.terminal("decade")
-	return []func(t TraceFunc){
-		func(traceReg TraceFunc) {
-			s := int64(0)
-			if u.sign {
-				s = 1
-			}
-			traceReg(sign, 1, s)
-		},
-		func(traceReg TraceFunc) {
-			var n int64
-			for i := 9; i >= 0; i-- {
-				n <<= 4
-				n += int64(u.decade[i])
-			}
-			traceReg(decade, 40, n)
-		},
-	}
+	tracer.RegisterValueCallback(func() {
+		var n int64
+		for i := 9; i >= 0; i-- {
+			n <<= 4
+			n += int64(u.decade[i])
+		}
+		tracer.LogValue(decade, 40, n)
+	})
 }
 
 func (u *Accumulator) Reset() {

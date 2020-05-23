@@ -493,23 +493,18 @@ func doTraceStart(w io.Writer, f []string) {
 		fmt.Fprintln(w, "trace start syntax: ts p|f|pf")
 		return
 	}
-	tracePulses := strings.IndexByte(f[1], 'p') != -1
-	traceRegs := strings.IndexByte(f[1], 'f') != -1
-	if !tracePulses && !traceRegs {
+	pulses := strings.IndexByte(f[1], 'p') != -1
+	regs := strings.IndexByte(f[1], 'f') != -1
+	if !pulses && !regs {
 		fmt.Fprintln(w, "trace start: expecting p for pulses, f for regs")
 		return
 	}
-	log = NewTrace(tracePulses, traceRegs)
+	waves = NewWavedump(pulses, regs)
 	for i := range accumulator {
-		log.Register(accumulator[i].AttachTrace(log.tracePulse))
+		accumulator[i].AttachTracer(waves)
 	}
-	log.Register(constant.AttachTrace(log.tracePulse))
-	cycle.Io.TraceAddCycle = func() {
-		log.RunCallbacks()
-	}
-	cycle.Io.TracePulse = func() {
-		log.Tick()
-	}
+	constant.AttachTracer(waves)
+	cycle.AttachTracer(waves)
 }
 
 func doTraceEnd(w io.Writer, f []string) {
@@ -517,7 +512,7 @@ func doTraceEnd(w io.Writer, f []string) {
 		fmt.Fprintln(w, "trace end syntax: te file")
 		return
 	}
-	if log == nil {
+	if waves == nil {
 		fmt.Fprintln(w, "not tracing; missing ts?")
 		return
 	}
@@ -527,7 +522,7 @@ func doTraceEnd(w io.Writer, f []string) {
 		return
 	}
 	bw := bufio.NewWriter(fd)
-	log.WriteVcd(bw, time.Now())
+	waves.WriteVcd(bw, time.Now())
 	bw.Flush()
 }
 

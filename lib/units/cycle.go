@@ -17,6 +17,7 @@ type Cycle struct {
 	phase      int
 
 	switches chan [2]string // Sim controls to change mode
+	tracer   Tracer
 }
 
 // CycleConn defines connections needed for the cycle unit
@@ -28,9 +29,6 @@ type CycleConn struct {
 	CycleButton Button      // Sim control to step clock
 	TestButton  Button      // Interlock for test mode
 	TestCycles  int         // How many cycles to run in test mode
-
-	TracePulse    func() // Update trace at the end of each pulse
-	TraceAddCycle func() // Update trace at the end of each add cycle
 }
 
 // Clock operating modes
@@ -102,6 +100,11 @@ func (u *Cycle) Mode() int {
 	return u.mode
 }
 
+// AttachTracer connects a trace logger.
+func (u *Cycle) AttachTracer(tracer Tracer) {
+	u.tracer = tracer
+}
+
 // Stat returns the current phase of the pulse train
 // FIXME: Do we really need this?  Delete if possible
 func (u *Cycle) Stat() string {
@@ -143,6 +146,10 @@ func (u *Cycle) Run() {
 
 	for {
 		for u.phase = 0; u.phase < len(phases); u.phase++ {
+			if u.tracer != nil {
+				u.tracer.AdvanceTimestep()
+				//u.tracer.LogValue("cyc.pulse", 6, int64(u.phase/2))
+			}
 			u.applyControls(update)
 			if u.phase == 32 && u.Io.Clear() {
 				for _, c := range u.Io.Units {
@@ -164,12 +171,9 @@ func (u *Cycle) Run() {
 				u.ackButtons()
 				u.control.mu.Unlock()
 			}
-			if u.Io.TracePulse != nil {
-				u.Io.TracePulse()
-			}
 		}
-		if u.Io.TraceAddCycle != nil {
-			u.Io.TraceAddCycle()
+		if u.tracer != nil {
+			u.tracer.UpdateValues()
 		}
 		u.addCycleMu.Lock()
 		u.addCycle++

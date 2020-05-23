@@ -44,7 +44,7 @@ type Constant struct {
 	inff1, inff2 [30]bool
 	whichrp      bool
 
-	tracePulse TraceFunc
+	tracer Tracer
 
 	mu sync.Mutex
 }
@@ -63,23 +63,25 @@ func (u *Constant) newProgramInput(name string, program int) *Jack {
 	return NewInput(name, func(j *Jack, val int) {
 		if val == 1 {
 			u.trigger(program)
+			if u.tracer != nil {
+				u.tracer.LogPulse(j.Name, 1, int64(val))
+			}
 		}
 	})
 }
 
 func (u *Constant) newOutput(name string, width int) *Jack {
 	return NewOutput(name, func(j *Jack, val int) {
-		if u.tracePulse != nil {
-			u.tracePulse(j.Name, width, int64(val))
+		if u.tracer != nil {
+			u.tracer.LogPulse(j.Name, width, int64(val))
 		}
 	})
 }
 
-func (u *Constant) AttachTrace(tracePulse TraceFunc) []func(TraceFunc) {
+func (u *Constant) AttachTracer(tracer Tracer) {
 	u.mu.Lock()
 	defer u.mu.Unlock()
-	u.tracePulse = tracePulse
-	return []func(TraceFunc){}
+	u.tracer = tracer
 }
 
 func (u *Constant) Stat() string {
