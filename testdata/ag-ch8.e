@@ -2,6 +2,13 @@
 # Figure 8-3, Tables 8-11, 8-13
 # Table 9-3 appended to print results
 
+# a14 (4)  = 0.001932612
+# a16 (5)* = 0.001950181   (* with original bug)
+# a17 (8)  = 0.001756920
+# a18 (11) = 0.001756920
+# a19 (14) = 0.001756920
+# a20 (17) = 0.001756920
+
 # Initiating Unit
 p 2-3 i.Ri
 p 2-7 i.Rl
@@ -105,8 +112,9 @@ s p.cF 5
 # (Since only the first multiplication sequence is setup this does nothing.)
 p 9-1 p.Gi
 p p.G1o 9-2
-# Fig 8.2 clearly has this as 10-2.  9-1 is a hack to stay on sequence A.
-#p p.G2o 10-2
+# Fig 8.2 clearly has this as 10-2, but it does nothing since that sequence
+# isn't set up.  BLS has 9-1 as a hack to repeat the same sequence twice, which
+# lets us finish.
 p p.G2o 9-1
 s p.a10 G
 s p.a8 G
