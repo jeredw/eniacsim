@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"time"
 
 	//	"net/http"
 	//	_ "net/http/pprof"
@@ -118,8 +117,6 @@ func main() {
 	go cycle.Run()
 
 	if flag.NArg() >= 1 {
-		// Seriously ugly hack to give other goprocs time to get initialized
-		time.Sleep(100 * time.Millisecond)
 		doCommand(os.Stdout, "l "+flag.Arg(0))
 	}
 
