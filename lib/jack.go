@@ -19,10 +19,8 @@ type Jack struct {
 	OnTransmit  JackHandler
 	Connections []*Jack
 
-	bus            bool
-	busConnections []*Jack
-
-	mu sync.Mutex
+	visited bool
+	mu      sync.Mutex
 }
 
 func NewJack(name string, onReceive JackHandler, onTransmit JackHandler) *Jack {
@@ -42,22 +40,25 @@ func NewOutput(name string, onTransmit JackHandler) *Jack {
 	return NewJack(name, nil, onTransmit)
 }
 
-func NewBusJack(name string) *Jack {
-	j := NewJack(name, forwardOnBus, nil)
-	j.bus = true
-	j.busConnections = make([]*Jack, 0, 1)
-	return j
-}
-
 // Transmit sends val on jack j, invoking receiver callbacks for each connected
 // receiver and afterwards invoking j's transmit callback.
 func (j *Jack) Transmit(val int) {
 	j.mu.Lock()
 	defer j.mu.Unlock()
+	if j.visited {
+		// A previous call to Transmit() on this jack triggered this call.  Break
+		// the cycle and return early here.
+		//
+		// This isn't an error, and can happen legitimately when e.g. two trunks
+		// are connected, like p 1 2.  Transmitting on trunk 1 will call transmit
+		// on trunk 2, which will attempt to transmit on trunk 1 again.
+		return
+	}
+	j.visited = true
 	transmitted := false
 	for i := range j.Connections {
 		r := j.Connections[i]
-		if r.OnReceive != nil {
+		if !r.visited && r.OnReceive != nil {
 			transmitted = true
 			r.OnReceive(r, val)
 		}
@@ -65,6 +66,7 @@ func (j *Jack) Transmit(val int) {
 	if transmitted && j.OnTransmit != nil {
 		j.OnTransmit(j, val)
 	}
+	j.visited = false
 }
 
 func (j *Jack) String() string {
@@ -129,55 +131,5 @@ func Connect(j1, j2 *Jack) error {
 	}
 	j1.Connections = append(j1.Connections, j2)
 	j2.Connections = append(j2.Connections, j1)
-	if j1.bus {
-		j1.updateBusConnections()
-	}
-	if j2.bus {
-		j2.updateBusConnections()
-	}
 	return nil
-}
-
-func (j *Jack) updateBusConnections() {
-	// Find all jacks connected to bus j, including through connected busses.
-	// This allows stuff like "p 1 2" to work without infinite routing loops.
-	connected := make(map[*Jack]int)
-	visited := make(map[*Jack]int)
-	q := []*Jack{j}
-	for len(q) > 0 {
-		cur := q[0]
-		q[0] = q[len(q)-1]
-		q = q[:len(q)-1]
-		_, ok := visited[cur]
-		if ok {
-			continue
-		}
-		visited[cur] = 1
-		for i := range cur.Connections {
-			n := cur.Connections[i]
-			if n.bus {
-				q = append(q, n)
-			} else {
-				connected[n] = 1
-			}
-		}
-	}
-	j.busConnections = make([]*Jack, 0, len(connected))
-	for n, _ := range connected {
-		j.busConnections = append(j.busConnections, n)
-	}
-}
-
-func forwardOnBus(j *Jack, val int) {
-	j.mu.Lock()
-	defer j.mu.Unlock()
-	if !j.bus {
-		panic(fmt.Sprintf("%s is not a bus", j))
-	}
-	for i := range j.busConnections {
-		r := j.busConnections[i]
-		if r.OnReceive != nil {
-			r.OnReceive(r, val)
-		}
-	}
 }

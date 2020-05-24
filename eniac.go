@@ -25,6 +25,7 @@ var accumulator [20]*units.Accumulator
 var debugger *Debugger
 var trays *Trays
 var adapters *Adapters
+var pulseAmps *PulseAmps
 
 var waves *wavedump
 
@@ -59,6 +60,7 @@ func main() {
 
 	trays = NewTrays()
 	adapters = NewAdapters()
+	pulseAmps = NewPulseAmps()
 	debugger = NewDebugger()
 	cycle = units.NewCycle(units.CycleConn{
 		CycleButton: NewButton(),

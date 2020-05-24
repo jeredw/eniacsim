@@ -300,6 +300,8 @@ func findPlugboard(name string) (Plugboard, error) {
 		return multiplier, nil
 	case name == "p":
 		return mp, nil
+	case name == "pa":
+		return pulseAmps, nil
 	case unicode.IsDigit(rune(name[0])):
 		return trays, nil
 	}
