@@ -1,5 +1,6 @@
 # Divider test
 # Divider multiplier wiring
+# a1 = .3/.160 = 1.875
 p d.ans 8
 p 8 a2.α
 p 8 a5.γ
@@ -14,8 +15,8 @@ s d.nr1 α
 s d.nc1 C
 s d.dr1 α
 s d.dc1 C
-# s d.pl1.D4
-s d.pl1 D10
+s d.pl1 D4
+#s d.pl1 D10
 s d.ro1 RO
 s d.an1 1
 s d.il1 NI
@@ -49,33 +50,33 @@ p 1 a5.α
 p 1-2 c.26i
 s c.s26 Klr
 # set the J and K constants
-s c.j10 0
-s c.j9 3
-s c.j8 0
-s c.k10 0
-s c.k9 1
-s c.k8 6
-s c.k7 0
+#s c.j10 0
+#s c.j9 3
+#s c.j8 0
+#s c.k10 0
+#s c.k9 1
+#s c.k8 6
+#s c.k7 0
 # Example from Goldstine's tech manual
-# s c.j10.0
-# s c.j9.2
-# s c.j8.0
-# s c.j7.9
-# s c.j6.0
-# s c.j5.7
-# s c.j4.0
-# s c.j3.0
-# s c.j2.0
-# s c.j1.0
-# s c.k10.0
-# s c.k9.2
-# s c.k8.3
-# s c.k7.0
-# s c.k6.0
-# s c.k5.0
-# s c.k4.0
-# s c.k3.0
-# s c.k2.0
-# s c.k1.0
+s c.j10 0
+s c.j9 2
+s c.j8 0
+s c.j7 9
+s c.j6 0
+s c.j5 7
+s c.j4 0
+s c.j3 0
+s c.j2 0
+s c.j1 0
+s c.k10 0
+s c.k9 2
+s c.k8 3
+s c.k7 0
+s c.k6 0
+s c.k5 0
+s c.k4 0
+s c.k3 0
+s c.k2 0
+s c.k1 0
 
 b i

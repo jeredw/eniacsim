@@ -385,6 +385,7 @@ func (u *Divsr) divargs(prog int) {
 		u.dβ = true
 		u.su3 |= opβ
 	}
+	u.setExternalPrograms()
 }
 
 func (u *Divsr) doP() {
@@ -495,7 +496,9 @@ func (u *Divsr) doGP() {
 		if u.dencl[u.curprog] {
 			u.Io.Denominator.Clear()
 		}
+		u.mu.Unlock()
 		u.intclear()
+		u.mu.Lock()
 		return
 	}
 	if u.qα {
@@ -704,6 +707,7 @@ func (u *Divsr) Clock(p Pulse) {
 				u.doIIIP()
 			}
 		}
+		u.setExternalPrograms()
 	case p&Rp != 0:
 		/*
 		 * Ugly hack to avoid races
@@ -737,4 +741,11 @@ func (u *Divsr) Clock(p Pulse) {
 			u.placering++
 		}
 	}
+}
+
+func (u *Divsr) setExternalPrograms() {
+	u.Io.Quotient.SetExternalProgram(u.su2q)
+	u.Io.Numerator.SetExternalProgram(u.sv)
+	u.Io.Denominator.SetExternalProgram(u.su3)
+	u.Io.Shift.SetExternalProgram(u.su2s)
 }
