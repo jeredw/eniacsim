@@ -39,7 +39,7 @@ s p.d13s1 1
 s p.d12s1 0
 s p.d12s2 1
 
-# Accumulator 13
+# Accumulator 13 (y')
 p 1 a13.α
 p a13.A 1
 p 1-8 a13.1i
@@ -54,14 +54,14 @@ s a13.rp5 1
 s a13.op6 α
 s a13.rp6 1
 
-# Accumulator 14
+# Accumulator 14 (y)
 p 1 a14.α
 p 1-4 a14.5i
 s a14.sc SC
 s a14.op5 α
 s a14.rp5 1
 
-# Accumulator 16
+# Accumulator 16 (x')
 p 1 a16.α
 p a16.A 2
 p 1-9 a16.1i
@@ -70,7 +70,7 @@ s a16.sc SC
 s a16.op1 α
 s a16.op2 A
 
-# Accumulator 17
+# Accumulator 17 (x)
 p 2 a17.α
 p 1-4 a17.2i
 s a17.sc SC
@@ -83,9 +83,12 @@ p c.1o 1-9
 p 1-9 c.2i
 p c.2o 1-2
 p 1-10 c.25i
+# y'(0)
 s c.s1 Blr
+# x'(0)
 s c.s2 Alr
 s c.s25 Jlr
+# y'' = -32ft/s/s
 s c.jl M
 s c.jr M
 s c.j10 9
@@ -109,6 +112,6 @@ s pr.8 P
 s pr.9 P
 s pr.10 P
 
-f r ch10b.card
+f r testdata/ch10b.card
 
 b i
