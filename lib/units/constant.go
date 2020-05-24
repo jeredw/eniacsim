@@ -375,11 +375,12 @@ func (u *Constant) selectConstant(program int) {
 }
 
 func (u *Constant) Clock(cyc Pulse) {
-	//	u.mu.Lock()
-	//	defer u.mu.Unlock()
 	sending := -1
 	for i := 0; i < 30; i++ {
 		if u.inff2[i] {
+			// FIXME "Simultaneous stimulation of two program controls" is actually
+			// allowed in some restricted cases described in ETM, Table 8-6.  This
+			// implementation assumes only one active program.
 			sending = i
 			u.selectConstant(i)
 			break
