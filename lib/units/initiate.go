@@ -78,7 +78,7 @@ func NewInitiate(io InitiateConn) *Initiate {
 	return u
 }
 
-func (u *Initiate) ShouldClear() bool {
+func (u *Initiate) SelectiveClear() bool {
 	u.mu.Lock()
 	defer u.mu.Unlock()
 	return u.clrff[0] || u.clrff[1] || u.clrff[2] || u.clrff[3] || u.clrff[4] || u.clrff[5]

@@ -1,9 +1,9 @@
 package lib
 
-// Pulse is a signal sent on the cycling trunk.
+// Pulse is a signal sent on the synchronizing trunk.
 type Pulse int
 
-// Clocked units receive and respond to pulses on the cycling trunk.
+// Clocked units receive and respond to pulses on the synchronizing trunk.
 type Clocked interface {
 	Clock(Pulse)
 }

@@ -94,7 +94,7 @@ func main() {
 	}
 
 	cycle.Io.Units = clockedUnits
-	cycle.Io.Clear = func() bool { return initiate.ShouldClear() }
+	cycle.Io.SelectiveClear = func() bool { return initiate.SelectiveClear() }
 	initiate.Io.Units = clearedUnits
 	initiate.Io.AddCycle = func() int { return cycle.AddCycle() }
 	initiate.Io.Stepping = func() bool { return cycle.Stepping() }

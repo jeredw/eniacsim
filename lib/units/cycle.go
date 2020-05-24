@@ -22,13 +22,13 @@ type Cycle struct {
 
 // CycleConn defines connections needed for the cycle unit
 type CycleConn struct {
-	Units       []Clocked   // Clocked units
-	Clear       func() bool // Clear gate (from initiate unit)
-	Reset       chan int    // Sim control to reset unit
-	Stop        chan int    // Triggered by debug breakpoints
-	CycleButton Button      // Sim control to step clock
-	TestButton  Button      // Interlock for test mode
-	TestCycles  int         // How many cycles to run in test mode
+	Units          []Clocked   // Clocked units
+	SelectiveClear func() bool // Clear gate (from initiate unit)
+	Reset          chan int    // Sim control to reset unit
+	Stop           chan int    // Triggered by debug breakpoints
+	CycleButton    Button      // Sim control to step clock
+	TestButton     Button      // Interlock for test mode
+	TestCycles     int         // How many cycles to run in test mode
 }
 
 // Clock operating modes
@@ -151,7 +151,7 @@ func (u *Cycle) Run() {
 				//u.tracer.LogValue("cyc.pulse", 6, int64(u.phase/2))
 			}
 			u.applyControls(update)
-			if u.phase == 32 && u.Io.Clear() {
+			if u.phase == 32 && u.Io.SelectiveClear() {
 				for _, c := range u.Io.Units {
 					c.Clock(Scg)
 				}
