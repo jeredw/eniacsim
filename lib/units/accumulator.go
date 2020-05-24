@@ -396,8 +396,10 @@ func (u *Accumulator) trigger(input int) {
 		if input >= 4 {
 			u.repeating = true
 		}
-		// fttest2.e wires digit pulse adapters to non-dummy programs.
-		u.updateActiveProgram()
+		if u.operation[input] != 0 {
+			// This is probably not intended and won't be simulated correctly.
+			panic("attempt to trigger non-dummy acc program from non-cpp")
+		}
 	}
 	u.mu.Unlock()
 }
