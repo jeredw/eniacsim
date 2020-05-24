@@ -198,17 +198,7 @@ func doPlug(w io.Writer, command string, f []string) {
 
 	p1 := strings.Split(f[1], ".")
 	p2 := strings.Split(f[2], ".")
-
-	handled, err := doInterconnect(p1, p2)
-	if handled {
-		if err != nil {
-			fmt.Fprintf(w, "Interconnect: %s\n", err)
-		}
-		return
-	}
-
-	handled, err = doMultiplierInterconnect(f[1], f[2])
-	if handled {
+	if handled, err := doInterconnect(f[1], f[2], p1, p2); handled {
 		if err != nil {
 			fmt.Fprintf(w, "Interconnect: %s\n", err)
 		}
@@ -505,6 +495,7 @@ func doTraceStart(w io.Writer, f []string) {
 	}
 	multiplier.AttachTracer(waves)
 	constant.AttachTracer(waves)
+	divsr.AttachTracer(waves)
 	cycle.AttachTracer(waves)
 }
 
@@ -527,13 +518,19 @@ func doTraceEnd(w io.Writer, f []string) {
 	bw.Flush()
 }
 
-func doInterconnect(p1 []string, p2 []string) (bool, error) {
+func doInterconnect(f1 string, f2 string, p1 []string, p2 []string) (bool, error) {
 	// Handle commands like p aXX.{st,su,il,ir} *
 	if len(p1) == 2 && p1[0][0] == 'a' && len(p1[1]) >= 2 &&
 		len(p2) == 2 && p2[0][0] == 'a' && len(p2[1]) >= 2 &&
 		(p1[1][:2] == "il" || p1[1][:2] == "ir") &&
 		(p2[1][:2] == "il" || p2[1][:2] == "ir") {
 		return true, units.Interconnect(accumulator, p1, p2)
+	}
+	if handled, err := doMultiplierInterconnect(f1, f2); handled {
+		return true, err
+	}
+	if handled, err := doDivsrInterconnect(f1, f2); handled {
+		return true, err
 	}
 	return false, nil
 }
@@ -543,15 +540,56 @@ func doMultiplierInterconnect(f1 string, f2 string) (bool, error) {
 	if strings.HasPrefix(f2, "m.") {
 		f1, f2 = f2, f1
 	}
-	if f1 == "m.L" || f1 == "m.l" || f1 == "m.R" || f1 == "m.r" {
+	var conn *units.StaticWiring
+	switch f1 {
+	case "m.l", "m.L":
+		conn = &multiplier.Io.Lhpp
+	case "m.r", "m.R":
+		conn = &multiplier.Io.Rhpp
+	case "m.ier":
+		conn = &multiplier.Io.Ier
+	case "m.icand":
+		conn = &multiplier.Io.Icand
+	}
+	if conn != nil {
 		if len(f2) < 2 || !strings.HasPrefix(f2, "a") {
-			return true, fmt.Errorf("multiplier left/right must be connected to accum")
+			return true, fmt.Errorf("multiplier interconnect must be connected to accum")
 		}
 		unit, _ := strconv.Atoi(f2[1:])
 		if !(unit >= 1 && unit <= 20) {
 			return true, fmt.Errorf("invalid accumulator")
 		}
-		accumulator[unit-1].ConnectMultiplier(multiplier)
+		*conn = accumulator[unit-1]
+		return true, nil
+	}
+	return false, nil
+}
+
+func doDivsrInterconnect(f1 string, f2 string) (bool, error) {
+	// Handle p d.{} aXX
+	if strings.HasPrefix(f2, "d.") {
+		f1, f2 = f2, f1
+	}
+	var conn *units.StaticWiring
+	switch f1 {
+	case "d.quotient":
+		conn = &divsr.Io.Quotient
+	case "d.numerator":
+		conn = &divsr.Io.Numerator
+	case "d.denominator":
+		conn = &divsr.Io.Denominator
+	case "d.shift":
+		conn = &divsr.Io.Shift
+	}
+	if conn != nil {
+		if len(f2) < 2 || !strings.HasPrefix(f2, "a") {
+			return true, fmt.Errorf("divsr interconnect must be connected to accum")
+		}
+		unit, _ := strconv.Atoi(f2[1:])
+		if !(unit >= 1 && unit <= 20) {
+			return true, fmt.Errorf("invalid accumulator")
+		}
+		*conn = accumulator[unit-1]
 		return true, nil
 	}
 	return false, nil

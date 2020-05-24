@@ -40,15 +40,15 @@ type Accumulator struct {
 	carry  [10]bool // Carry ff per decade
 	carry2 [10]bool // Temp for ripple carries
 
-	inff1, inff2 [12]bool
-	repeating    bool
-	repeatCount  int
-	afterFirstRp bool
-	programCache int
+	inff1, inff2    [12]bool
+	repeating       bool
+	repeatCount     int
+	afterFirstRp    bool
+	programCache    int
+	externalProgram int
 
-	left       *Accumulator
-	right      *Accumulator
-	multiplier ProductController
+	left  *Accumulator
+	right *Accumulator
 
 	unit   int // Unit number 0-19
 	tracer Tracer
@@ -324,8 +324,8 @@ func (u *Accumulator) updateActiveProgram() {
 }
 
 func (u *Accumulator) activeProgram() int {
-	if u.multiplier != nil && u.multiplier.ShouldReceive() {
-		return opα
+	if u.externalProgram != 0 {
+		return u.externalProgram
 	}
 	if u.left != nil {
 		return u.programCache | u.left.programCache
@@ -500,6 +500,7 @@ type StaticWiring interface {
 	Sign() string
 	Value() string
 	Clear()
+	SetExternalProgram(int)
 }
 
 func (u *Accumulator) Sign() string {
@@ -530,6 +531,10 @@ func (u *Accumulator) Clear() {
 	u.mu.Lock()
 	defer u.mu.Unlock()
 	u.clearInternal()
+}
+
+func (u *Accumulator) SetExternalProgram(program int) {
+	u.externalProgram = program
 }
 
 func (u *Accumulator) Set(value int64) {
@@ -668,8 +673,4 @@ func (u *Accumulator) FindSwitch(name string) (Switch, error) {
 		return &IntSwitch{&u.mu, name, &u.repeat[prog-4], rpSettings()}, nil
 	}
 	return nil, fmt.Errorf("invalid switch %s", name)
-}
-
-func (u *Accumulator) ConnectMultiplier(multiplier ProductController) {
-	u.multiplier = multiplier
 }

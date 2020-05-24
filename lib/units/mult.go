@@ -34,6 +34,8 @@ type Multiplier struct {
 type MultiplierConn struct {
 	Ier   StaticWiring
 	Icand StaticWiring
+	Lhpp  StaticWiring
+	Rhpp  StaticWiring
 }
 
 func NewMultiplier() *Multiplier {
@@ -387,6 +389,8 @@ func (u *Multiplier) Clock(c Pulse) {
 		if c&Onep != 0 {
 			u.multl = true
 			u.multr = true
+			u.Io.Lhpp.SetExternalProgram(opα)
+			u.Io.Rhpp.SetExternalProgram(opα)
 			u.sigfig = -1
 			if i := u.activeProgram(); i != -1 {
 				u.sigfig = u.sigsw[i]
@@ -413,16 +417,6 @@ func (u *Multiplier) Clock(c Pulse) {
 		u.buffer61 = false
 		u.f44 = true
 	}
-}
-
-type ProductController interface {
-	ShouldReceive() bool
-}
-
-func (u *Multiplier) ShouldReceive() bool {
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	return u.multl || u.multr
 }
 
 func (u *Multiplier) doCpp() {
@@ -466,6 +460,8 @@ func (u *Multiplier) doCpp() {
 			}
 			u.multl = false
 			u.multr = false
+			u.Io.Lhpp.SetExternalProgram(0)
+			u.Io.Rhpp.SetExternalProgram(0)
 			u.stage = 12
 		} else {
 			u.stage++

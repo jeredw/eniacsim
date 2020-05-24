@@ -9,29 +9,6 @@ import (
 	. "github.com/jeredw/eniacsim/lib"
 )
 
-const (
-	svα   = 1 << 0
-	svβ   = 1 << 1
-	svγ   = 1 << 2
-	svA   = 1 << 5
-	svCLR = 1 << 8
-
-	su2qα   = 1 << 0
-	su2qA   = 1 << 3
-	su2qS   = 1 << 4
-	su2qCLR = 1 << 5
-	su2sα   = 1 << 1
-	su2sA   = 1 << 2
-	su2sCLR = 1 << 6
-
-	su3α   = 1 << 0
-	su3β   = 1 << 1
-	su3γ   = 1 << 2
-	su3A   = 1 << 3
-	su3S   = 1 << 4
-	su3CLR = 1 << 5
-)
-
 // Divsr simulates the ENIAC divider/square rooter unit.
 type Divsr struct {
 	Io DivsrConn
@@ -46,35 +23,56 @@ type Divsr struct {
 	numrmin, qα, sac, m2, m1, nac, da, nα, dα, dγ, npγ, p2, p1, sα, ds, nβ, dβ bool
 	ans1, ans2, ans3, ans4                                                     bool
 	curprog, divadap, sradap                                                   int
-	sv, su2, su3                                                               int
+	sv, su2q, su2s, su3                                                        int
 
-	mu sync.Mutex
+	tracer Tracer
+	mu     sync.Mutex
 }
 
 // Connections to dedicated accumulators.
 type DivsrConn struct {
-	A2 StaticWiring
-	A4 StaticWiring
+	Numerator   StaticWiring
+	Denominator StaticWiring
+	Quotient    StaticWiring
+	Shift       StaticWiring
 }
 
 func NewDivsr() *Divsr {
 	u := &Divsr{}
 	u.intclear()
-	programInput := func(prog int) JackHandler {
-		return func(j *Jack, val int) {
-			u.divargs(prog)
-		}
-	}
-	programInterlock := func(*Jack, int) {
-		u.interlock()
-	}
 	for i := 0; i < 8; i++ {
-		u.progin[i] = NewInput(fmt.Sprintf("d.%di", i+1), programInput(i))
-		u.ilock[i] = NewInput(fmt.Sprintf("d.%dl", i+1), programInterlock)
-		u.progout[i] = NewOutput(fmt.Sprintf("d.%do", i+1), nil)
+		u.progin[i] = u.newProgramInput(i)
+		u.ilock[i] = u.newInterlockInput(i)
+		u.progout[i] = u.newOutput(fmt.Sprintf("d.%do", i+1), 1)
 	}
-	u.answer = NewOutput("d.ans", nil)
+	u.answer = u.newOutput("d.ans", 11)
 	return u
+}
+
+func (u *Divsr) newProgramInput(program int) *Jack {
+	return NewInput(fmt.Sprintf("d.%di", program+1), func(j *Jack, val int) {
+		u.divargs(program)
+		if u.tracer != nil {
+			u.tracer.LogPulse(j.Name, 1, int64(val))
+		}
+	})
+}
+
+func (u *Divsr) newInterlockInput(program int) *Jack {
+	return NewInput(fmt.Sprintf("d.%dl", program+1), func(j *Jack, val int) {
+		u.interlock()
+		if u.tracer != nil {
+			u.tracer.LogPulse(j.Name, 1, int64(val))
+		}
+	})
+}
+
+func (u *Divsr) newOutput(name string, width int) *Jack {
+	return NewOutput(name, func(j *Jack, val int) {
+		if u.tracer != nil {
+			u.tracer.LogPulse(j.Name, width, int64(val))
+		}
+	})
 }
 
 type divsrJson struct {
@@ -223,6 +221,16 @@ func (u *Divsr) Stat2() string {
 	return s
 }
 
+func (u *Divsr) AttachTracer(tracer Tracer) {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	u.tracer = tracer
+	u.tracer.RegisterValueCallback(func() {
+		tracer.LogValue("d.place", 5, int64(u.placering))
+		tracer.LogValue("d.prog", 5, int64(u.progring))
+	})
+}
+
 func (u *Divsr) Reset() {
 	u.mu.Lock()
 	for i := 0; i < 8; i++ {
@@ -258,7 +266,8 @@ func (u *Divsr) Clear() {
 	u.mu.Lock()
 	defer u.mu.Unlock()
 	u.sv = 0
-	u.su2 = 0
+	u.su2s = 0
+	u.su2q = 0
 	u.su3 = 0
 }
 
@@ -363,38 +372,38 @@ func (u *Divsr) divargs(prog int) {
 	switch u.numarg[prog] {
 	case 0:
 		u.nα = true
-		u.sv |= svα
+		u.sv |= opα
 	case 1:
 		u.nβ = true
-		u.sv |= svβ
+		u.sv |= opβ
 	}
 	switch u.denarg[prog] {
 	case 0:
 		u.dα = true
-		u.su3 |= su3α
+		u.su3 |= opα
 	case 1:
 		u.dβ = true
-		u.su3 |= su3β
+		u.su3 |= opβ
 	}
 }
 
 func (u *Divsr) doP() {
 	u.nγ = true
-	u.sv |= svγ
+	u.sv |= opγ
 	if u.samesign() {
 		u.ds = true
-		u.su3 |= su3S
+		u.su3 |= opS
 	} else {
 		u.da = true
-		u.su3 |= su3A
+		u.su3 |= opA
 	}
 }
 
 func (u *Divsr) doS() {
 	u.sα = true
-	u.su2 |= su2sα
+	u.su2s |= opα
 	u.nac = true
-	u.sv |= svA | svCLR
+	u.sv |= opA | opClear
 	if !u.divff {
 		if u.samesign() {
 			u.m1 = true
@@ -402,7 +411,7 @@ func (u *Divsr) doS() {
 			u.p1 = true
 		}
 		u.dpγ = true
-		u.su3 |= su3γ
+		u.su3 |= opγ
 	}
 	p := u.places[u.curprog] % 5
 	if p == 0 {
@@ -420,7 +429,7 @@ func (u *Divsr) samesign() bool {
 }
 
 func (u *Divsr) overflow() bool {
-	s := u.Io.A2.Sign()
+	s := u.Io.Numerator.Sign()
 	return s[0] == 'P' && u.numrmin || s[0] == 'M' && u.numrplus
 }
 
@@ -449,42 +458,42 @@ func (u *Divsr) doGP() {
 		switch u.anssw[u.curprog] {
 		case 0:
 			u.ans1 = true
-			u.su2 |= su2qA
+			u.su2q |= opA
 			if u.divadap == 2 {
-				u.su2 |= su2qCLR
+				u.su2q |= opClear
 			}
 		case 1:
 			u.ans2 = true
 			switch u.divadap {
 			case 0:
-				u.su2 |= su2qA | su2qCLR
+				u.su2q |= opA | opClear
 			case 1:
-				u.su2 |= su2qS
+				u.su2q |= opS
 			case 2:
-				u.su2 |= su2qS | su2qCLR
+				u.su2q |= opS | opClear
 			}
 		case 2:
 			u.ans3 = true
-			u.su3 |= su3A
+			u.su3 |= opA
 			if u.sradap == 2 {
-				u.su3 |= su3CLR
+				u.su3 |= opClear
 			}
 		case 3:
 			u.ans4 = true
 			switch u.sradap {
 			case 0:
-				u.su3 |= su3A | su3CLR
+				u.su3 |= opA | opClear
 			case 1:
-				u.su3 |= su3S
+				u.su3 |= opS
 			case 2:
-				u.su3 |= su3S | su3CLR
+				u.su3 |= opS | opClear
 			}
 		}
 		if u.numcl[u.curprog] {
-			u.Io.A2.Clear()
+			u.Io.Numerator.Clear()
 		}
 		if u.dencl[u.curprog] {
-			u.Io.A4.Clear()
+			u.Io.Denominator.Clear()
 		}
 		u.intclear()
 		return
@@ -498,58 +507,58 @@ func (u *Divsr) doGP() {
 			u.doP()
 		}
 		u.qα = false
-		u.su2 &^= su2qα
+		u.su2q &^= opα
 	} else if u.nγ { //  Gates L10, G11, H11
 		u.nγ = false
-		u.sv &^= svγ
+		u.sv &^= opγ
 		if u.divff {
 			u.qα = true
-			u.su2 |= su2qα
+			u.su2q |= opα
 			if u.ds {
 				u.ds = false
-				u.su3 &^= su3S
+				u.su3 &^= opS
 				u.p1 = true
 			} else if u.da {
 				u.da = false
-				u.su3 &^= su3A
+				u.su3 &^= opA
 				u.m1 = true
 			}
 		} else {
 			u.dγ = true
-			u.su3 |= su3γ
+			u.su3 |= opγ
 			if u.ds {
 				u.ds = false
-				u.su3 &^= su3S
+				u.su3 &^= opS
 				u.p2 = true
 			} else if u.da {
 				u.da = false
-				u.su3 &^= su3A
+				u.su3 &^= opA
 				u.m2 = true
 			}
 		}
 	} else if u.npγ { // Gate C9
 		u.npγ = false
-		u.sv &^= svγ
+		u.sv &^= opγ
 		u.sac = false
-		u.su2 &^= su2sA | su2sCLR
+		u.su2s &^= opA | opClear
 		u.m1 = false
 		u.p1 = false
 		u.dpγ = false
-		u.su3 &^= su3γ
+		u.su3 &^= opγ
 		u.doP()
 	} else if u.sα { // Gates K7, L1
 		u.sα = false
-		u.su2 &^= su2sα
+		u.su2s &^= opα
 		u.nac = false
-		u.sv &^= svA | svCLR
+		u.sv &^= opA | opClear
 		u.sac = true
-		u.su2 |= su2sA | su2sCLR
+		u.su2s |= opA | opClear
 		u.npγ = true
-		u.sv |= svγ
+		u.sv |= opγ
 		u.numrplus, u.numrmin = u.numrmin, u.numrplus
 	} else if u.dγ {
 		u.dγ = false
-		u.su3 &^= su3γ
+		u.su3 &^= opγ
 		u.p2 = false
 		u.m2 = false
 		if u.overflow() {
@@ -562,19 +571,19 @@ func (u *Divsr) doGP() {
 	case 0:
 		u.nα = false
 		u.nβ = false
-		u.sv &^= svα | svβ
+		u.sv &^= opα | opβ
 		u.dα = false
 		u.dβ = false
-		u.su3 &^= su3α | su3β
+		u.su3 &^= opα | opβ
 		if !u.pringff {
 			u.progring++
 		}
 	case 1: // Gate D6
-		s := u.Io.A2.Sign()
+		s := u.Io.Numerator.Sign()
 		if s[0] == 'M' {
 			u.numrplus, u.numrmin = u.numrmin, u.numrplus
 		}
-		s = u.Io.A4.Sign()
+		s = u.Io.Denominator.Sign()
 		if s[0] == 'M' {
 			u.denomff = true
 		}
@@ -589,13 +598,13 @@ func (u *Divsr) doGP() {
 		} else {
 			u.p1 = true
 			u.dγ = true
-			u.su3 |= su3γ
+			u.su3 |= opγ
 			u.progring++
 		}
 	case 3:
 		u.p1 = false
 		u.dγ = false
-		u.su3 &^= su3γ
+		u.su3 &^= opγ
 		u.doP()
 		u.pringff = true
 		u.progring = 0
@@ -605,37 +614,37 @@ func (u *Divsr) doGP() {
 func (u *Divsr) doIIIP() {
 	if u.npγ { // Gate C9
 		u.npγ = false
-		u.sv &^= svγ
+		u.sv &^= opγ
 		u.sac = false
-		u.su2 &^= su2sA | su2sCLR
+		u.su2s &^= opA | opClear
 		u.m1 = false
 		u.p1 = false
 		u.dpγ = false
-		u.su3 &^= su3γ
+		u.su3 &^= opγ
 	} else if u.sα {
 		u.sα = false
-		u.su2 &^= su2sα
+		u.su2s &^= opα
 		u.nac = false
-		u.sv &^= svA | svCLR
+		u.sv &^= opA | opClear
 		u.sac = true
-		u.su2 |= su2sA | su2sCLR
+		u.su2s |= opA | opClear
 		u.npγ = true
-		u.sv |= svγ
+		u.sv |= opγ
 		if u.psrcff {
 			u.dpγ = false
-			u.su3 &^= su3γ
+			u.su3 &^= opγ
 			u.m1 = false
 			u.p1 = false
 		}
 		u.numrplus, u.numrmin = u.numrmin, u.numrplus
 	} else if u.qα {
 		u.qα = false
-		u.su2 &^= su2qα
+		u.su2q &^= opα
 		u.m1 = false
 		u.p1 = false
 	} else if u.dγ {
 		u.dγ = false
-		u.su3 &^= su3γ
+		u.su3 &^= opγ
 		u.m2 = false
 		u.p2 = false
 	}
@@ -644,15 +653,15 @@ func (u *Divsr) doIIIP() {
 		u.doP()
 	case 6: // Gate D4
 		u.nγ = false
-		u.sv &^= svγ
+		u.sv &^= opγ
 		u.da = false
 		u.ds = false
-		u.su3 &^= su3A | su3S
+		u.su3 &^= opA | opS
 	case 7: // Gate J13
 		if !u.overflow() && u.roundoff[u.curprog] == 1 { // Gate K12
 			if u.divff {
 				u.qα = true
-				u.su2 |= su2qα
+				u.su2q |= opα
 				if u.samesign() {
 					u.p1 = true
 				} else {
@@ -660,7 +669,7 @@ func (u *Divsr) doIIIP() {
 				}
 			} else {
 				u.dγ = true
-				u.su3 |= su3γ
+				u.su3 |= opγ
 				if u.samesign() {
 					u.p2 = true
 				} else {
@@ -685,8 +694,8 @@ func (u *Divsr) Clock(p Pulse) {
 			u.ans2 = false
 			u.ans3 = false
 			u.ans4 = false
-			u.su2 &^= su2qA | su2qS | su2qCLR
-			u.su3 &^= su3A | su3S | su3CLR
+			u.su2q &^= opA | opS | opClear
+			u.su3 &^= opA | opS | opClear
 		}
 		if u.curprog >= 0 {
 			if u.psrcff == false { // Gate F4

@@ -101,10 +101,14 @@ func main() {
 	initiate.Io.Stepping = func() bool { return cycle.Stepping() }
 	initiate.Io.ReadCard = func(s string) { constant.ReadCard(s) }
 	initiate.Io.Print = func() string { return printer.Print() }
-	divsr.Io.A2 = accumulator[2]
-	divsr.Io.A4 = accumulator[4]
+	divsr.Io.Quotient = accumulator[2-1]
+	divsr.Io.Numerator = accumulator[3-1]
+	divsr.Io.Denominator = accumulator[5-1]
+	divsr.Io.Shift = accumulator[7-1]
 	multiplier.Io.Ier = accumulator[9-1]
 	multiplier.Io.Icand = accumulator[10-1]
+	multiplier.Io.Lhpp = accumulator[11-1]
+	multiplier.Io.Rhpp = accumulator[13-1]
 	printer.Io.MpPrinterDecades = func() string { return mp.PrinterDecades() }
 	for i := 0; i < 20; i++ {
 		printer.Io.Accumulator[i] = accumulator[i]
