@@ -316,6 +316,6 @@ s pr.8 P
 s pr.9 P
 s pr.10 P
 
-f r ch10c.card
+f r testdata/ch10c.card
 
 b i
