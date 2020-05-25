@@ -20,17 +20,17 @@ type Mp struct {
 }
 
 type mpStepper struct {
-	stage      int // Stage counter (0..5)
-	di, i, cdi *Jack
-	o          [6]*Jack
-	csw        int
-	inff       int
-	kludge     bool
+	stage           int // Stage counter (0..5)
+	di, i, cdi      *Jack
+	o               [6]*Jack
+	csw             int
+	inff            int
+	waitForNextTenp bool
 }
 
 func (s *mpStepper) increment() {
-	if s.kludge {
-		// Don't increment again if re-triggered on "this" Cpp.
+	if s.waitForNextTenp {
+		// Only count once per 10P (ignore 9Ps and non-digit pulses).
 		return
 	}
 	if s.stage >= s.csw {
@@ -38,7 +38,7 @@ func (s *mpStepper) increment() {
 	} else {
 		s.stage++
 	}
-	s.kludge = true
+	s.waitForNextTenp = true
 }
 
 type mpDecade struct {
@@ -173,7 +173,7 @@ func (u *Mp) Reset() {
 			u.stepper[i].o[j].Disconnect()
 		}
 		u.stepper[i].csw = 0
-		u.stepper[i].kludge = false
+		u.stepper[i].waitForNextTenp = false
 	}
 	for i := range u.associator {
 		u.associator[i] = associatorResets[i]
@@ -457,7 +457,7 @@ func (u *Mp) Clock(cyc Pulse) {
 		}
 	} else if cyc&Tenp != 0 {
 		for i := range u.stepper {
-			u.stepper[i].kludge = false
+			u.stepper[i].waitForNextTenp = false
 		}
 	}
 	// Simulate "flip-flop...time constant approximately equal to that

@@ -302,6 +302,8 @@ func findPlugboard(name string) (Plugboard, error) {
 		return mp, nil
 	case name == "pa":
 		return pulseAmps, nil
+	case name == "ts":
+		return tenStepper, nil
 	case unicode.IsDigit(rune(name[0])):
 		return trays, nil
 	}
@@ -362,6 +364,8 @@ func doReset(w io.Writer, f []string) {
 		multiplier.Reset()
 	case "p":
 		mp.Reset()
+	case "ts":
+		tenStepper.Reset()
 	}
 }
 
@@ -382,6 +386,7 @@ func doResetAll(w io.Writer) {
 	printer.Reset()
 	adapters.Reset()
 	trays.Reset()
+	tenStepper.Reset()
 }
 
 func findSwitch(name string) (Switch, error) {
