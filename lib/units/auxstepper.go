@@ -33,7 +33,7 @@ func NewAuxStepper(name string, steps int) *AuxStepper {
 			return
 		}
 		u.stage++
-		if u.stage == 10 {
+		if u.stage == u.steps {
 			u.stage = 0
 		}
 		u.waitForNextTenp = true

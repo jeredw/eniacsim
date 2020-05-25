@@ -23,6 +23,7 @@ var printer *units.Printer
 var ft [3]*units.Ft
 var accumulator [20]*units.Accumulator
 var tenStepper *units.AuxStepper
+var ftSelector *units.AuxStepper
 var debugger *Debugger
 var trays *Trays
 var adapters *Adapters
@@ -85,9 +86,10 @@ func main() {
 	for i := 0; i < 20; i++ {
 		accumulator[i] = units.NewAccumulator(i)
 	}
-	tenStepper = units.NewAuxStepper("ts", 10)
+	tenStepper = units.NewAuxStepper("st", 10)
+	ftSelector = units.NewAuxStepper("sft", 6)
 
-	clockedUnits := []Clocked{initiate, mp, divsr, multiplier, constant, tenStepper}
+	clockedUnits := []Clocked{initiate, mp, divsr, multiplier, constant, tenStepper, ftSelector}
 	clearedUnits := []Cleared{mp, divsr}
 	for i := 0; i < 20; i++ {
 		clockedUnits = append(clockedUnits, accumulator[i])

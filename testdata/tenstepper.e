@@ -6,19 +6,19 @@
 # that increments a20, so a20 is nonzero if decoding works as expected.
 # Incorrect decode outputs are wired to increment a19.
 
-p ts.i 1-1
-p ts.cdi 1-2
-p ts.di 1
-p ts.1o 4-4
-p ts.2o 4-4
-p ts.3o 4-4
-p ts.4o 4-4
-p ts.5o p.Di  # NB stage 5 is really 4
-p ts.6o 4-4
-p ts.7o 4-4
-p ts.8o 4-4
-p ts.9o 4-4
-p ts.10o 4-4
+p st.i 1-1
+p st.cdi 1-2
+p st.di 1
+p st.1o 4-4
+p st.2o 4-4
+p st.3o 4-4
+p st.4o 4-4
+p st.5o p.Di  # NB stage 5 is really 4
+p st.6o 4-4
+p st.7o 4-4
+p st.8o 4-4
+p st.9o 4-4
+p st.10o 4-4
 
 p p.Dcdi 1-1
 p p.Ddi 2

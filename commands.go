@@ -302,7 +302,9 @@ func findPlugboard(name string) (Plugboard, error) {
 		return mp, nil
 	case name == "pa":
 		return pulseAmps, nil
-	case name == "ts":
+	case name == "sft":
+		return ftSelector, nil
+	case name == "st":
 		return tenStepper, nil
 	case unicode.IsDigit(rune(name[0])):
 		return trays, nil
