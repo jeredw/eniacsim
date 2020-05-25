@@ -22,6 +22,9 @@ import (
 // os.Ri, emitting os.Ro on overflow.  Since the counter is incremented before
 // data returns in the fetch cycle, assume selection is wired to pass the
 // "previous" two digit positions.
+//
+// Even money says like the FT selector, this was built on another spare
+// 6-stage MP stepper with some gate tubes attached to the stage outputs.
 type OrderSelector struct {
 	a, b, out       *Jack
 	en              *Jack
