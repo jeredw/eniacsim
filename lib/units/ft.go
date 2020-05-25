@@ -404,7 +404,7 @@ func (u *Ft) addlookup(c Pulse) {
 		u.jack[1].Transmit(a)
 	}
 	if b != 0 {
-		u.jack[1].Transmit(b)
+		u.jack[2].Transmit(b)
 	}
 }
 
