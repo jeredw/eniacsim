@@ -24,6 +24,7 @@ var ft [3]*units.Ft
 var accumulator [20]*units.Accumulator
 var tenStepper *units.AuxStepper
 var ftSelector *units.AuxStepper
+var orderSelector *units.OrderSelector
 var debugger *Debugger
 var trays *Trays
 var adapters *Adapters
@@ -88,8 +89,13 @@ func main() {
 	}
 	tenStepper = units.NewAuxStepper("st", 10)
 	ftSelector = units.NewAuxStepper("sft", 6)
+	orderSelector = units.NewOrderSelector()
 
-	clockedUnits := []Clocked{initiate, mp, divsr, multiplier, constant, tenStepper, ftSelector}
+	clockedUnits := []Clocked{
+		initiate, mp, divsr, multiplier, constant,
+		// Extra units for 60-order code in early 1948
+		tenStepper, ftSelector, orderSelector,
+	}
 	clearedUnits := []Cleared{mp, divsr}
 	for i := 0; i < 20; i++ {
 		clockedUnits = append(clockedUnits, accumulator[i])

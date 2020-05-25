@@ -298,6 +298,8 @@ func findPlugboard(name string) (Plugboard, error) {
 		return initiate, nil
 	case name == "m":
 		return multiplier, nil
+	case name == "os":
+		return orderSelector, nil
 	case name == "p":
 		return mp, nil
 	case name == "pa":
@@ -364,10 +366,14 @@ func doReset(w io.Writer, f []string) {
 		initiate.Reset()
 	case "m":
 		multiplier.Reset()
+	case "os":
+		orderSelector.Reset()
 	case "p":
 		mp.Reset()
-	case "ts":
+	case "st":
 		tenStepper.Reset()
+	case "sft":
+		ftSelector.Reset()
 	}
 }
 
@@ -389,6 +395,7 @@ func doResetAll(w io.Writer) {
 	adapters.Reset()
 	trays.Reset()
 	tenStepper.Reset()
+	orderSelector.Reset()
 }
 
 func findSwitch(name string) (Switch, error) {

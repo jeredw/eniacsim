@@ -72,9 +72,10 @@ func (pa *PulseAmps) FindJack(name string) (*Jack, error) {
 	if err != nil || !(unit >= 1 && unit <= 8) {
 		return nil, fmt.Errorf("invalid jack %s", name)
 	}
+	unit--
 	port := 0
 	if len(p) == 3 {
-		port, err := strconv.Atoi(p[2])
+		port, err = strconv.Atoi(p[2])
 		if err != nil || !(port >= 1 && port <= 11) {
 			return nil, fmt.Errorf("invalid jack %s", name)
 		}
