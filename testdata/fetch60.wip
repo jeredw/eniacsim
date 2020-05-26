@@ -1,3 +1,9 @@
+# Test the fetch cycle described in Clippinger '48 "A Logical Coding System
+# Applied to the ENIAC", Section II: Conversion of digit pulses to programming
+# pulses.
+# 
+# Here is a transcription of the timing chart in Figure 2.2.
+#
 #     F.T.    ORDER    10 STAGE   MASTER   ACC 6   ACC 20   FT I  FT II  FT III  SC
 #     SEL     SEL      STEPPER    PROG.                                          (Scratch?)
 # -----------------------------------------------------------------------------------------
@@ -33,3 +39,39 @@
 # 6           G-8      E-10                  G-8     E-10
 #              i        i
 # -----------------------------------------------------------------------------------------
+
+p os.A 2
+p os.B 3
+p os.o 4
+p os.i 1-3
+
+p a6.A 1
+p 1-2 a6.1i
+s a6.op1 A
+
+# f1 transmits row indexed by data trunk 1 on 1-1.
+p 1 f1.arg
+p 1-1 f1.1i
+p f1.NC 1-2
+p f1.A 2
+p f1.B 3
+s f1.op1 A0
+s f1.cl1 NC
+s f1.rp1 1
+s f1.mpm1 P
+l testdata/selftest60
+# Dummy program triggers reading f1 A/B when ready.
+p 1-1 a1.5i
+p a1.5o 1-3
+s a1.op5 0
+s a1.rp5 4
+
+# read the selected field
+p a2.α 4
+p 1-3 a2.1i
+s a2.op1 α
+
+set a6 1
+
+p i.io 1-1
+b i
