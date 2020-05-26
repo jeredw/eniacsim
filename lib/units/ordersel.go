@@ -45,11 +45,11 @@ func NewOrderSelector() *OrderSelector {
 		if u.enff2 {
 			switch u.ring {
 			case 1:
-				u.out.Transmit(val & 3)
+				u.out.Transmit((val >> 4) & 3)
 			case 2:
 				u.out.Transmit((val >> 2) & 3)
 			case 3:
-				u.out.Transmit((val >> 4) & 3)
+				u.out.Transmit(val & 3)
 			}
 		}
 	})
@@ -57,11 +57,11 @@ func NewOrderSelector() *OrderSelector {
 		if u.enff2 {
 			switch u.ring {
 			case 4:
-				u.out.Transmit(val & 3)
+				u.out.Transmit((val >> 4) & 3)
 			case 5:
 				u.out.Transmit((val >> 2) & 3)
 			case 0:
-				u.out.Transmit((val >> 4) & 3)
+				u.out.Transmit(val & 3)
 			}
 		}
 	})

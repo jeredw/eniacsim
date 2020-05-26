@@ -22,18 +22,18 @@ s f1.op1 A0
 s f1.cl1 NC
 s f1.rp1 7
 s f1.mpm1 P
-s f1.RA42L2 1
-s f1.RA42L1 0
+s f1.RA42L6 1
+s f1.RA42L5 0
 s f1.RA42L4 2
 s f1.RA42L3 0
-s f1.RA42L6 3
-s f1.RA42L5 0
-s f1.RB42L2 4
-s f1.RB42L1 0
+s f1.RA42L2 3
+s f1.RA42L1 0
+s f1.RB42L6 4
+s f1.RB42L5 0
 s f1.RB42L4 5
 s f1.RB42L3 0
-s f1.RB42L6 6
-s f1.RB42L5 0
+s f1.RB42L2 6
+s f1.RB42L1 0
 # Dummy program triggers reading f1 A/B when ready.
 p 1-1 a1.5i
 p a1.5o 1-3
