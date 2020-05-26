@@ -11,7 +11,7 @@ import (
 // Trays models ENIAC's data and program control lines.
 type Trays struct {
 	data    [20]*Jack
-	program [11][11]*Jack
+	program [26][11]*Jack
 }
 
 func NewTrays() *Trays {
@@ -50,15 +50,20 @@ func (t *Trays) FindJack(name string) (*Jack, error) {
 		}
 		return t.data[tray-1], nil
 	}
-	tray, _ := strconv.Atoi(name[:dash])
-	if !(tray >= 1 && tray <= 11) {
+	tray := 0
+	if dash == 1 && (name[0] >= 'A' && name[0] <= 'Z') {
+		tray = 1 + int(name[0]-'A')
+	} else {
+		tray, _ = strconv.Atoi(name[:dash])
+	}
+	if !(tray >= 1 && tray <= len(t.program)) {
 		return nil, fmt.Errorf("invalid program trunk %s", name)
 	}
 	if len(name) <= dash+1 {
 		return nil, fmt.Errorf("invalid program trunk %s", name)
 	}
 	line, _ := strconv.Atoi(name[dash+1:])
-	if !(line >= 1 && line <= 11) {
+	if !(line >= 1 && line <= len(t.program[0])) {
 		return nil, fmt.Errorf("invalid program trunk %s", name)
 	}
 	return t.program[tray-1][line-1], nil

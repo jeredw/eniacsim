@@ -308,10 +308,20 @@ func findPlugboard(name string) (Plugboard, error) {
 		return ftSelector, nil
 	case name == "st":
 		return tenStepper, nil
-	case unicode.IsDigit(rune(name[0])):
+	case isTrayName(name):
 		return trays, nil
 	}
 	return nil, fmt.Errorf("invalid unit name %s", name)
+}
+
+func isTrayName(name string) bool {
+	if len(name) >= 1 && unicode.IsDigit(rune(name[0])) {
+		return true
+	}
+	if len(name) >= 2 && (name[0] >= 'A' && name[0] <= 'Z') && name[1] == '-' {
+		return true
+	}
+	return false
 }
 
 func doGetPlug(w io.Writer, command string, f []string) {
