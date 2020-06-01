@@ -308,6 +308,10 @@ func findPlugboard(name string) (Plugboard, error) {
 		return ftSelector, nil
 	case name == "st":
 		return tenStepper, nil
+	case name == "pm1":
+		return pmDiscriminator[0], nil
+	case name == "pm2":
+		return pmDiscriminator[1], nil
 	case isTrayName(name):
 		return trays, nil
 	}
@@ -380,6 +384,10 @@ func doReset(w io.Writer, f []string) {
 		orderSelector.Reset()
 	case "p":
 		mp.Reset()
+	case "pm1":
+		pmDiscriminator[0].Reset()
+	case "pm2":
+		pmDiscriminator[1].Reset()
 	case "st":
 		tenStepper.Reset()
 	case "sft":
