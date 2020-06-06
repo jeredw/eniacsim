@@ -25,6 +25,7 @@ var accumulator [20]*units.Accumulator
 var tenStepper *units.AuxStepper
 var ftSelector *units.AuxStepper
 var pmDiscriminator [2]*units.AuxStepper
+var jkSelector [2]*units.AuxStepper
 var orderSelector *units.OrderSelector
 var debugger *Debugger
 var trays *Trays
@@ -94,6 +95,9 @@ func main() {
 	for i := 0; i < 2; i++ {
 		pmDiscriminator[i] = units.NewAuxStepper(fmt.Sprintf("pm%d", i+1), 2)
 	}
+	for i := 0; i < 2; i++ {
+		jkSelector[i] = units.NewAuxStepper(fmt.Sprintf("sjk%d", i+1), 6)
+	}
 
 	clockedUnits := []Clocked{
 		initiate, mp, divsr, multiplier, constant,
@@ -110,6 +114,9 @@ func main() {
 	}
 	for i := 0; i < 2; i++ {
 		clockedUnits = append(clockedUnits, pmDiscriminator[i])
+	}
+	for i := 0; i < 2; i++ {
+		clockedUnits = append(clockedUnits, jkSelector[i])
 	}
 
 	cycle.Io.Units = clockedUnits

@@ -306,6 +306,10 @@ func findPlugboard(name string) (Plugboard, error) {
 		return pulseAmps, nil
 	case name == "sft":
 		return ftSelector, nil
+	case name == "sjk1":
+		return jkSelector[0], nil
+	case name == "sjk2":
+		return jkSelector[1], nil
 	case name == "st":
 		return tenStepper, nil
 	case name == "pm1":
@@ -392,6 +396,10 @@ func doReset(w io.Writer, f []string) {
 		tenStepper.Reset()
 	case "sft":
 		ftSelector.Reset()
+	case "sjk1":
+		jkSelector[0].Reset()
+	case "sjk2":
+		jkSelector[1].Reset()
 	}
 }
 
