@@ -9,27 +9,27 @@
 p st.i A-1
 p st.cdi A-2
 p st.di 1
-p st.1o D-4
-p st.2o D-4
-p st.3o D-4
-p st.4o D-4
-p st.5o p.Di  # NB stage 5 is really 4
-p st.6o D-4
-p st.7o D-4
-p st.8o D-4
-p st.9o D-4
-p st.10o D-4
+p st.1o D-4   # 0
+p st.2o D-4   # 1
+p st.3o D-4   # 2
+p st.4o D-4   # 3
+p st.5o p.Di  # 4
+p st.6o D-4   # 5
+p st.7o D-4   # 6
+p st.8o D-4   # 7
+p st.9o D-4   # 8
+p st.10o D-4  # 9
 
 p p.Dcdi A-1
 p p.Ddi 2
-p p.D1o D-5
-p p.D2o D-5
-p p.D3o D-2
-p p.D4o D-5
-p p.D5o D-5
-p p.D6o D-5
+p p.D1o D-5   # 0
+p p.D2o D-5   # 1
+p p.D3o D-2   # 2
+p p.D4o D-5   # 3
+p p.D5o D-5   # 4
+p p.D6o D-5   # 5
 s p.cD 6
-s p.d13s1 9
+s p.d13s1 1
 
 # For simplicity emit tens digit from a1 and then ones digit from a2.
 p a1.A 1
