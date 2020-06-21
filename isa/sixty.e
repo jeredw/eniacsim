@@ -22,7 +22,7 @@ p sft.1o E-11
 p sft.2o F-1
 p sft.3o F-2
 
-# Send PC on trunk 5.
+# Send PC on trunk 3.
 p J-2 a6.5i
 s a6.op5 A
 s a6.cc5 0
@@ -234,9 +234,9 @@ p p.K3o V-2   # 6(11,10,9) (92)
 p p.K4o V-4   # 6(8,7)     (93)
 #  1    most accumulators transmit on 1
 #  2    most accumulators receive on 2
-#  3    ft data A
-#  4    ft data B
-#  5    ft argument
+#  3    ft argument
+#  4    ft data A
+#  5    ft data B
 #  6,7  multiplier partial product digits (exclusive)
 #  8=2  multiplier correction terms (shared)
 p 8 2
@@ -252,22 +252,22 @@ p 1 c.o     # Constants for AB/CD/EF/GH/JK
 # Trunk 2 - accumulators, instructions
 p 2 os.o    # Instruction to decode, and immediate operand for NxD
 
-# Trunk 3 - ft data A
-p 3 os.A    # Data for fetch and F.T.
-p 3 f1.A
-p 3 f2.A
-p 3 f3.A
+# Trunk 3 - argument for F.T., PC
+p 3 f1.arg
+p 3 f2.arg
+p 3 f3.arg
 
-# Trunk 4 - ft data B
-p 4 os.B    # Data for fetch and F.T.
-p 4 f1.B
-p 4 f2.B
-p 4 f3.B
+# Trunk 4 - ft data A
+p 4 os.A    # Data for fetch and F.T.
+p 4 f1.A
+p 4 f2.A
+p 4 f3.A
 
-# Trunk 5 - argument for F.T., PC
-p 5 f1.arg
-p 5 f2.arg
-p 5 f3.arg
+# Trunk 5 - ft data B
+p 5 os.B    # Data for fetch and F.T.
+p 5 f1.B
+p 5 f2.B
+p 5 f3.B
 
 # Trunk 6/7 - multiplier partial products
 p 6 m.lhppI
@@ -318,7 +318,7 @@ p 1 a6.β
 p ad.permute.3 a6.γ  # For 6(11,10,9)
 p ad.permute.5 a6.δ  # For 6(8,7)
 #p 0 a6.ε  # NB ε is used as a dummy for increment
-p 5 a6.A
+p 3 a6.A
 
 # Accumulator 7 - denominator
 p 2 a7.α
@@ -331,7 +331,7 @@ p 11 a7.S  # Divider shift (1=11)
 
 # Accumulator 8 - F.T. argument
 p 2 a8.α
-p 5 a8.A
+p 3 a8.A
 
 # Accumulator 9 - shift
 p ad.s.1.1 a9.α
@@ -381,7 +381,7 @@ p 1 a14.A
 p 7 a15.α  # Multiplier partial product
 p 9 a15.β  # Multiplier correction (9=1)
 p ad.permute.2 a15.γ  # F.T. data B
-p 5 ad.δ  # For 8t
+p 3 ad.δ  # For 8t
 p 2 a5.A
 
 # Accumulator 16
@@ -421,33 +421,33 @@ p ad.permute.10 a20.δ  # For 6R6
 p 1 a20.A
 p 2 a20.S  # Save to a13
 # Function table output A, shifted to the left for F.T.
-p 3 ad.permute.1
+p 4 ad.permute.1
 s ad.permute.1 11,6,5,4,3,2,1,0,0,0,0
 # Function table output B, shifted to the left for F.T.
-p 4 ad.permute.2
+p 5 ad.permute.2
 s ad.permute.2 11,6,5,4,3,2,1,0,0,0,0
 # For 6(11,10,9).
 p 2 ad.permute.3
 s ad.permute.3 11,2,1,0,0,0,0,0,0,0,0
-p 5 ad.permute.4
+p 3 ad.permute.4
 s ad.permute.4 11,0,0,0,0,0,0,0,0,10,9
 # For 6(8,7).
 p 2 ad.permute.5
 s ad.permute.5 0,0,0,2,1,0,0,0,0,0,0
-p 5 ad.permute.6
+p 3 ad.permute.6
 s ad.permute.6 0,0,0,0,0,0,0,0,0,8,7
 # For 6R3.
-p 5 ad.permute.7
+p 3 ad.permute.7
 s ad.permute.7 11,10,9,8,7,6,5,4,0,0,0
 p 2 ad.permute.8
 s ad.permute.8 0,0,0,0,0,0,0,0,3,2,1
 # For 6R6.
-p 5 ad.permute.9
+p 3 ad.permute.9
 s ad.permute.9 11,10,9,8,7,0,0,0,0,0,0
 p 2 ad.permute.10
 s ad.permute.10 0,0,0,0,0,6,5,4,3,2,1
 # For C.T., shift a6 digits 6-4 to position 3-1.
-p 5 ad.permute.11
+p 3 ad.permute.11
 s ad.permute.11 11,10,9,8,7,0,0,0,6,5,4
 # Delete sign for DS
 p 1 ad.permute.12
@@ -505,8 +505,8 @@ s ad.permute.38 11,4,3,2,1,0,0,0,0,0,0            # << 6
 p 1 ad.permute.39
 s ad.permute.39 11,5,4,3,2,1,0,0,0,0,0            # << 5
 # Special digit adapters
-# E-8 is the third digit of a6 or a8 from trunk 5.
-p 5 ad.dp.1.3
+# E-8 is the third digit of a6 or a8 from trunk 3.
+p 3 ad.dp.1.3
 p ad.dp.1.3 E-8
 # E-2 selects the ones digit of the order from trunk 2.
 p 2 ad.dp.2.1
@@ -860,7 +860,7 @@ s a19.op1 α
 # Cycle 7: a15 receive from aX
 p B-3 a15.2i
 s a15.op2 β
-# Special case for 8t: a15 receive on trunk 5
+# Special case for 8t: a15 receive on trunk 3
 p C-2 a15.3i
 s a15.op3 δ
 

@@ -352,7 +352,7 @@ p sft.1o <a href="#NWDbbij8-5">E-11</a>
 p sft.2o <a href="#NWDbbij8-5">F-1</a>
 p sft.3o <a href="#NWDbbij8-5">F-2</a>
 
-# Send PC on trunk 5.
+# Send PC on trunk 3.
 p <a href="#NWbbij8-39GQxl-8">J-2</a> a6.5i
 s a6.op5 A
 s a6.cc5 0
@@ -676,8 +676,8 @@ trigger <tt>a15:β01</tt>.  So constants and most accumulators transmit on trunk
 1, and A<sub>15</sub> transmits on trunk 2.
 
 <p>That <code><a href="#NWDbbij8-Z">D-3</a></code> omits <code>8t</code> suggests A<sub>8</sub> and A<sub>6</sub>
-transmit the function table argument on a separate trunk.  It's simplest for
-fetch overlap if this is not trunk 2 but another auxiliary trunk 5.
+do not transmit the function table argument on trunk 1.  It's simplest for
+fetch overlap if they use another auxiliary trunk 3.
 
 <p>RIF annotates order selector ouptut as II<sub>2</sub>, II<sub>1</sub>,
 implying instructions are also on trunk 2.
@@ -712,12 +712,12 @@ superscript or annotation indicates a connected adapter.
 <th>A<sub>19</sub><br>
 <th>A<sub>20</sub><br>
 <tr><td>α<td>2<td>2<td>2<td>10<td>2<td>2<td>2<td>2<td><a href="#11s">11*</a><td>2<td>2<td>2<td>6<td>2<td>7<td>2<td>2<td>2<td>2<td>2
-<tr><td>β<td>1<td>1<td>1<td>2<td><td>1<td>1<td><td>2<td><a href="#5c">5<sup>c</sup></a><td><a href="#3s">3*</a><td>1<td>8=2<td>1<td>9=1<td>1<td>1<td>1<td>1<td>1
-<tr><td>γ<td><a href="#5a">5<sup>a</sup></a><td><td><td>1<td>11=1<td><a href="#2a">2<sup>a</sup><td>10<td><td>1<td><a href="#2c">2<sup>c</sup></a><td><a href="#1f">1<sup>f</sup><td><td>1<td><td><a href="#4s">4*</a><td><td><td><a href="#2g">2<sup>g</sup></a><td><td><a href="#5d">5<sup>d</sup></a>
-<tr><td>δ<td><a href="#5b">5<sup>b</sup></a><td>2<sup>+1</sup><td>2<sup>+2</sup><td>2<sup>+3</sup><td>2<sup>+4</sup><td><a href="#2b">2<sup>b</sup></a><td>2<sup>+5</sup><td><td>2<sup>-5</sup><td><a href="#5e">5<sup>e</sup></a><td>1<td><td><td>2<sup>-4</sup><td>5<td>2<sup>-3</sup><td>2<sup>-2</sup><td><a href="#2h">2<sup>h</sup></a><td>2<sup>-1</sup><td><a href="#2d">2<sup>d</sup></a>
+<tr><td>β<td>1<td>1<td>1<td>2<td><td>1<td>1<td><td>2<td><a href="#3c">3<sup>c</sup></a><td><a href="#4s">4*</a><td>1<td>8=2<td>1<td>9=1<td>1<td>1<td>1<td>1<td>1
+<tr><td>γ<td><a href="#3a">3<sup>a</sup></a><td><td><td>1<td>11=1<td><a href="#2a">2<sup>a</sup><td>10<td><td>1<td><a href="#2c">2<sup>c</sup></a><td><a href="#1f">1<sup>f</sup><td><td>1<td><td><a href="#5s">5*</a><td><td><td><a href="#2g">2<sup>g</sup></a><td><td><a href="#3d">3<sup>d</sup></a>
+<tr><td>δ<td><a href="#3b">3<sup>b</sup></a><td>2<sup>+1</sup><td>2<sup>+2</sup><td>2<sup>+3</sup><td>2<sup>+4</sup><td><a href="#2b">2<sup>b</sup></a><td>2<sup>+5</sup><td><td>2<sup>-5</sup><td><a href="#3e">3<sup>e</sup></a><td>1<td><td><td>2<sup>-4</sup><td>3<td>2<sup>-3</sup><td>2<sup>-2</sup><td><a href="#2h">2<sup>h</sup></a><td>2<sup>-1</sup><td><a href="#2d">2<sup>d</sup></a>
 <tr><td>ε<td><td>1<sup>-9</sup><td>1<sup>-8</sup><td>1<sup>-7</sup><td>1<sup>-6</sup><td>-<td>1<sup>-5</sup><td><td>1<sup>+5</sup><td><td><td><td><td>1<sup>+6</sup><td><td>1<sup>+7</sup><td>1<sup>+8</sup><td><td>1<sup>+9</sup><td>
 <tr style="border-top: 3px solid #ccc">
-<td>A<td>1<td>1<td>1<td>1<td>11=1<td>5<td>11=1<td>5<td>11=1<td>1<td>1<td>1<td>1<td>1<td>2<td>1<td>1<td>1<td>1<td>1
+<td>A<td>1<td>1<td>1<td>1<td>11=1<td>3<td>11=1<td>3<td>11=1<td>1<td>1<td>1<td>1<td>1<td>2<td>1<td>1<td>1<td>1<td>1
 <tr>
 <td>S<td>1<td><td><td><td><td><td>11=1<td><td><td>2<td>8=2<td>9=1<td>2<td><td><td><td><td>2<td><td>2
 </table>
@@ -733,9 +733,9 @@ dummy programs more often.
 <pre><a name="NWbbij8-48IebG-1" href="#NWDbbij8-K"><dfn>&lt;Digit trunks&gt;=</dfn></a> <b>(<a href="#NWDbbij8-2">&lt;-U</a>)</b>
 #  1    most accumulators transmit on 1
 #  2    most accumulators receive on 2
-#  3    ft data A
-#  4    ft data B
-#  5    ft argument
+#  3    ft argument
+#  4    ft data A
+#  5    ft data B
 #  6,7  multiplier partial product digits (exclusive)
 #  8=2  multiplier correction terms (shared)
 p 8 2
@@ -759,22 +759,22 @@ p 1 c.o     # Constants for AB/CD/EF/GH/JK
 # Trunk 2 - accumulators, instructions
 p 2 os.o    # Instruction to decode, and immediate operand for NxD
 
-# Trunk 3 - ft data A
-p 3 os.A    # Data for fetch and F.T.
-p 3 f1.A
-p 3 f2.A
-p 3 f3.A
+# Trunk 3 - argument for F.T., PC
+p 3 f1.arg
+p 3 f2.arg
+p 3 f3.arg
 
-# Trunk 4 - ft data B
-p 4 os.B    # Data for fetch and F.T.
-p 4 f1.B
-p 4 f2.B
-p 4 f3.B
+# Trunk 4 - ft data A
+p 4 os.A    # Data for fetch and F.T.
+p 4 f1.A
+p 4 f2.A
+p 4 f3.A
 
-# Trunk 5 - argument for F.T., PC
-p 5 f1.arg
-p 5 f2.arg
-p 5 f3.arg
+# Trunk 5 - ft data B
+p 5 os.B    # Data for fetch and F.T.
+p 5 f1.B
+p 5 f2.B
+p 5 f3.B
 
 # Trunk 6/7 - multiplier partial products
 p 6 m.lhppI
@@ -830,7 +830,7 @@ p 1 a6.β
 p <a href="#NWDbbij8-P">ad.permute.3</a> a6.γ  # For 6(11,10,9)
 p <a href="#NWDbbij8-Q">ad.permute.5</a> a6.δ  # For 6(8,7)
 #p 0 a6.ε  # NB ε is used as a dummy for increment
-p 5 a6.A
+p 3 a6.A
 
 # Accumulator 7 - denominator
 p 2 a7.α
@@ -843,7 +843,7 @@ p 11 a7.S  # Divider shift (1=11)
 
 # Accumulator 8 - F.T. argument
 p 2 a8.α
-p 5 a8.A
+p 3 a8.A
 
 # Accumulator 9 - shift
 p <a href="#NWDbbij8-W">ad.s.1.1</a> a9.α
@@ -893,7 +893,7 @@ p 1 a14.A
 p 7 a15.α  # Multiplier partial product
 p 9 a15.β  # Multiplier correction (9=1)
 p <a href="#NWDbbij8-O">ad.permute.2</a> a15.γ  # F.T. data B
-p 5 ad.δ  # For 8t
+p 3 ad.δ  # For 8t
 p 2 a5.A
 
 # Accumulator 16
@@ -936,24 +936,23 @@ p 2 a20.S  # Save to a13
 
 <h4><a name="NWDbbij8-N">Adapters</a></h4>
 
-<p><b><a name="3s">3*</b>.  Shift function table output A digits to left.
+<p><b><a name="4s">4*</b>.  Shift function table output A digits to left.
 
 <pre><a name="NWbbij8-3dwPcF-1" href="#NWDbbij8-N"><dfn>&lt;Digit trunks: adapters&gt;=</dfn></a> <b>(<a href="#NWDbbij8-K">&lt;-U</a>)</b> <b>[D<a href="#NWDbbij8-O">-&gt;</a>]</b>
 # Function table output A, shifted to the left for F.T.
-p 3 <a href="#NWDbbij8-N">ad.permute.1</a>
+p 4 <a href="#NWDbbij8-N">ad.permute.1</a>
 s <a href="#NWDbbij8-N">ad.permute.1</a> 11,6,5,4,3,2,1,0,0,0,0
 </pre><blockquote>Defines <a href="#NWI-ad.permute.1"><code>ad.permute.1</code></a> (links are to index).<p>
 </blockquote><p>
-<p><b><a name="4s"><a name="NWDbbij8-O">4*</a></a></b>.  Shift function table output B
-digits to left.
+<p><b><a name="5s"><a name="NWDbbij8-O">5*</a></a></b>.  Shift function table output B digits to left.
 
 <pre><a name="NWbbij8-3dwPcF-2" href="#NWDbbij8-N"><dfn>&lt;Digit trunks: adapters&gt;+=</dfn></a> <b>(<a href="#NWDbbij8-K">&lt;-U</a>)</b> <b>[<a href="#NWDbbij8-N">&lt;-</a>D<a href="#NWDbbij8-P">-&gt;</a>]</b>
 # Function table output B, shifted to the left for F.T.
-p 4 <a href="#NWDbbij8-O">ad.permute.2</a>
+p 5 <a href="#NWDbbij8-O">ad.permute.2</a>
 s <a href="#NWDbbij8-O">ad.permute.2</a> 11,6,5,4,3,2,1,0,0,0,0
 </pre><blockquote>Defines <a href="#NWI-ad.permute.2"><code>ad.permute.2</code></a> (links are to index).<p>
 </blockquote><p>
-<p><b><a name="5a"><a name="NWDbbij8-P">5</a><sup>a</sup></a>, <a name="2a">2<sup>a</sup></a></b>.
+<p><b><a name="3a"><a name="NWDbbij8-P">3</a><sup>a</sup></a>, <a name="2a">2<sup>a</sup></a></b>.
 Shift A<sub>15</sub>(11,2,1) to the top two digits and back for
 <code>6(11,10,9)</code>.
 
@@ -961,49 +960,49 @@ Shift A<sub>15</sub>(11,2,1) to the top two digits and back for
 # For 6(11,10,9).
 p 2 <a href="#NWDbbij8-P">ad.permute.3</a>
 s <a href="#NWDbbij8-P">ad.permute.3</a> 11,2,1,0,0,0,0,0,0,0,0
-p 5 <a href="#NWDbbij8-P">ad.permute.4</a>
+p 3 <a href="#NWDbbij8-P">ad.permute.4</a>
 s <a href="#NWDbbij8-P">ad.permute.4</a> 11,0,0,0,0,0,0,0,0,10,9
 </pre><blockquote>Defines <a href="#NWI-ad.permute.3"><code>ad.permute.3</code></a>, <a href="#NWI-ad.permute.4"><code>ad.permute.4</code></a> (links are to index).<p>
 </blockquote><p>
-<p><b><a name="5b"><a name="NWDbbij8-Q">5</a><sup>b</sup></a>, <a name="2b">2<sup>b</sup></a></b>.
+<p><b><a name="3b"><a name="NWDbbij8-Q">3</a><sup>b</sup></a>, <a name="2b">2<sup>b</sup></a></b>.
 Shift A<sub>15</sub>(2,1) to positions 8,7 and back for <code>6(8,7)</code>.
 
 <pre><a name="NWbbij8-3dwPcF-4" href="#NWDbbij8-N"><dfn>&lt;Digit trunks: adapters&gt;+=</dfn></a> <b>(<a href="#NWDbbij8-K">&lt;-U</a>)</b> <b>[<a href="#NWDbbij8-P">&lt;-</a>D<a href="#NWDbbij8-R">-&gt;</a>]</b>
 # For 6(8,7).
 p 2 <a href="#NWDbbij8-Q">ad.permute.5</a>
 s <a href="#NWDbbij8-Q">ad.permute.5</a> 0,0,0,2,1,0,0,0,0,0,0
-p 5 <a href="#NWDbbij8-Q">ad.permute.6</a>
+p 3 <a href="#NWDbbij8-Q">ad.permute.6</a>
 s <a href="#NWDbbij8-Q">ad.permute.6</a> 0,0,0,0,0,0,0,0,0,8,7
 </pre><blockquote>Defines <a href="#NWI-ad.permute.5"><code>ad.permute.5</code></a>, <a href="#NWI-ad.permute.6"><code>ad.permute.6</code></a> (links are to index).<p>
 </blockquote><p>
-<p><b><a name="5c"><a name="NWDbbij8-R">5</a><sup>c</sup></a>, <a name="2c">2<sup>c</sup></a></b>.
+<p><b><a name="3c"><a name="NWDbbij8-R">3</a><sup>c</sup></a>, <a name="2c">2<sup>c</sup></a></b>.
 Replace digits 3-1 of A<sub>6</sub> with A<sub>15</sub> for <code>6R3</code>.
 
 <pre><a name="NWbbij8-3dwPcF-5" href="#NWDbbij8-N"><dfn>&lt;Digit trunks: adapters&gt;+=</dfn></a> <b>(<a href="#NWDbbij8-K">&lt;-U</a>)</b> <b>[<a href="#NWDbbij8-Q">&lt;-</a>D<a href="#NWDbbij8-S">-&gt;</a>]</b>
 # For 6R3.
-p 5 <a href="#NWDbbij8-R">ad.permute.7</a>
+p 3 <a href="#NWDbbij8-R">ad.permute.7</a>
 s <a href="#NWDbbij8-R">ad.permute.7</a> 11,10,9,8,7,6,5,4,0,0,0
 p 2 <a href="#NWDbbij8-R">ad.permute.8</a>
 s <a href="#NWDbbij8-R">ad.permute.8</a> 0,0,0,0,0,0,0,0,3,2,1
 </pre><blockquote>Defines <a href="#NWI-ad.permute.7"><code>ad.permute.7</code></a>, <a href="#NWI-ad.permute.8"><code>ad.permute.8</code></a> (links are to index).<p>
 </blockquote><p>
-<p><b><a name="5d"><a name="NWDbbij8-S">5</a><sup>d</sup></a>, <a name="2d">2<sup>d</sup></a></b>.
+<p><b><a name="3d"><a name="NWDbbij8-S">3</a><sup>d</sup></a>, <a name="2d">2<sup>d</sup></a></b>.
 Replace digits 6-1 of A<sub>6</sub> with A<sub>15</sub> for <code>6R6</code>.
 
 <pre><a name="NWbbij8-3dwPcF-6" href="#NWDbbij8-N"><dfn>&lt;Digit trunks: adapters&gt;+=</dfn></a> <b>(<a href="#NWDbbij8-K">&lt;-U</a>)</b> <b>[<a href="#NWDbbij8-R">&lt;-</a>D<a href="#NWDbbij8-T">-&gt;</a>]</b>
 # For 6R6.
-p 5 <a href="#NWDbbij8-S">ad.permute.9</a>
+p 3 <a href="#NWDbbij8-S">ad.permute.9</a>
 s <a href="#NWDbbij8-S">ad.permute.9</a> 11,10,9,8,7,0,0,0,0,0,0
 p 2 <a href="#NWDbbij8-S">ad.permute.10</a>
 s <a href="#NWDbbij8-S">ad.permute.10</a> 0,0,0,0,0,6,5,4,3,2,1
 </pre><blockquote>Defines <a href="#NWI-ad.permute.10"><code>ad.permute.10</code></a>, <a href="#NWI-ad.permute.9"><code>ad.permute.9</code></a> (links are to index).<p>
 </blockquote><p>
-<p><b><a name="5e"><a name="NWDbbij8-T">5</a><sup>e</sup></a></b>.  Shift new PC digits from 6-4 to 3-1
+<p><b><a name="3e"><a name="NWDbbij8-T">3</a><sup>e</sup></a></b>.  Shift new PC digits from 6-4 to 3-1
 in A<sub>6</sub> for <code>C.T.</code>
 
 <pre><a name="NWbbij8-3dwPcF-7" href="#NWDbbij8-N"><dfn>&lt;Digit trunks: adapters&gt;+=</dfn></a> <b>(<a href="#NWDbbij8-K">&lt;-U</a>)</b> <b>[<a href="#NWDbbij8-S">&lt;-</a>D<a href="#NWDbbij8-U">-&gt;</a>]</b>
 # For C.T., shift a6 digits 6-4 to position 3-1.
-p 5 <a href="#NWDbbij8-T">ad.permute.11</a>
+p 3 <a href="#NWDbbij8-T">ad.permute.11</a>
 s <a href="#NWDbbij8-T">ad.permute.11</a> 11,10,9,8,7,0,0,0,6,5,4
 </pre><blockquote>Defines <a href="#NWI-ad.permute.11"><code>ad.permute.11</code></a> (links are to index).<p>
 </blockquote><p>
@@ -1091,8 +1090,8 @@ s <a href="#NWbbij8-3dwPcF-C">ad.permute.39</a> 11,5,4,3,2,1,0,0,0,0,0          
 </blockquote><p>
 <pre><a name="NWbbij8-3dwPcF-D" href="#NWDbbij8-N"><dfn>&lt;Digit trunks: adapters&gt;+=</dfn></a> <b>(<a href="#NWDbbij8-K">&lt;-U</a>)</b> <b>[<a href="#NWbbij8-3dwPcF-C">&lt;-</a>D]</b>
 # Special digit adapters
-# <a href="#NWbbij8-3dwPcF-D">E-8</a> is the third digit of a6 or a8 from trunk 5.
-p 5 ad.dp.1.3
+# <a href="#NWbbij8-3dwPcF-D">E-8</a> is the third digit of a6 or a8 from trunk 3.
+p 3 ad.dp.1.3
 p ad.dp.1.3 <a href="#NWbbij8-3dwPcF-D">E-8</a>
 # <a href="#NWbbij8-3dwPcF-D">E-2</a> selects the ones digit of the order from trunk 2.
 p 2 ad.dp.2.1
@@ -1553,7 +1552,7 @@ s a19.op1 α
    * a13:AC1          # ... for a13 only, send and clear
 </pre>
 <p><code>8t</code> is a special case because <code>a8.A</code> is connected to
-digit trunk 5 so needs a separate program on A<sub>15</sub>.  <code><a href="#NWbbij8-39GQxl-5">B-3</a></code> which
+digit trunk 3 so needs a separate program on A<sub>15</sub>.  <code><a href="#NWbbij8-39GQxl-5">B-3</a></code> which
 triggers <code>a15:0β1</code> is heavily reused.
 
 <pre><a name="NWbbij8-19w7Qu-1" href="#NWDbbij8-g"><dfn>&lt;Instructions: xt&gt;=</dfn></a> <b>(<a href="#NWDbbij8-c">&lt;-U</a>)</b>
@@ -1561,7 +1560,7 @@ triggers <code>a15:0β1</code> is heavily reused.
 # Cycle 7: a15 receive from aX
 p <a href="#NWbbij8-39GQxl-5">B-3</a> a15.2i
 s a15.op2 β
-# Special case for 8t: a15 receive on trunk 5
+# Special case for 8t: a15 receive on trunk 3
 p <a href="#NWDbbij8-F">C-2</a> a15.3i
 s a15.op3 δ
 
@@ -1746,7 +1745,7 @@ s a1.cc3 0
 <pre>
   <a name="NWDbbij8-j">7. (a1:AC1, a13:γ01) # Save a1 [1]</a>
   8. (a15:AC1), a6:γ01 # Add 15(11,2,1) into 6(11,10,9) [2,2*]
-  9. a6:A01*, a1:γ01   # Get 6(11,10,9) in 1(11,2,1) (* from <code><a href="#NWDbbij8-6">J-4</a></code>) [5,5*]
+  9. a6:A01*, a1:γ01   # Get 6(11,10,9) in 1(11,2,1) (* from <code><a href="#NWDbbij8-6">J-4</a></code>) [3,3*]
  10. a1:AC1, (a15:β01) # Get 1(11,2,1) back in 15(11,2,1). [1]
  11. (a13:AC1, a1:β01) # Restore a1. [1]
 </pre>
@@ -1788,7 +1787,7 @@ s a1.rp8 1
 <pre>
   <a name="NWDbbij8-k">7. (a1:AC1, a13:γ01) # Save a1 [1]</a>
   8. (a15:AC1), a6:δ01 # Add 15(2,1) into 6(8,7) [2,2*]
-  9. a6:A01*, a1:δ01   # Get 6(8,7) in 1(2,1) (* from <code><a href="#NWDbbij8-6">J-4</a></code>) [5,5*]
+  9. a6:A01*, a1:δ01   # Get 6(8,7) in 1(2,1) (* from <code><a href="#NWDbbij8-6">J-4</a></code>) [3,3*]
  10. a1:AC1, (a15:β01) # Get 1(2,1) back in 15(2,1). [1]
  11. (a13:AC1, a1:β01) # Restore a1. [1]
 </pre>
@@ -2309,7 +2308,7 @@ specifies that they're cleared, so let's go with that.
 <pre>
   NB need to reset order selector ring
   7. a10:SC1, a13:β01  # Save -a10 [2]
-  8. a6:AC1, a10:β01   # Add a6(11-4) [5,5(11-4)]
+  8. a6:AC1, a10:β01   # Add a6(11-4) [3,3(11-4)]
   9. a15:AC1, a10:γ01  # Add a15(3-1) [2,2(3-1)]
  10. a10:AC1, a6:β01   # Set new PC [1]
  11. a13:SC1, a10:α01  # Restore -a10 [2]
@@ -2325,7 +2324,7 @@ without clobbering the PC; that uses A<sub>20</sub> (20-13&rarr;20).
 <pre>
   NB need to reset order selector ring
   7. a20:SC1, a13:β01  # Save -a20 [2]
-  8. a6:AC1, a20:γ01   # Add a6(11-7) [5,5(11-7)]
+  8. a6:AC1, a20:γ01   # Add a6(11-7) [3,3(11-7)]
   9. a15:AC1, a20:δ01  # Add a15(6-1) [2,2(6-1)]
  10. a20:AC1, a6:β01   # Set new PC [1]
  11. a13:SC1, a20:α01  # Restore -a20 [2]
@@ -2344,7 +2343,7 @@ A<sub>10</sub> (10-13&rarr;10).
 <pre>
   7. a15:AC1, discriminate P-M
   M8. (dependent fetch)    P8. a10:SC1, a13:β01  # Save -a10 [2]
-                           P9. a6:AC1, a10:β01   # a6(11-7,000,6-4). [5,5*]
+                           P9. a6:AC1, a10:β01   # a6(11-7,000,6-4). [3,3*]
                           P10. a10:AC1, a6:β01   # Set PC [1]
                           P11. a13:SC1, a10:α01  # Restore -a10 [2]
                           P12. (fetch)
