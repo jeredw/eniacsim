@@ -247,7 +247,7 @@ p 9 1
 p 11 1
 
 # Trunk 1 - accumulators, constants
-p 1 c.o     # Constant data for C.T.
+p 1 c.o     # Constants for AB/CD/EF/GH/JK
 
 # Trunk 2 - accumulators, instructions
 p 2 os.o    # Instruction to decode, and immediate operand for NxD
@@ -264,8 +264,8 @@ p 4 f1.B
 p 4 f2.B
 p 4 f3.B
 
-# Trunk 5
-p 5 f1.arg  # Argument for F.T., PC
+# Trunk 5 - argument for F.T., PC
+p 5 f1.arg
 p 5 f2.arg
 p 5 f3.arg
 

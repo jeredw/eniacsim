@@ -135,18 +135,18 @@ required PC shift this way.  This is corroborated in DEC51,
 <blockquote>If 13 is not clear, its number will be subtracted from 10
 (10-13&rarr;10) on the positive branch.</blockquote>
 
-<p><b>Reusing programs.</b> A<sub>15</sub> and A<sub>13</sub> do so
-much that it is vital to reuse their programs for multiple sequences.  This can
-be accomplished either with pulse amplifiers or dummy programs.  Pulse
-amplifiers are more convenient because dummy programs introduce an extra delay
-cycle, but are scarce&mdash;LCS48 explicitly mentions 8 units with 11 channels
-and claims all but 23 of them in Table 2.II (omitting alternate orders.)
+<p><b>Reusing programs.</b> A<sub>15</sub> and A<sub>13</sub> are used for most
+instructions, so their programs must be reused for multiple sequences.  This
+can be accomplished either with <a href="#pas">pulse amplifiers</a> or dummy
+programs.  Pulse amplifiers are more convenient because dummy programs
+introduce an extra delay cycle, but are scarce&mdash;LCS48 explicitly mentions
+8 units with 11 channels and claims all but 23 of them in Table 2.II.
 
 <p><a name="NWDbbij8-2">For dummy programs, apart from scarce accumulator transceivers, there are</a>
-six selective clear transceivers, and twenty unused constant transmitter
-transceivers.  Those are so tempting that we put constants on a separate <a
-href="#trunks">digit trunk</a> and trigger lots of spurious constant
-transmission just to be able to reclaim them.
+six selective clear transceivers, and twenty unused constant transceivers.
+<a href="#trunks">Digit trunk</a> wiring makes the constant transceivers
+somewhat difficult to abuse for this purpose because we must avoid contention
+on trunk 1.
 
 <h2>Implementation</h2>
 
@@ -662,18 +662,25 @@ p p.J5o <a href="#NWDbbij8-I">D-11</a>  # JK  (84)
 </blockquote><p>
 <h3><a name=trunks>Digit trunks</a></h3>
 
-<p>LCS48 has a note advising the reader to &ldquo;see digit tray
-hook-up&rdquo;, so perhaps the author meant to include a chart with the report.
-But sadly there isn't one.
+<p>LCS48 has a note to &ldquo;see digit tray hook-up&rdquo;, so perhaps the
+author meant to attach a chart.  Alas there is none, so this is guesswork.
 
 <p>All LCS48 tells us explicitly is that for <code>1ℓ</code>, <tt>a1.α=2</tt>
 and <tt>a15.A=2</tt>; and for <code>AB</code>, figure 3.2 has <tt>c.o=1</tt>,
-<tt>a11.δ=1</tt>, and <tt>a15.β=1</tt>.  This last assignment overlaps with the
+<tt>a11.δ=1</tt>, and <tt>a15.β=1</tt>.  (This last assignment overlaps with the
 canonical multiplier correction wiring from ETM, which has the correction term
-on <tt>a15.β</tt>, but it's plausible that's shared.
+on <tt>a15.β</tt>, but it's plausible that's shared.)  However, Table 2.II
+shows the pulse amplifier connections <code><a href="#NWDbbij8-Z">D-3</a></code>&rarr;<code><a href="#NWbbij8-39GQxl-5">B-3</a></code> and
+<code><a href="#NWbbij8-39GQxl-3">D-4</a></code>&rarr;<code><a href="#NWbbij8-39GQxl-5">B-3</a></code>, that is, both <code>xt</code> and constant instructions
+trigger <tt>a15:β01</tt>.  So constants and most accumulators transmit on trunk
+1, and A<sub>15</sub> transmits on trunk 2.
+
+<p>That <code><a href="#NWDbbij8-Z">D-3</a></code> omits <code>8t</code> suggests A<sub>8</sub> and A<sub>6</sub>
+transmit the function table argument on a separate trunk.  It's simplest for
+fetch overlap if this is not trunk 2 but another auxiliary trunk 5.
 
 <p>RIF annotates order selector ouptut as II<sub>2</sub>, II<sub>1</sub>,
-implying instructions are sent on trunk 2.
+implying instructions are also on trunk 2.
  
 <h4>Reconstructed wiring</h4>
 
@@ -715,24 +722,13 @@ superscript or annotation indicates a connected adapter.
 <td>S<td>1<td><td><td><td><td><td>11=1<td><td><td>2<td>8=2<td>9=1<td>2<td><td><td><td><td>2<td><td>2
 </table>
 
-<p>Many other accumulator input assignments are implicit.  For example, since
-A<sub>15</sub> is the multiplier RHPP, α is dedicated for that.  β is wired to
-trunk 1.  A<sub>15</sub> has to be able to receive shifted function table data
-for <code>F.T.</code>, so that's γ.  Assuming the function table argument is on
-a separate trunk 5 to simplify fetch/execute overlap, A<sub>8</sub> must
-transmit on that trunk for <code>F.T.</code>; then to support <code>8t</code>,
-<tt>a15.δ=5</tt> (pulse amp wiring and <code>6t</code> timing also support
-this).
-
-
-<p><a name="NWDbbij8-K">The most interesting choice is using two separate digit trunks for</a>
-communication between arithmetic accumulators.  Temporary accumulators with
-lots of inputs mentioned in DEC51 often transmit subtractively to
-A<sub>13</sub>, presumably via trunk 2 ≠ trunk 1.  In principle these register
-transfers could happen in parallel with transfers on trunk 1.  But in practice
-there is not much opportunity for this parallelism, and it's wasteful of
-inputs.  This might just be wrong, or something that's only needed for the
-expanded instruction set of DU49/DEC51.
+<p><a name="NWDbbij8-K">Using two digit trunks for communication between accumulators makes some</a>
+sense given the instruction set.  But there is no obvious advantage to doing
+so, e.g. there is no opportunity to do work in parallel on the two trunks.  It
+would be simpler all around if accumulators apart from the ft argument
+transmitted and received on a single trunk.  At least, it would be nice if
+constants used a less contended trunk, to permit using constant transceivers as
+dummy programs more often.
 
 <pre><a name="NWbbij8-48IebG-1" href="#NWDbbij8-K"><dfn>&lt;Digit trunks&gt;=</dfn></a> <b>(<a href="#NWDbbij8-2">&lt;-U</a>)</b>
 #  1    most accumulators transmit on 1
@@ -758,7 +754,7 @@ p 11 1
 
 <pre><a name="NWbbij8-3tINV6-1" href="#NWDbbij8-L"><dfn>&lt;Digit trunks: non-accumulator connections&gt;=</dfn></a> <b>(<a href="#NWDbbij8-K">&lt;-U</a>)</b>
 # Trunk 1 - accumulators, constants
-p 1 c.o     # Constant data for C.T.
+p 1 c.o     # Constants for AB/CD/EF/GH/JK
 
 # Trunk 2 - accumulators, instructions
 p 2 os.o    # Instruction to decode, and immediate operand for NxD
@@ -775,8 +771,8 @@ p 4 f1.B
 p 4 f2.B
 p 4 f3.B
 
-# Trunk 5
-p 5 f1.arg  # Argument for F.T., PC
+# Trunk 5 - argument for F.T., PC
+p 5 f1.arg
 p 5 f2.arg
 p 5 f3.arg
 
@@ -1106,7 +1102,7 @@ p 2 ad.dp.3.2
 p ad.dp.3.2 <a href="#NWbbij8-3dwPcF-D">F-6</a>
 </pre><blockquote>Defines <a href="#NWI-E-2"><code>E-2</code></a>, <a href="#NWI-E-8"><code>E-8</code></a>, <a href="#NWI-F-6"><code>F-6</code></a> (links are to index).<p>
 </blockquote><p>
-<h3><a name="NWDbbij8-Y">Pulse amplifiers</a></h3>
+<h3><a name=pas><a name="NWDbbij8-Y">Pulse amplifiers</a></a></h3>
 
 <p>LCS48 Table 2.II illustrates how a tree of pulse amplifiers is used to
 combine order decode lines into common control signals.  For example, all the
