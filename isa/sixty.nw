@@ -85,17 +85,17 @@ href="https://github.com/jeredw/eniacsim">eniacsim</a> simulator with
 # Input file for eniacsim (https://github.com/jeredw/eniacsim)
 @
 
-<p><b>Timings.</b>  Knowing how long an instruction takes might be
-helpful to guess how it works, but LCS48 cycle timings are suspiciously low
-for some instructions like <a href="#multiply"><tt>X</tt></a>.  The same
-thing happens in modern datasheets when the marketing department gets hold of
-them.  DU49 has more conservative timings despite its faster 6 cycle fetch, so
-is likely more reliable.  DEC51 differs yet again but more closely matches
-DU49.
+<p><b>Timings.</b> Knowing how long an instruction takes might be helpful to
+guess how it works, but LCS48 cycle timings are suspiciously low for some
+instructions like <a href="#multiply"><tt>X</tt></a>&mdash;perhaps the marketing
+department got hold of it. DU49 has more conservative timings despite its faster
+6 cycle fetch, so is likely more reliable. DEC51 differs yet again but more
+closely matches DU49.
 
-<p>This implementation keeps execution time for 7-cycle instructions in LCS48 at
-7 cycles and does its best to match the rest. <a href="#shifts">Shifts</a> and
-<a href="#cflow">control flow</a> instructions have some issues.
+<p>This reconstruction keeps execution time for 7-cycle instructions in LCS48 at
+7 cycles and does its best to match the rest. Timing considerations make an
+interesting difference for <a href="#cflow">control flow</a> instructions, and
+<a href="#shifts">shifts</a> just have issues.
 
 <p><b>Reserving A<sub>13</sub>.</b> Several instructions require
 A<sub>13</sub> to be 0 before execution and guarantee it to be 0 after.  This
@@ -179,7 +179,7 @@ s a2.op12 0
 s a2.cc12 0
 s a2.rp12 1
 p a2.12o C-5
-@ %def A-1
+@ %def A-1 G-6
 
 <h3>Fetch sequence</h3>
 
@@ -692,31 +692,31 @@ superscript or annotation indicates a connected adapter.
 <table style="text-align:center">
 <tr>
 <th>
-<th>A<sub>1</sub><br>
-<th>A<sub>2</sub><br>
-<th>A<sub>3</sub><br>
-<th>A<sub>4</sub><br>Quot.
-<th>A<sub>5</sub><br>Num
-<th>A<sub>6</sub><br>PC
-<th>A<sub>7</sub><br>Denom.
-<th>A<sub>8</sub><br>Arg.
-<th>A<sub>9</sub><br>Shift
-<th>A<sub>10</sub><br>
-<th>A<sub>11</sub><br>Ier
-<th>A<sub>12</sub><br>Icand
-<th>A<sub>13</sub><br>LHPP
-<th>A<sub>14</sub><br>
-<th>A<sub>15</sub><br>RHPP
-<th>A<sub>16</sub><br>
-<th>A<sub>17</sub><br>
-<th>A<sub>18</sub><br>
-<th>A<sub>19</sub><br>
-<th>A<sub>20</sub><br>
+<th>[[a1]]<br>
+<th>[[a2]]<br>
+<th>[[a3]]<br>
+<th>[[a4]]<br>Quot.
+<th>[[a5]]<br>Num
+<th>[[a6]]<br>PC
+<th>[[a7]]<br>Denom.
+<th>[[a8]]<br>Arg.
+<th>[[a9]]<br>Shift
+<th>[[a10]]<br>
+<th>[[a11]]<br>Ier
+<th>[[a12]]<br>Icand
+<th>[[a13]]<br>LHPP
+<th>[[a14]]<br>
+<th>[[a15]]<br>RHPP
+<th>[[a16]]<br>
+<th>[[a17]]<br>
+<th>[[a18]]<br>
+<th>[[a19]]<br>
+<th>[[a20]]<br>
 <tr><td>α<td>2<td>2<td>2<td>10<td>2<td>2<td>2<td>2<td><a href="#11s">11*</a><td>2<td>2<td>2<td>6<td>2<td>7<td>2<td>2<td>2<td>2<td>2
-<tr><td>β<td>1<td>1<td>1<td>2<td><td>1<td>1<td><td>2<td><a href="#3c">3<sup>c</sup></a><td><a href="#4s">4*</a><td>1<td>8=2<td>1<td>9=1<td>1<td>1<td><td>1<td>1
-<tr><td>γ<td><a href="#3a">3<sup>a</sup></a><td><td><td>1<td>11=1<td><a href="#2a">2<sup>a</sup><td>10<td><td>1<td><a href="#2c">2<sup>c</sup></a><td><a href="#1f">1<sup>f</sup><td><td>1<td><td><a href="#5s">5*</a><td><td><td><a href="#2g">2<sup>g</sup></a><td><td><a href="#3d">3<sup>d</sup></a>
-<tr><td>δ<td><a href="#3b">3<sup>b</sup></a><td>2<sup>+1</sup><td>2<sup>+2</sup><td>2<sup>+3</sup><td>2<sup>+4</sup><td><a href="#2b">2<sup>b</sup></a><td>2<sup>+5</sup><td><td>2<sup>-5</sup><td><a href="#3e">3<sup>e</sup></a><td>1<td><td><td>2<sup>-4</sup><td>3<td>2<sup>-3</sup><td>2<sup>-2</sup><td><a href="#2h">2<sup>h</sup></a><td>2<sup>-1</sup><td><a href="#2d">2<sup>d</sup></a>
-<tr><td>ε<td><td>1<sup>-9</sup><td>1<sup>-8</sup><td>1<sup>-7</sup><td>1<sup>-6</sup><td>-<td>1<sup>-5</sup><td><td>1<sup>+5</sup><td><td><td><td><td>1<sup>+6</sup><td><td>1<sup>+7</sup><td>1<sup>+8</sup><td><td>1<sup>+9</sup><td>
+<tr><td>β<td>1<td>1<td>1<td>2<td><td><a href="#1c">1<sup>c</sup><td>1<td><td>2<td><a href="#3c">3<sup>c</sup></a><td><a href="#4s">4*</a><td>1<td>8=2<td>1<td>9=1<td>1<td>1<td><td>1<td>1
+<tr><td>γ<td><td><td><td>1<td>11=1<td><a href="#1d">1<sup>d</sup><td>10<td><td>1<td><a href="#3d">3<sup>d</sup></a><td><a href="#1f">1<sup>f</sup><td><td>1<td><td><a href="#5s">5*</a><td><td><td><a href="#2g">2<sup>g</sup></a><td><td>
+<tr><td>δ<td><a href="#3a">3<sup>a</sup></a><td>2<sup>+1</sup><td>2<sup>+2</sup><td>2<sup>+3</sup><td>2<sup>+4</sup><td><a href="#2a">2<sup>a</sup></a><td>2<sup>+5</sup><td><td>2<sup>-5</sup><td><td>1<td><td><td>2<sup>-4</sup><td>3<td>2<sup>-3</sup><td>2<sup>-2</sup><td><a href="#2h">2<sup>h</sup></a><td>2<sup>-1</sup><td>
+<tr><td>ε<td><a href="#3b">3<sup>b</sup></a><td>1<sup>-9</sup><td>1<sup>-8</sup><td>1<sup>-7</sup><td>1<sup>-6</sup><td><a href="#2b">2<sup>b</sup></a><td>1<sup>-5</sup><td><td>1<sup>+5</sup><td><td><td><td><td>1<sup>+6</sup><td><a href="#3e">3<sup>e</sup></a><td>1<sup>+7</sup><td>1<sup>+8</sup><td><td>1<sup>+9</sup><td>
 <tr style="border-top: 3px solid #ccc">
 <td>A<td>1<td>1<td>1<td>1<td>11=1<td>3<td>11=1<td>3<td>11=1<td>1<td>1<td>1<td>1<td>1<td>2<td>1<td>1<td>1<td>1<td>1
 <tr>
@@ -724,12 +724,11 @@ superscript or annotation indicates a connected adapter.
 </table>
 
 <p>Using two digit trunks for communication between accumulators makes some
-sense given the instruction set.  But there is no obvious advantage to doing
-so, e.g. there is no opportunity to do work in parallel on the two trunks.  It
-would be simpler all around if accumulators apart from the ft arguments
-transmitted and received on a single trunk.  At least, it would be nice if
-constants used a less contended trunk, to permit using constant transceivers
-for dummy programs more often.
+sense given the instruction set. But there is no obvious advantage to doing so,
+e.g. little happens in parallel on the two trunks. It would be simpler all
+around if accumulators apart from the ft arguments transmitted and received on a
+single trunk. At least, it would be nice if constants used a less contended
+trunk, to permit using constant transceivers for dummy programs more often.
 
 <<Digit trunks>>=
 #  1    most accumulators transmit on 1
@@ -791,8 +790,8 @@ p 10 d.ans
 # Accumulator 1
 p 2 a1.α
 p 1 a1.β
-p ad.permute.4 a1.γ  # For 6(11,10,9)
-p ad.permute.6 a1.δ  # For 6(8,7)
+p ad.permute.4 a1.δ  # 3(11,0s,10,9): 6(11,10,9)
+p ad.permute.6 a1.ε  # 3(0s,8,7): 6(8,7)
 p 1 a1.A
 p 1 a1.S  # Save to a13
 @ %def a1
@@ -837,10 +836,11 @@ p 11 a5.A  # Divider shift (1=11)
 <<Digit trunks: accumulator connections>>=
 # Accumulator 6 - PC
 p 2 a6.α
-p 1 a6.β
-p ad.permute.3 a6.γ  # For 6(11,10,9)
-p ad.permute.5 a6.δ  # For 6(8,7)
-#p 0 a6.ε  # NB ε is used as a dummy for increment
+p ad.permute.8  a6.β  # 1(3-1): 6R3
+p ad.permute.10 a6.γ  # 1(6-1): 6R6, NxD6, C.T.
+p ad.permute.3  a6.δ  # 2(11,2,1,0s): 6(11,10,9)
+# NB ε is also used as a dummy for increment
+p ad.permute.5  a6.ε  # 2(0,0,2,1,0s): 6(8,7)
 p 3 a6.A
 @ %def a6
 
@@ -874,17 +874,16 @@ p 11 a9.A  # Divider shift (1=11)
 <<Digit trunks: accumulator connections>>=
 # Accumulator 10
 p 2 a10.α
-p ad.permute.7 a10.β  # For 6R3
-p ad.permute.8 a10.γ  # For 6R3
-p ad.permute.11 a10.δ  # For C.T.
+p ad.permute.7 a10.β  # 3(3-1): 6R3
+p ad.permute.9 a10.γ  # 3(6-1): 6R6, C.T.
 p 1 a10.A
-p 2 a10.S  # Save to a13
+p 2 a10.S  # Save to a13 and clear fields of a6
 @ %def a10
 
 <<Digit trunks: accumulator connections>>=
 # Accumulator 11 - ier
 p 2 a11.α
-p ad.permute.1 a11.β  # F.T. data A
+p ad.permute.1  a11.β  # F.T. data A
 p ad.permute.12 a11.γ  # For DS
 p 1 a11.δ
 p 1 a11.A
@@ -923,6 +922,7 @@ p 7 a15.α  # Multiplier partial product
 p 9 a15.β  # Multiplier correction (9=1)
 p ad.permute.2 a15.γ  # F.T. data B
 p 3 a15.δ  # For 8t
+p ad.permute.11 a15.ε # For C.T.
 p 2 a15.A
 @ %def a15
 
@@ -1015,35 +1015,35 @@ p 3 ad.permute.6
 s ad.permute.6 0,0,0,0,0,0,0,0,0,8,7
 @ %def ad.permute.5 ad.permute.6
 
-<p><b><a name="3c">3<sup>c</sup></a>, <a name="2c">2<sup>c</sup></a></b>.
-Replace digits 3-1 of A<sub>6</sub> with A<sub>15</sub> for <code>6R3</code>.
+<p><b><a name="3c">3<sup>c</sup></a>, <a name="1c">1<sup>c</sup></a></b>.
+Select digits 3-1 of A<sub>6</sub> or A<sub>15</sub> for <code>6R3</code>.
 
 <<Digit trunks: adapters>>=
 # For 6R3.
 p 3 ad.permute.7
-s ad.permute.7 11,10,9,8,7,6,5,4,0,0,0
-p 2 ad.permute.8
+s ad.permute.7 0,0,0,0,0,0,0,0,3,2,1
+p 1 ad.permute.8
 s ad.permute.8 0,0,0,0,0,0,0,0,3,2,1
 @ %def ad.permute.7 ad.permute.8
 
-<p><b><a name="3d">3<sup>d</sup></a>, <a name="2d">2<sup>d</sup></a></b>.
-Replace digits 6-1 of A<sub>6</sub> with A<sub>15</sub> for <code>6R6</code>.
+<p><b><a name="3d">3<sup>d</sup></a>, <a name="1d">1<sup>d</sup></a></b>.
+Select digits 6-1 of A<sub>6</sub> or A<sub>15</sub> for <code>6R6</code>.
 
 <<Digit trunks: adapters>>=
 # For 6R6.
 p 3 ad.permute.9
-s ad.permute.9 11,10,9,8,7,0,0,0,0,0,0
-p 2 ad.permute.10
+s ad.permute.9 0,0,0,0,0,6,5,4,3,2,1
+p 1 ad.permute.10
 s ad.permute.10 0,0,0,0,0,6,5,4,3,2,1
 @ %def ad.permute.9 ad.permute.10
 
-<p><b><a name="3e">3<sup>e</sup></a></b>.  Shift new PC digits from 6-4 to 3-1
-in A<sub>6</sub> for <code>C.T.</code>
+<p><b><a name="3e">3<sup>e</sup></a></b>. Shift new PC digits from 6-4 to 3-1
+for <code>C.T.</code>
 
 <<Digit trunks: adapters>>=
-# For C.T., shift a6 digits 6-4 to position 3-1.
+# For C.T., shift digits 6-4 to position 3-1.
 p 3 ad.permute.11
-s ad.permute.11 11,10,9,8,7,0,0,0,6,5,4
+s ad.permute.11 0,0,0,0,0,0,0,0,6,5,4
 @ %def ad.permute.11
 
 <p><b><a name="1f">1<sup>f</sup></a></b>.  Drop sign for DS.
@@ -1148,14 +1148,14 @@ p ad.dp.4.11 G-3
 <h3><a name=amps>Pulse amplifiers</a></h3>
 
 <p>LCS48 Table 2.II illustrates how a tree of pulse amplifiers is used to
-combine order decode lines into common control signals.  For example, all the
+combine decode lines into common control signals. For example, all the
 <code>xl</code> instructions share a sequence controlled by [[C-1]], with their
 separate behavior controlled by individual decode lines.
 
 <<Pulse amplifiers>>=
-# Box 1: Listen orders (xl) -> C-1
+# Listen orders (xl) -> C-1
 # Note that C-1 is also the encoding for 00 (C) which clears a15.
-# 6l needs special handling.
+# 6l is not included because it cannot overlap with fetch.
 p pa.1.sa.1  S-1  # 1l
 p pa.1.sb.1  C-1
 p pa.1.sa.2  S-2  # 2l
@@ -1200,8 +1200,8 @@ of the <tt>U</tt> trunk.  From Table 2.I, it's pretty clear this ought to be
 <tt>U</tt>s.
 
 <<Pulse amplifiers>>=
-# Box 2: Talk orders (xt) -> D-3
-# 6t and 8t need special handling because a6 and a8 transmit on a separate
+# Talk orders (xt) -> D-3
+# 6t and 8t are not included because a6 and a8 transmit on a separate
 # trunk to address the function table.
 p pa.2.sa.7  V-9  # 1t
 p pa.2.sb.7  D-3
@@ -1240,7 +1240,7 @@ p pa.3.sb.11 D-3
 @ %def D-3
 
 <<Pulse amplifiers>>=
-# Box 3: Constant transfers (const) -> D-4
+# Constant transfers (const) -> D-4
 p pa.4.sa.1  D-7  # AB
 p pa.4.sb.1  D-4
 p pa.4.sa.2  D-8  # CD
@@ -1254,7 +1254,7 @@ p pa.4.sb.5  D-4
 @ %def D-4
 
 <<Pulse amplifiers>>=
-# Box 4: Misc remaining 7 cycle ops (a1tmp) -> D-5
+# Misc remaining 7 cycle ops (a1tmp) -> D-5
 # These instructions use a1 as a temporary.
 p pa.4.sa.6 V-2  # 6(11,10,9)
 p pa.4.sb.6 D-5
@@ -1405,7 +1405,9 @@ p pa.7.sb.1  E-9 # clear ft selector
 # a1tmp: Trigger a13 send
 p pa.7.sa.2 T-8  # a1tmp+11
 p pa.7.sb.2 B-11 # a13 send and clear
+@
 
+<<Pulse amplifiers>>=
 # X: Trigger a15 to receive correction term
 p pa.7.sa.3 M-2  # X+19
 p pa.7.sb.3 B-3  # a15 receive correction term
@@ -1414,16 +1416,32 @@ p pa.7.sa.4 M-3  # X+20
 p pa.7.sa.4 B-11 # a13 send and clear
 p pa.7.sa.5 M-3  # X+20
 p pa.7.sb.5 B-3  # a15 receive lhpp
+@
 
+<<Pulse amplifiers>>=
 # ÷: Save and restore lots of temporaries
 p pa.7.sa.6 R-10
 p pa.7.sb.6 J-1
 p pa.7.sa.7 Q-6
 p pa.7.sb.7 B-11
+@
 
+<<Pulse amplifiers>>=
 # DS: Save temporary
 p pa.7.sa.8 H-10
 p pa.7.sb.8 B-4
+@
+
+<<Pulse amplifiers>>=
+# Control flow ops share a common sequence K-1.
+p pa.7.sa.9  E-6  # 6R3
+p pa.7.sb.9  K-1
+p pa.7.sa.10 E-7  # 6R6
+p pa.7.sb.10 K-1
+p pa.7.sa.11 G-2  # C.T.
+p pa.7.sb.11 J-1  # a15 send and clear
+p pa.8.sa.1 G-5   # C.T. taken is basically 6R6
+p pa.8.sa.1 E-7   # 6R6
 @
 
 <h3>Instruction sequences</h3>
@@ -1493,7 +1511,7 @@ s a13.cc3 0
 replace the value in A<sub>15</sub>.
 
 <<Instructions: xl>>=
-# xl and C
+# xl (and C)
 
 # xl cycle 7: Clear aL
 <<Instructions: xl cycle 7>>
@@ -1501,16 +1519,7 @@ replace the value in A<sub>15</sub>.
 <<Instructions: xl cycle 8>>
 @
 
-<p>[[C-1]] from pulse amplifiers triggers the second, A<sub>15</sub> cycle of
-<code>xl</code> which is the same for each listen instruction.
-
 <<Instructions: xl cycle 7>>=
-# Dummy to trigger J-1 in cycle 8
-# This is wired as specified in figure 3.3.  Note that this causes contention
-# on trunk 1 during cycle 7 since it conflicts with a1:AC1.
-p C-1 c.3i
-p c.3o J-1
-
 # Clear "listening" accumulator
 # 1ℓ
 p S-1 a1.5i
@@ -1581,7 +1590,9 @@ s a12.op5 A
 s a12.cc5 C
 s a12.rp5 1
 p a12.5o a12.1i
-# 13l: Note that 13l does a13 += a15 rather than a13 = a15
+# 13l
+# 13l does a13 += a15 rather than a13 = a15
+# NOTE: We could move the dummy off a13.
 p C-7 a13.5i
 s a13.op5 0
 s a13.cc5 0
@@ -1618,7 +1629,16 @@ s a19.cc5 C
 s a19.rp5 1
 p a19.5o a19.1i
 # 20l = C-8 is not implemented
+
+# Dummy to trigger J-1 in cycle 8
+# This is wired as specified in figure 3.3.  Note that this causes contention
+# on trunk 1 during cycle 7 since it conflicts with e.g. a1:AC1.
+p C-1 c.3i
+p c.3o J-1
 @ %def O-8
+
+<p>[[C-1]] from pulse amplifiers triggers the second, A<sub>15</sub> cycle of
+<code>xl</code> which is the same for each listen instruction.
 
 <<Instructions: xl cycle 8>>=
 # J-1 triggers a15:AC1
@@ -1737,7 +1757,7 @@ figure 3.2.  There is nothing very surprising.
 @
 
 <<Instructions: constant cycle 7>>=
-# D-4 -> B-3 triggers a15:β01
+# Transmit right digits.
 p D-7 c.1i    # AB
 s c.s1 Blr
 p c.1o c.2i
@@ -1753,6 +1773,7 @@ p c.19o c.20i
 p D-11 c.25i  # JK
 s c.s25 Klr
 p c.25o c.26i
+# D-4 -> B-3 triggers a15:β01
 
 # Clear a11 to receive a constant next cycle.
 p J-3 a11.6i
@@ -1763,38 +1784,56 @@ p a11.6o T-6
 @ %def T-6
 
 <<Instructions: constant cycle 8>>=
-# Receive constant digits.
-p T-6 a11.3i
-s a11.op3 δ
+# Transmit left digits.
 # c.2i, c.8i, ... are connected directly from c.1o, c.7o, etc.
 s c.s2 Alr
 s c.s8 Clr
 s c.s14 Elr
 s c.s20 Glr
 s c.s26 Jlr
+# Receive constant digits.
+p T-6 a11.3i
+s a11.op3 δ
 @
 
-<h4>6(11,10,9) and 6(8,7) and M</h4>
+<h4><a name=a1tmp>6(11,10,9) and 6(8,7) and M</a></h4>
 
 <p><code>M</code> is grouped with the <code>6(...)</code> instructions via the
 pulse amplifier connection [[D-5]], presumably because all use A<sub>1</sub>
-inputs.  We may infer they share most of the same sequence.
+inputs. We may infer they share most of the same sequence.
 
 <p>The <code>6(...)</code> instructions are listed as 7 cycles in LCS48 but as
-10 in DU49.  They can overlap the fetch sequence in LCS48 at least, but care is
-needed to avoid contention because A<sub>6</sub> is also the PC.
+10 in DU49. They can overlap the fetch sequence in LCS48 at least.
 
 <p><code>6(11,10,9)</code> was renamed <code>6<sub>1</sub></code> in DEC51, and
-has side-effect (1+13&rarr;1). <code>6(8,7)</code> was renamed
-<code>6<sub>2</sub></code> and also has (1+13&rarr;1).  These explicit
-annotations from DEC51 make sense of LCS48 section IV which mentions
-A<sub>1</sub> without context and otherwise looks like a typo.
-<blockquote>Acc. 15(2,1) transmit-clear to Acc. 6(8,7).  Acc. 6(8,7)
-transmit-hold to Acc. 1(2,1). Then, Acc. 1(2,1) transmit-clear to Acc.
-15(2,1)</blockquote>
+has the side-effect (1+13&rarr;1). <code>6(8,7)</code> was renamed
+<code>6<sub>2</sub></code> and also has the side-effect (1+13&rarr;1). These
+explicit annotations from DEC51 make sense of LCS48 section IV which mentions
+A<sub>1</sub> without context and otherwise looks like a typo. <blockquote>Acc.
+15(2,1) transmit-clear to Acc. 6(8,7). Acc. 6(8,7) transmit-hold to Acc. 1(2,1).
+Then, Acc. 1(2,1) transmit-clear to Acc. 15(2,1)</blockquote>
+
+<h5>Shared sequence</h5>
+
+<p>Some care is needed to avoid contention with <tt>a6:εC1</tt> in cycle 11.
+Assigning a trunk 2 input to <tt>a6.ε</tt> ensures cycle 11 of this sequence can
+happen in parallel.
+
+<p>Although trunk 1 and 2 are both free in cycle 7, cycle 7 and 8 can't happen
+in parallel due to contention on <tt>a6</tt> and <tt>a1</tt>.
+
+<pre>
+  7. a1:AC1, a13:γ01 # Save a1 [1]
+  8. a15:AC1, (...)  # Operate on a15 [2,2*]
+  9. -
+ 10. (...), a15:β01  # Get result back in a15 [1]
+ 11. a13:AC1, a1:β01 # Restore a1. [1]
+</pre>
 
 <<Instructions: a1-based>>=
-# Several instructions that use a1 as a temporary share the same sequence.
+# 6(11,10,9), 6(8,7), and M
+# These instructions use a1 as a temporary and share the same sequence.
+
 # Cycle 7: Save a1 in a13 (using trunk 1)
 <<Instructions: a1-based cycle 7>>
 # Cycle 8: C-4 -> J-1; per-instruction work
@@ -1817,7 +1856,7 @@ s a1.op6 A
 s a1.cc6 C
 s a1.rp6 1
 p a1.6o C-4  # Trigger a15:AC1 in cycle 8
-# TODO: We could just trigger J-1 here instead, so C-4 -> J-1 isn't helping.
+# NOTE: We could just trigger J-1 here instead, so C-4 -> J-1 isn't helping.
 # D-5 -> B-4 triggers a13:γ01
 
 # Await cycle 10
@@ -1852,8 +1891,8 @@ s a1.cc3 0
 
 <pre>
   7. (a1:AC1, a13:γ01) # Save a1 [1]
-  8. (a15:AC1), a6:γ01 # Add a15(11,2,1) into a6(11,10,9) [2,2*]
-  9. a6:A01*, a1:γ01   # Get a6(11,10,9) in a1(11,2,1) (* from [[J-4]]) [3,3*]
+  8. (a15:AC1), a6:δ01 # Add a15(11,2,1) into a6(11,10,9) [2,2*]
+  9. (a6:A01), a1:δ01  # Get a6(11,10,9) in a1(11,2,1) (* a6:A01 from [[J-4]]) [3,3*]
  10. a1:AC1, (a15:β01) # Get a1(11,2,1) back in a15(11,2,1). [1]
  11. (a13:AC1, a1:β01) # Restore a1. [1]
 </pre>
@@ -1870,7 +1909,7 @@ p a2.6o T-1
 
 # Cycle 8: Add a15(11,2,1) to a6(11,10,9)
 p T-1 a6.7i
-s a6.op7 γ
+s a6.op7 δ
 s a6.cc7 0
 s a6.rp7 1
 p a6.7o T-2
@@ -1878,7 +1917,7 @@ p a6.7o T-2
 # Cycle 9: Receive 6(11,10,9) in 1(11,2,1)
 # Fetch J-4 will send a6 this cycle.
 p T-2 a1.7i
-s a1.op7 γ
+s a1.op7 δ
 s a1.cc7 0
 s a1.rp7 1
 p a1.7o T-3
@@ -1893,10 +1932,12 @@ s a1.rp8 1
 
 <h4><a name="687">6(8,7)</a></h4>
 
+<p>This instruction does double duty as a "listen" and a "talk" order.
+
 <pre>
   7. (a1:AC1, a13:γ01) # Save a1 [1]
-  8. (a15:AC1), a6:δ01 # Add 15(2,1) into 6(8,7) [2,2*]
-  9. a6:A01*, a1:δ01   # Get 6(8,7) in 1(2,1) (* from [[J-4]]) [3,3*]
+  8. (a15:AC1), a6:ε01 # Add 15(2,1) into 6(8,7) [2,2*]
+  9. (a6:A01), a1:ε01  # Get 6(8,7) in 1(2,1) (* a6:A01 from [[J-4]]) [3,3*]
  10. a1:AC1, (a15:β01) # Get 1(2,1) back in 15(2,1). [1]
  11. (a13:AC1, a1:β01) # Restore a1. [1]
 </pre>
@@ -1913,7 +1954,7 @@ p a3.6o T-9
 
 # Cycle 8: Add a15(2,1) to a6(8,7)
 p T-9 a6.8i
-s a6.op8 δ
+s a6.op8 ε
 s a6.cc8 0
 s a6.rp8 1
 p a6.8o T-10
@@ -1921,7 +1962,7 @@ p a6.8o T-10
 # Cycle 9: Receive 6(8,7) in 1(2,1)
 # Fetch J-4 will send a6 this cycle.
 p T-10 a1.9i
-s a1.op9 δ
+s a1.op9 ε
 s a1.cc9 0
 s a1.rp9 1
 p a1.9o T-11
@@ -2031,7 +2072,7 @@ p m.Dα J-1
 # Apply correction from ier in lhpp
 p m.RS M-1
 p M-1 a11.4i
-s a11.op4 S
+
 p M-1 a13.4i
 s a13.op4 β
 # Apply correction from icand in rhpp
@@ -2066,20 +2107,22 @@ s m.prod1 0
 
 <h4><a name="divsq">÷ and √</h4>
 
-<p>Plausibly we could factor out two shared sequences for saving and restoring
-accumulators used in division and square rooting, but doing so isn't
-necessarily more efficient than duplicating programming steps.  Using a shared
-sequence requires adding dummy programs to continue afterwards, so for example,
-programming a step like <pre>a15:AC1, a9:γ01</pre> for <code>÷</code> and
-<code>√</code> takes four programs whether it's shared or not.
+<p>Division and square rooting use A<sub>4/7</sub> and A<sub>9</sub>. As a
+convenience, the instructions save and restore the values in those
+accumulators&mdash;although since they take 100+ cycles, it might have been ok
+to let programs deal with this instead.
 
-<p>Minimizing accumulator programs used isn't necessarily the right
-goal&mdash;more important is to <a href="#common">conserve programs</a> on
-contended accumulators like A<sub>13</sub> and A<sub>15</sub>, preferring dummy
-programs to scarcer pulse amplifiers.
+<p>We could factor out shared sequences for saving and restoring accumulators,
+but doing so isn't necessarily more efficient than duplicating programming
+steps. Using a shared sequence would require adding dummy programs to continue
+afterwards, so for example, a step like <tt>a15:AC1, a9:γ01</tt> needs four
+programs whether it's shared or not. On balance, we just share a sequence to
+save the accumulators.
 
 <<Instructions: divsq>>=
-# Divider/square rooter accumulator wiring
+# Divide and square root
+
+# Accumulator wiring
 p d.quotient a4
 p d.numerator a5
 p d.denominator a7
@@ -2138,7 +2181,7 @@ s a9.cc6 C
 
 <h4><a name="div">÷</h4>
 
-<p>A<sub>4</sub> (quotient) and A<sub>9</sub> (shifter) need to be saved in
+<p>A<sub>4</sub> (quotient) and A<sub>9</sub> (shifter) are saved in
 A<sub>13</sub> and A<sub>15</sub>, respectively, since DEC51 has side-effect
 (4+13&rarr;4).
 
@@ -2515,7 +2558,7 @@ s a11.cc10 0
 s a11.rp10 1
 @
 
-<h4>NxD</h4>
+<h4>NxD (N6D, N4D, N2D)</h4>
 
 <p>LCS48 claims 14/20/26 cycles for <code>N2D</code> / <code>N4D</code> /
 <code>N6D</code>, i.e. 7 cycles plus 6 per pair of digits with one extra cycle
@@ -2537,7 +2580,7 @@ necessary shifters on a single accumulator, so suppose A<sub>18</sub> has both
 the +4 input for <code>N6D</code> and the +2 input for <code>N4D</code>.
 
 <<Instructions: NxD>>=
-# NxD instructions
+# NxD (N6D, N4D, N2D)
 
 # Common to all instructions
 # Cycle 7: Fetch operand, save -a18 if triggered from decode.
@@ -2546,8 +2589,9 @@ the +4 input for <code>N6D</code> and the +2 input for <code>N4D</code>.
 p C-6 a18.2i
 s a18.op2 S
 s a18.cc2 C
+# Receive -a18 in a13
 # Use a program on a13 directly since it is shared by three instructions.
-# In a pinch this could reuse a13.1i.
+# NOTE: In a pinch this could reuse a13.1i.
 p C-6 a13.7i
 s a13.op7 β
 s a13.cc7 0
@@ -2568,7 +2612,7 @@ s a13.rp7 1
     7. ([[D-6]]),             # Read operand
        (a18:SC1, a13:β01) # Save -a18 [2]
     &vellip;
-   12. ([[G-8]]), a18:δ01     # Receive +4 shifted digits at a18. [2,2+4]
+   12. ([[G-8]]), a18:δ01     # Receive +4 shifted digits at a18. [2,2(+4)]
    13. [[D-2]]                # Trigger N4D sequence
     &vellip;
    26. ([[C-5]])
@@ -2633,10 +2677,10 @@ p a18.7o D-1  # N2D'
 
 <h4>N2D</h4>
 
-<p>If the order selector transmitted on trunk 1, we could just receive the
-operand directly at A<sub>15</sub>.  Since it transmits on <a
-href="#trunks">trunk 2</a>, receive digits via A<sub>18</sub> instead to avoid
-needing an extra trunk 2 input on A<sub>15</sub>.
+<p><code>N2D</code> could go faster if the order selector transmitted on trunk
+1, since it could then receive the operand directly at A<sub>15</sub>. But
+because its sequence is reused from <code>N6D/N4D</code>, it has to accumulate
+into A<sub>18</sub> anyway.
 
 <p>[[C-5]] could plausibly be re-asserted earlier, but this timing matches
 LCS48.
@@ -2647,8 +2691,8 @@ LCS48.
     &vellip;
    12. ([[G-8]]), a18:α01      # Receive digits at a18 [2]
    13. a18:AC1, a15:β01    # Send immediate digits to a15 [1]
-   14. [[C-5]],                # Fetch and decode next instruction
-       a13:SC1, a18:α01    # Restore -(a13-a18) = a18-a13 [2]
+   14. a13:SC1, a18:α01,   # Restore -(a13-a18) = a18-a13 [2]
+       [[C-5]],                # Fetch and decode next instruction
 </pre>
 
 <<Instructions: N2D>>=
@@ -2667,6 +2711,7 @@ LCS48.
 <h5>N2D cycle 7</h5>
 
 <<Instructions: N2D cycle 7>>=
+# Await operand
 p D-1 a3.10i  # N2D'
 s a3.op10 0
 s a3.cc10 0
@@ -2692,6 +2737,7 @@ p c.15o B-3
 <h5>N2D cycle 13</h5>
 
 <<Instructions: N2D cycle 13>>=
+# Transmit a18
 p N-4 a18.9i
 s a18.op9 A
 s a18.cc9 C
@@ -2722,34 +2768,49 @@ s a8.cc3 0
 
 <h4><a name="cflow">Control flow</a></h4>
 
+<<Instructions: control flow>>=
+# Control flow (6R3, 6R6 and C.T.)
+
+# These instructions mostly share the same sequence.
+<<Instructions: control flow common>>
+
+# Per-instruction sequences
+<<Instructions: 6R3>>
+<<Instructions: 6R6>>
+<<Instructions: C.T.>>
+@
+
 <p>All sources list <code>6R3</code> and <code>6R6</code> at 13 cycles, and
 <code>C.T.</code> at 14 cycles for taken and 8 cycles for not-taken branches.
 These cycle counts should be reliable because the next fetch is dependent. But
-with an obvious datapath, these instructions run 1-2 cycles <em>faster</em> than
-specified.
+with an obvious datapath, these instructions would run 1-2 cycles
+<em>faster</em> than specified.
 
 <h5>Obvious datapath</h5>
 
-<p>An obvious datapath for e.g. <code>6R3</code> would use one input on
-A<sub>6</sub> to receive on trunk 1, and two inputs for <code>3(11-4)</code> and
-<code>2(3-1)</code> on A<sub>10</sub>. Then we could accumulate into
-A<sub>10</sub> in four cycles.
+<p>An obvious datapath for e.g. <code>6R3</code> would use two inputs for
+<code>3(11-4)</code> and <code>2(3-1)</code> on A<sub>10</sub>, and one trunk 1
+input on A<sub>6</sub> to accumulate the desired fields into A<sub>10</sub> in
+four cycles.
 
 <pre>
-  7. (save and clear a10)
+  # Notional 6R3 sequence
+  7. a10:SC1, a13:β01  # Save -a10 [2]
   8. a6:AC1, a10:β01   # Isolate a6(11-4) [3,3(11-4)]
   9. a15:AC1, a10:γ01  # Add a15(3-1) [2,2(3-1)]
  10. a10:AC1, a6:β01   # Set new PC [1]
- 11. (restore a10?)    # (This can happen in parallel.)
+ 11. a13:SC1, a10:α01  # Restore -a10 [2]
  12. [[C-5]]
 </pre>
 
-<p>That leaves enough inputs on A<sub>6</sub> for <code>6l</code>,
+<p>This leaves enough inputs on A<sub>6</sub> for <code>6l</code>,
 <code>6(11,10,9)</code> and <code>6(8,7)</code>. <code>NxD6</code> would reuse
-the trunk 1 input along with two additional inputs on A<sub>18</sub> to clear
-components of A<sub>6</sub> and add back immediate digits:
+the A<sub>6</sub> trunk 1 input along with two additional inputs on
+A<sub>18</sub> to clear components of A<sub>6</sub> and add back immediate
+operand digits:
 
 <pre>
+  # Notional NxD6 sequence
   7. (save and clear a18)
   8. a6:AC1, a18:[βε]01  # Receive a6(11-4) [3,3*]
                          #      or a6(11-6)
@@ -2757,40 +2818,165 @@ components of A<sub>6</sub> and add back immediate digits:
   n. a18:AC1, a6:β01     # Get immediate operand digits [1]
 </pre>
 
-<p>This datapath requires two inputs each on the temporary accumulators for
-<code>6Rx</code> instructions. Since <code>C.T.</code> also requires an input,
-the three instructions can't then share A<sub>10</sub>.
+<p>However, this datapath would require two inputs each on the temporary
+accumulators for <code>6Rx</code>. Since <code>C.T.</code> also requires an
+input, the three instructions couldn't then sanely share A<sub>10</sub>.
 
-<h5>Alternative datapath</h5>
+<h5>Less obvious datapath</h5>
 
 <p>Instead, A<sub>6</sub> could have inputs to receive <tt>1(3-1)</tt> and
 <tt>1(6-1)</tt>. <code>N3D6</code> would have to use the <tt>1(6-1)</tt> input
 to affect <tt>a6(4)</tt> as it does, but that is plausible.
 
+<p>With this setup, it's much more efficient to subtract out the rightmost
+digits of A<sub>6</sub> than to stitch fields together. A<sub>10</sub> would
+have inputs for <tt>3(3-1)</tt> instead of <tt>3(11-4)</tt>, and <tt>3(6-1)</tt>
+instead of <tt>3(11-6)</tt>.
+
 <pre>
-  7. (save and clear a10)
-  8. a6:AC1, a10:β01  # Isolate a6(11-4) [3,3*]
-  9. a15:AC1, a6:β01  # Add a15(3-1) to a6 [2,2*]
- 10. a10:AC1, a15:β01 # Move to a15 to use trunk 2 [1]
- 11. a15:AC1, a6:α01  # Add original a6(11-4) back [2]
- 12. (restore a10)    # (This can happen in parallel.)
+  # Alternative 6R3 sequence
+  7. a10:SC1, a13:β01  # Save -a10 [2]
+  8. a6:A01, (a10:β01) # Send a6(3-1) [3,3(3-1)]
+  9. a10:SC1, a6:α01   # Clear a6(3-1) [2]
+ 10. a15:AC1, a10:α01  # Get a15 in a10 to use trunk 1 [2]
+ 11. a10:AC1, (a6:β01) # Add a15(3-1) [1,1(3-1)]
+ 12. a13:SC1, a10:α01  # Restore -a10 [2]
  13. [[C-5]]
 </pre>
 
-<p>This sequence more closely matches a literal reading of the various
-instruction descriptions. It would remove two inputs on A<sub>10</sub> and
-permit sharing A<sub>10</sub> for all control flow instructions. However it
-would require assigning <tt>a6.ε</tt>, which is used by the PC increment program
-<tt>a6:εC1</tt>. This would complicate overlap with fetch in cycle 11, since
-then any activity on trunk 1 would clobber the PC.
+<p>This matches the timing, and more literally follows the prose descriptions of
+the instructions in all the sources, e.g. <q>Clear 6(3,2,1)</q>. It would remove
+two inputs on A<sub>10</sub> and permit sharing A<sub>10</sub> for all the
+control flow instructions. However it does require connecting <tt>a6.ε</tt>,
+used by the PC increment program <tt>a6:εC1</tt>, which means we need to think
+about overlap with fetch in cycle 11 for <a href="#a1tmp">A<sub>1</sub>
+based</a> instructions.
 
-<<Instructions: control flow>>=
-# 6Rx/C.T. share a similar sequence
+<h5>Common sequence</h5>
 
-# Per-instruction sequences
-<<Instructions: 6R3>>
-<<Instructions: 6R6>>
-<<Instructions: C.T.>>
+<p>This sequence begins at cycle 7 for <code>6Rx</code> but cycle 8 for
+<code>C.T.</code>.  To avoid confusion, we label the cycles 0-6.
+
+<<Instructions: control flow common>>=
+# This sequence is initiated by K-1.
+
+# Cycle 0: Save and clear a10
+<<Instructions: control flow cycle 0>>
+# Cycle 1: Send a6 (a10 program per instruction)
+#            Reset order selector ring
+<<Instructions: control flow cycle 1>>
+# Cycle 2: Clear field of a6
+<<Instructions: control flow cycle 2>>
+# Cycle 3: Get a15 in a10 to use trunk 1
+<<Instructions: control flow cycle 3>>
+# Cycle 4: Send a10 (a6 program per instruction)
+<<Instructions: control flow cycle 4>>
+# Cycle 5: Restore a10
+<<Instructions: control flow cycle 5>>
+# Cycle 6: (Fetch and decode next instruction)
+@ %def K-1
+
+<h5>Control flow cycle 0</h5>
+
+<<Instructions: control flow cycle 0>>=
+# Transmit -a10 on trunk 2
+p K-1 a10.6i
+s a10.op6 S
+s a10.cc6 C
+s a10.rp6 1
+p a10.6o K-2
+# Receive at a13 (on trunk 2)
+# Use a program on a13 since it is shared by three instructions.
+# NOTE: This could use B-4 instead.
+p K-1 a13.9i
+s a13.op9 β
+s a13.cc9 0
+s a13.rp9 1
+
+# Dummy to reset order selector ring in cycle 1.
+p K-1 a4.12i
+s a4.op12 0
+s a4.cc12 0
+s a4.rp12 1
+p a4.12o G-6
+@ %def K-2
+
+<h5>Control flow cycle 1</h5>
+
+<<Instructions: control flow cycle 1>>=
+# Transmit and hold a6
+# NOTE: Could use J-2 to save a program on a6.
+p K-2 a6.9i
+s a6.op9 A
+s a6.cc9 0
+s a6.rp9 1
+p a6.9o K-3
+# (per-instruction sequences receive at a10)
+@ %def K-3
+
+<h5>Control flow cycle 2</h5>
+
+<<Instructions: control flow cycle 2>>=
+# Transmit -a10 on trunk 2
+p K-3 a10.7i
+s a10.op7 S
+s a10.cc7 C
+s a10.rp7 1
+p a10.7o K-4
+# Add -a10 to a6 via trunk 2,
+# clearing either a6(6-1) or a6(3-1)
+p K-3 a6.2i
+s a6.op2 α
+s a6.cc2 0
+
+# Dummy to trigger a15:AC1 in cycle 3
+p K-3 c.18i
+p c.18o J-1
+@ %def K-4
+
+<h5>Control flow cycle 3</h5>
+
+<<Instructions: control flow cycle 3>>=
+# J-1 triggers a15:AC1
+# Receive a10 on trunk 2
+p K-4 a10.8i
+s a10.op8 α
+s a10.cc8 0
+s a10.rp8 1
+p a10.8o K-5
+@ %def K-5
+
+<h5>Control flow cycle 4</h5>
+
+<<Instructions: control flow cycle 4>>=
+# Transmit a10 on trunk 1
+p K-5 a10.9i
+s a10.op9 A
+s a10.cc9 C
+s a10.rp9 1
+p a10.9o K-6
+# (per-instruction sequences receive at a6)
+
+# Dummy to trigger a13:SC1 in cycle 5
+p K-5 a3.8i
+s a3.op8 0
+s a3.cc8 0
+s a3.rp8 1
+p a3.8o B-10
+@ %def K-6
+
+<h5>Control flow cycle 5</h5>
+
+<<Instructions: control flow cycle 5>>=
+# B-10 triggers a13:SC1
+# Receive saved -a10 on trunk 2
+p K-6 a10.10i
+s a10.op10 α
+s a10.cc10 0
+s a10.rp10 1
+p a10.10o C-5
+
+# C-5 triggers the next instruction fetch in cycle 6.
 @
 
 <h4>6R3</h4>
@@ -2799,73 +2985,129 @@ then any activity on trunk 1 would clobber the PC.
 for <code>6Rx</code>, but DU49 specifies that they're cleared, so let's go with
 that.
 
-<p>DEC51 implies this uses A<sub>10</sub> (10-13&rarr;10).
-
 <pre>
-  7. a10:SC1, a13:β01  # Save -a10 [2]
-  8. a6:AC1, a10:β01,  # Add a6(11-4) [3,3(11-4)]
-     [[G-6]]               # Reset order selector ring
-  9. a15:AC1, a10:γ01  # Add a15(3-1) [2,2(3-1)]
- 10. a10:AC1, a6:β01   # Set new PC [1]
- 11. a13:SC1, a10:α01  # Restore -a10 [2]
- 12. ([[C-5]])
+  7. (a10:SC1, a13:β01)  # Save -a10 [2]
+  8. (a6:A01), a10:β01   # Send a6(3-1) [3,3(3-1)]
+  9. (a10:SC1, a6:α01)   # Clear a6(3-1) [2]
+ 10. (a15:AC1, a10:α01)  # Get a15 in a10 to use trunk 1 [2]
+ 11. (a10:AC1), a6:β01   # Add a15(3-1), updating PC [1,1(3-1)]
+ 12. (a13:SC1, a10:α01)  # Restore -a10 [2]
+ 13. [[C-5]]                 # Fetch and decode
 </pre>
 
 <<Instructions: 6R3>>=
-@
+# 6R3
+
+# Pulse amplifiers trigger K-1
+
+# Cycle 7: Wait
+# Dummy to delay 6R3 = E-6
+p E-6 c.21i
+p c.21o K-7
+
+# Cycle 8: Receive a6(3-1) at a10
+p K-7 a10.3i
+s a10.op3 β
+s a10.cc3 0
+# Dummy to wait for cycle 11.
+p K-7 a2.8i
+s a2.op8 0
+s a2.cc8 0
+s a2.rp8 3
+p a2.8o K-8
+
+# Cycle 11: Receive a15(3-1) at a6
+p K-8 a6.3i
+s a6.op3 β
+s a6.cc3 0
+@ %def K-7 K-8
 
 <h4>6R6</h4>
 
-<p>DU49 also has this instruction, but DEC51 doesn't; instead it assigns opcode
-79 to <code>6<sub>3</sub></code> which saves 15(3,2,1) into 6(6,5,4) without
-clobbering the PC.  The later DEC51 instruction uses A<sub>20</sub>
-(20-13&rarr;20).
-
-<p>It'd be nice to use A<sub>10</sub> because then more of the sequence would
-be common common with <code>6R3</code> and <code>C.T.</code>.  But
-A<sub>10</sub> doesn't have enough free inputs.
+<p>DU49 still has this instruction, but DEC51 changes its semantics; instead it
+assigns opcode 79 to <code>6<sub>3</sub></code> which saves <tt>15(3,2,1)</tt>
+into <tt>6(6,5,4)</tt> without clobbering the PC. <code>6<sub>3</sub></code>
+uses A<sub>20</sub> (20-13&rarr;20).
 
 <pre>
-  7. a20:SC1, a13:β01  # Save -a20 [2]
-  8. a6:AC1, a20:γ01   # Add a6(11-7) [3,3(11-7)]
-     [[G-6]]               # Reset order selector ring
-  9. a15:AC1, a20:δ01  # Add a15(6-1) [2,2(6-1)]
- 10. a20:AC1, a6:β01   # Set new PC [1]
- 11. a13:SC1, a20:α01  # Restore -a20 [2]
- 12. ([[C-5]])
+  7. (a10:SC1, a13:β01)  # Save -a10 [2]
+  8. (a6:A01), a10:γ01   # Send a6(6-1) [3,3(6-1)]
+  9. (a10:SC1, a6:α01)   # Clear a6(6-1) [2]
+ 10. (a15:AC1, a10:α01)  # Get a15 in a10 to use trunk 1 [2]
+ 11. (a10:AC1), a6:γ01   # Add a15(6-1), updating PC [1,1(6-1)]
+ 12. (a13:SC1, a10:α01)  # Restore -a10 [2]
+ 13. [[C-5]]                 # Fetch and decode
 </pre>
 
 <<Instructions: 6R6>>=
-@
+# 6R6, shared by C.T.
+
+# Pulse amplifiers trigger K-1
+
+# Cycle 7: Wait
+# Dummy to delay 6R6 = E-7
+p E-7 c.22i
+p c.22o K-9
+
+# Cycle 8: Receive a6(6-1) at a10
+p K-9 a10.4i
+s a10.op4 γ
+s a10.cc4 0
+# Dummy to wait for cycle 11.
+p K-9 a2.7i
+s a2.op7 0
+s a2.cc7 0
+s a2.rp7 3
+p a2.7o K-10
+
+# Cycle 11: Receive a15(6-1) at a6
+p K-10 a6.4i
+s a6.op4 γ
+s a6.cc4 0
+@ %def K-9 K-10
 
 <h4>C.T.</h4>
 
-<p>LCS48 sneakily mentions yet another new stepper (&ldquo;P-M discriminator
-no. 2&rdquo;) in the text above Section IV.  Without such a unit, we'd need a
-separate dedicated accumulator for magnitude discrimination.
+<p>LCS48 sneaks a mention of another new two-position stepper, <q>P-M
+discriminator no. 2</q>, in the text above Section IV. It's a good thing, as
+without such a unit, magnitude discrimination would require a dedicated
+accumulator as described in ETM 4.5.3.
 
-<p>DEC51 and LCS48 both explicitly state that <code>C.T.</code> uses
-A<sub>10</sub> (10-13&rarr;10).
+<p>An obvious datapath for <code>C.T.</code> would use a single
+<tt>3(11-7,000,6-4)</tt> input on A<sub>10</sub>. But the 14 cycle timing and
+reuse of A<sub>10</sub> suggests this shares a sequence with <code>6Rx</code>.
+
+<p>In fact we can directly reuse the <code>6R6</code> sequence if we allocate a
+precious input on A<sub>15</sub> to receive <tt>a6(6-4)</tt>. This convenience
+would explain the otherwise curious instruction behavior of clearing
+A<sub>15</sub>, as naively it'd be wiser to preserve a loop variable near a
+branch&mdash;A<sub>15</sub> is re-purposed as the target.
 
 <pre>
   4. ([[F-5]])         # Reset discriminator
   &vellip;
   7. a15:AC1, [[G-2]]  # Discriminate P-M
-  M8. [[C-5]]          P8. a10:SC1, a13:β01  # Save -a10 [2]
-                   P9. a6:AC1, a10:β01,  # a6(11-7,000,6-4). [3,3*]
-                       [[G-6]]               # Reset order selector ring
-                   P10. -
-                   P11. a10:AC1, a6:β01   # Set new PC [1]
-                   P12. a13:SC1, a10:α01  # Restore -a10 [2]
-                   P13. ([[C-5]])             # Fetch and decode
+  M8. [[C-5]]       P8. (a10:SC1, a13:β01)  # Save -a10 [2]
+                P9. (a6:A01, a10:γ01),  # Send a6(6-1) [3,3(6-1)]
+                    a15:ε01             # Get a6(6-4) in a15(3-1) [3,3*]
+               P10. (a10:SC1, a6:α01)   # Clear a6(6-1) [2]
+               P11. (a15:AC1, a10:α01)  # Get a15 in a10 to use trunk 1 [2]
+               P12. (a10:AC1, a6:γ01)   # Add a15(6-1), updating PC [1,1(6-1)]
+               P13. (a13:SC1, a10:α01)  # Restore -a10 [2]
+               P14. [[C-5]]                 # Fetch and decode
 </pre>
 
 <<Instructions: C.T.>>=
 # C.T.
 
-# Wire the PM discriminator to select a sequence based on a15 sign.
-<<Instructions: C.T. discrimination>>
-# Cycle P8: Save -a10
+# Cycle 4-7: PM discrimination
+<<Instructions: C.T. cycle 4-7>>
+# Cycle M8: (Fetch and decode next instruction.)
+# Cycle P8: Await cycle P9.
+<<Instructions: C.T. cycle P8>>
+# Cycle P9: Get target in a15.
+<<Instructions: C.T. cycle P9>>
+# Cycle P10-14: (Common with K-1)
 @
 
 <h5>Cycle 4-7</h5>
@@ -2881,19 +3123,38 @@ cycle 7, so we just use [[G-4]] instead.
 but unfortunately RIF cuts off above <tt>cdi</tt>.  We'll just reset it along
 with other steppers as part of the fetch sequence.
 
-<<Instructions: C.T. discrimination>>=
+<<Instructions: C.T. cycle 4-7>>=
 # Cycle 4: Reset discriminator
 p F-5 pm2.cdi
 
 # Cycle 7: Discriminate P-M
 # G-2 -> J-1 triggers a15:AC1
-p G-2 pm2.i
-p G-3 pm2.di
-p pm2.1o G-5  # + branch taken sequence
+p G-2 pm2.i   # C.T.
+p G-3 pm2.di  # 2(11)
+p pm2.1o G-5  # + taken sequence
 p pm2.2o C-5  # - fetch next instruction
-@
+@ %def G-5
 
 <h5>Cycle P8</h5>
+
+<<Instructions: C.T. cycle P8>>=
+# Cycle P8: Await cycle P9.
+# G-5 -> E-7 triggers the 6R6 sequence
+p G-5 a3.7i
+s a3.op7 0
+s a3.cc7 0
+s a3.rp7 1
+p a3.7o K-11
+@ %def K-11
+
+<h5>Cycle P9</h5>
+
+<<Instructions: C.T. cycle P9>>=
+# Cycle P9: Receive a6(6-4) in a15(3-1)
+p K-11 a15.4i
+s a15.op4 ε
+s a15.cc4 0
+@
 
 <h4>18↔20</h4>
 
@@ -3314,13 +3575,13 @@ generates a separate, cross-referenced textual <a href="#index">index</a>.
 <td class=given>[[D-11]]<br>JK
 <tr style="vertical-align: top"><td style="font-weight: bold">E-
 <td class=given>[[E-1]]<br>ftrd
-<td class=given2>[[E-2]]<br>2[1]
+<td class=given2>[[E-2]]<br>2(1)
 <td class=given>[[E-3]]<br>÷
 <td class=given>[[E-4]]<br>6l
 <td class=given>[[E-5]]<br>X
 <td class=given>[[E-6]]<br>6R3
 <td class=given>[[E-7]]<br>6R6
-<td class=given>[[E-8]]<br>5[3]
+<td class=given>[[E-8]]<br>3(3)
 <td class=given>[[E-9]]<br>sft.cdi
 <td class=given>[[E-10]]<br>os.i
 <td class=given>[[E-11]]<br>sft.1o
@@ -3330,7 +3591,7 @@ generates a separate, cross-referenced textual <a href="#index">index</a>.
 <td class=given>[[F-3]]<br>os.Ri
 <td class=given>[[F-4]]<br>PC inc
 <td class=given>[[F-5]]<br>p.cdi
-<td class=given2>[[F-6]]<br>2[2]
+<td class=given2>[[F-6]]<br>2(2)
 <td class=given2>[[F-7]]<br>pm1.i
 <td class=given2>[[F-8]]<br>pm1.9
 <td class=given2>[[F-9]]<br>pm1.0
@@ -3502,7 +3763,7 @@ generates a separate, cross-referenced textual <a href="#index">index</a>.
 <td class=given>[[V-7]]<br>N6D
 <td class=given>[[V-8]]<br>N3D8
 <td class=given>[[V-9]]<br>1t
-<td class=given2>[[V-10]]<br>div+8
+<td class=given2>[[V-10]]<br><s>div+8</s>
 <td>[[V-11]]<br>
 </table>
 

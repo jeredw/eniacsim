@@ -278,8 +278,8 @@ p 10 d.ans
 # Accumulator 1
 p 2 a1.α
 p 1 a1.β
-p ad.permute.4 a1.γ  # For 6(11,10,9)
-p ad.permute.6 a1.δ  # For 6(8,7)
+p ad.permute.4 a1.δ  # 3(11,0s,10,9): 6(11,10,9)
+p ad.permute.6 a1.ε  # 3(0s,8,7): 6(8,7)
 p 1 a1.A
 p 1 a1.S  # Save to a13
 # Accumulator 2
@@ -309,10 +309,11 @@ p ad.permute.33 a5.ε  # Sh' 04 residual
 p 11 a5.A  # Divider shift (1=11)
 # Accumulator 6 - PC
 p 2 a6.α
-p 1 a6.β
-p ad.permute.3 a6.γ  # For 6(11,10,9)
-p ad.permute.5 a6.δ  # For 6(8,7)
-#p 0 a6.ε  # NB ε is used as a dummy for increment
+p ad.permute.8  a6.β  # 1(3-1): 6R3
+p ad.permute.10 a6.γ  # 1(6-1): 6R6, NxD6, C.T.
+p ad.permute.3  a6.δ  # 2(11,2,1,0s): 6(11,10,9)
+# NB ε is also used as a dummy for increment
+p ad.permute.5  a6.ε  # 2(0,0,2,1,0s): 6(8,7)
 p 3 a6.A
 # Accumulator 7 - denominator
 p 2 a7.α
@@ -334,14 +335,13 @@ p ad.permute.39 a9.ε  # Sh' 95 residual
 p 11 a9.A  # Divider shift (1=11)
 # Accumulator 10
 p 2 a10.α
-p ad.permute.7 a10.β  # For 6R3
-p ad.permute.8 a10.γ  # For 6R3
-p ad.permute.11 a10.δ  # For C.T.
+p ad.permute.7 a10.β  # 3(3-1): 6R3
+p ad.permute.9 a10.γ  # 3(6-1): 6R6, C.T.
 p 1 a10.A
-p 2 a10.S  # Save to a13
+p 2 a10.S  # Save to a13 and clear fields of a6
 # Accumulator 11 - ier
 p 2 a11.α
-p ad.permute.1 a11.β  # F.T. data A
+p ad.permute.1  a11.β  # F.T. data A
 p ad.permute.12 a11.γ  # For DS
 p 1 a11.δ
 p 1 a11.A
@@ -368,6 +368,7 @@ p 7 a15.α  # Multiplier partial product
 p 9 a15.β  # Multiplier correction (9=1)
 p ad.permute.2 a15.γ  # F.T. data B
 p 3 a15.δ  # For 8t
+p ad.permute.11 a15.ε # For C.T.
 p 2 a15.A
 # Accumulator 16
 p 2 a16.α
@@ -419,17 +420,17 @@ p 3 ad.permute.6
 s ad.permute.6 0,0,0,0,0,0,0,0,0,8,7
 # For 6R3.
 p 3 ad.permute.7
-s ad.permute.7 11,10,9,8,7,6,5,4,0,0,0
-p 2 ad.permute.8
+s ad.permute.7 0,0,0,0,0,0,0,0,3,2,1
+p 1 ad.permute.8
 s ad.permute.8 0,0,0,0,0,0,0,0,3,2,1
 # For 6R6.
 p 3 ad.permute.9
-s ad.permute.9 11,10,9,8,7,0,0,0,0,0,0
-p 2 ad.permute.10
+s ad.permute.9 0,0,0,0,0,6,5,4,3,2,1
+p 1 ad.permute.10
 s ad.permute.10 0,0,0,0,0,6,5,4,3,2,1
-# For C.T., shift a6 digits 6-4 to position 3-1.
+# For C.T., shift digits 6-4 to position 3-1.
 p 3 ad.permute.11
-s ad.permute.11 11,10,9,8,7,0,0,0,6,5,4
+s ad.permute.11 0,0,0,0,0,0,0,0,6,5,4
 # Delete sign for DS
 p 1 ad.permute.12
 s ad.permute.12 0,10,9,8,7,6,5,4,3,2,1
@@ -499,9 +500,9 @@ p ad.dp.3.2 F-6
 # G-3 selects the sign of a15 from trunk 2 for C.T.
 p 2 ad.dp.4.11
 p ad.dp.4.11 G-3
-# Box 1: Listen orders (xl) -> C-1
+# Listen orders (xl) -> C-1
 # Note that C-1 is also the encoding for 00 (C) which clears a15.
-# 6l needs special handling.
+# 6l is not included because it cannot overlap with fetch.
 p pa.1.sa.1  S-1  # 1l
 p pa.1.sb.1  C-1
 p pa.1.sa.2  S-2  # 2l
@@ -538,8 +539,8 @@ p pa.2.sa.6  H-5  # 19l
 p pa.2.sb.6  C-1
 #p pa.x.sa.y  C-8  # 20l
 #p pa.x.sb.y  C-1
-# Box 2: Talk orders (xt) -> D-3
-# 6t and 8t need special handling because a6 and a8 transmit on a separate
+# Talk orders (xt) -> D-3
+# 6t and 8t are not included because a6 and a8 transmit on a separate
 # trunk to address the function table.
 p pa.2.sa.7  V-9  # 1t
 p pa.2.sb.7  D-3
@@ -575,7 +576,7 @@ p pa.3.sa.11 H-8  # 19t
 p pa.3.sb.11 D-3
 #p pa.x.sa.y  H-9  # 20t
 #p pa.x.sb.y  D-3
-# Box 3: Constant transfers (const) -> D-4
+# Constant transfers (const) -> D-4
 p pa.4.sa.1  D-7  # AB
 p pa.4.sb.1  D-4
 p pa.4.sa.2  D-8  # CD
@@ -586,7 +587,7 @@ p pa.4.sa.4  D-10 # GH
 p pa.4.sb.4  D-4
 p pa.4.sa.5  D-11 # JK
 p pa.4.sb.5  D-4
-# Box 4: Misc remaining 7 cycle ops (a1tmp) -> D-5
+# Misc remaining 7 cycle ops (a1tmp) -> D-5
 # These instructions use a1 as a temporary.
 p pa.4.sa.6 V-2  # 6(11,10,9)
 p pa.4.sb.6 D-5
@@ -676,7 +677,6 @@ p pa.7.sb.1  E-9 # clear ft selector
 # a1tmp: Trigger a13 send
 p pa.7.sa.2 T-8  # a1tmp+11
 p pa.7.sb.2 B-11 # a13 send and clear
-
 # X: Trigger a15 to receive correction term
 p pa.7.sa.3 M-2  # X+19
 p pa.7.sb.3 B-3  # a15 receive correction term
@@ -685,26 +685,27 @@ p pa.7.sa.4 M-3  # X+20
 p pa.7.sa.4 B-11 # a13 send and clear
 p pa.7.sa.5 M-3  # X+20
 p pa.7.sb.5 B-3  # a15 receive lhpp
-
 # ÷: Save and restore lots of temporaries
 p pa.7.sa.6 R-10
 p pa.7.sb.6 J-1
 p pa.7.sa.7 Q-6
 p pa.7.sb.7 B-11
-
 # DS: Save temporary
 p pa.7.sa.8 H-10
 p pa.7.sb.8 B-4
+# Control flow ops share a common sequence K-1.
+p pa.7.sa.9  E-6  # 6R3
+p pa.7.sb.9  K-1
+p pa.7.sa.10 E-7  # 6R6
+p pa.7.sb.10 K-1
+p pa.7.sa.11 G-2  # C.T.
+p pa.7.sb.11 J-1  # a15 send and clear
+p pa.8.sa.1 G-5   # C.T. taken is basically 6R6
+p pa.8.sa.1 E-7   # 6R6
 # Control sequences for each instruction, from decode until reasserting C-5
-# xl and C
+# xl (and C)
 
 # xl cycle 7: Clear aL
-# Dummy to trigger J-1 in cycle 8
-# This is wired as specified in figure 3.3.  Note that this causes contention
-# on trunk 1 during cycle 7 since it conflicts with a1:AC1.
-p C-1 c.3i
-p c.3o J-1
-
 # Clear "listening" accumulator
 # 1ℓ
 p S-1 a1.5i
@@ -775,7 +776,9 @@ s a12.op5 A
 s a12.cc5 C
 s a12.rp5 1
 p a12.5o a12.1i
-# 13l: Note that 13l does a13 += a15 rather than a13 = a15
+# 13l
+# 13l does a13 += a15 rather than a13 = a15
+# NOTE: We could move the dummy off a13.
 p C-7 a13.5i
 s a13.op5 0
 s a13.cc5 0
@@ -812,6 +815,12 @@ s a19.cc5 C
 s a19.rp5 1
 p a19.5o a19.1i
 # 20l = C-8 is not implemented
+
+# Dummy to trigger J-1 in cycle 8
+# This is wired as specified in figure 3.3.  Note that this causes contention
+# on trunk 1 during cycle 7 since it conflicts with e.g. a1:AC1.
+p C-1 c.3i
+p c.3o J-1
 # xl cycle 8: Receive from a15
 # J-1 triggers a15:AC1
 # Receive from a15 on trunk 2
@@ -899,7 +908,7 @@ s a19.op2 A
 # AB/CD/EF/GH/JK
 
 # Constant cycle 7: right digits to a15
-# D-4 -> B-3 triggers a15:β01
+# Transmit right digits.
 p D-7 c.1i    # AB
 s c.s1 Blr
 p c.1o c.2i
@@ -915,6 +924,7 @@ p c.19o c.20i
 p D-11 c.25i  # JK
 s c.s25 Klr
 p c.25o c.26i
+# D-4 -> B-3 triggers a15:β01
 
 # Clear a11 to receive a constant next cycle.
 p J-3 a11.6i
@@ -923,16 +933,19 @@ s a11.cc6 C
 s a11.rp6 1
 p a11.6o T-6
 # Constant cycle 8: left digits to a11
-# Receive constant digits.
-p T-6 a11.3i
-s a11.op3 δ
+# Transmit left digits.
 # c.2i, c.8i, ... are connected directly from c.1o, c.7o, etc.
 s c.s2 Alr
 s c.s8 Clr
 s c.s14 Elr
 s c.s20 Glr
 s c.s26 Jlr
-# Several instructions that use a1 as a temporary share the same sequence.
+# Receive constant digits.
+p T-6 a11.3i
+s a11.op3 δ
+# 6(11,10,9), 6(8,7), and M
+# These instructions use a1 as a temporary and share the same sequence.
+
 # Cycle 7: Save a1 in a13 (using trunk 1)
 # Transmit a1
 p D-5 a1.6i
@@ -940,7 +953,7 @@ s a1.op6 A
 s a1.cc6 C
 s a1.rp6 1
 p a1.6o C-4  # Trigger a15:AC1 in cycle 8
-# TODO: We could just trigger J-1 here instead, so C-4 -> J-1 isn't helping.
+# NOTE: We could just trigger J-1 here instead, so C-4 -> J-1 isn't helping.
 # D-5 -> B-4 triggers a13:γ01
 
 # Await cycle 10
@@ -978,7 +991,7 @@ p a2.6o T-1
 
 # Cycle 8: Add a15(11,2,1) to a6(11,10,9)
 p T-1 a6.7i
-s a6.op7 γ
+s a6.op7 δ
 s a6.cc7 0
 s a6.rp7 1
 p a6.7o T-2
@@ -986,7 +999,7 @@ p a6.7o T-2
 # Cycle 9: Receive 6(11,10,9) in 1(11,2,1)
 # Fetch J-4 will send a6 this cycle.
 p T-2 a1.7i
-s a1.op7 γ
+s a1.op7 δ
 s a1.cc7 0
 s a1.rp7 1
 p a1.7o T-3
@@ -1008,7 +1021,7 @@ p a3.6o T-9
 
 # Cycle 8: Add a15(2,1) to a6(8,7)
 p T-9 a6.8i
-s a6.op8 δ
+s a6.op8 ε
 s a6.cc8 0
 s a6.rp8 1
 p a6.8o T-10
@@ -1016,7 +1029,7 @@ p a6.8o T-10
 # Cycle 9: Receive 6(8,7) in 1(2,1)
 # Fetch J-4 will send a6 this cycle.
 p T-10 a1.9i
-s a1.op9 δ
+s a1.op9 ε
 s a1.cc9 0
 s a1.rp9 1
 p a1.9o T-11
@@ -1068,7 +1081,7 @@ s a12.rp6 1
 # Apply correction from ier in lhpp
 p m.RS M-1
 p M-1 a11.4i
-s a11.op4 S
+
 p M-1 a13.4i
 s a13.op4 β
 # Apply correction from icand in rhpp
@@ -1082,7 +1095,9 @@ p m.F M-3
 # Pulse amplifiers trigger a13:AC1 (M-3 -> B-11)
 # Pulse amplifiers trigger a15:β01 (M-3 -> B-3)
 p m.1o C-5  # Retrigger fetch sequence
-# Divider/square rooter accumulator wiring
+# Divide and square root
+
+# Accumulator wiring
 p d.quotient a4
 p d.numerator a5
 p d.denominator a7
@@ -1324,7 +1339,7 @@ p R-9 a11.10i
 s a11.op10 β
 s a11.cc10 0
 s a11.rp10 1
-# NxD instructions
+# NxD (N6D, N4D, N2D)
 
 # Common to all instructions
 # Cycle 7: Fetch operand, save -a18 if triggered from decode.
@@ -1333,8 +1348,9 @@ s a11.rp10 1
 p C-6 a18.2i
 s a18.op2 S
 s a18.cc2 C
+# Receive -a18 in a13
 # Use a program on a13 directly since it is shared by three instructions.
-# In a pinch this could reuse a13.1i.
+# NOTE: In a pinch this could reuse a13.1i.
 p C-6 a13.7i
 s a13.op7 β
 s a13.cc7 0
@@ -1380,6 +1396,7 @@ p a18.7o D-1  # N2D'
 # N2D
 
 # Cycle 7: Await operand
+# Await operand
 p D-1 a3.10i  # N2D'
 s a3.op10 0
 s a3.cc10 0
@@ -1397,6 +1414,7 @@ p a18.8o N-4
 p N-3 c.15i
 p c.15o B-3
 # Cycle 13: Send immediate digits to a15
+# Transmit a18
 p N-4 a18.9i
 s a18.op9 A
 s a18.cc9 C
@@ -1419,24 +1437,169 @@ p a3.9o C-5
 p N-5 a8.3i
 s a8.op3 α
 s a8.cc3 0
-# 6Rx/C.T. share a similar sequence
+# Control flow (6R3, 6R6 and C.T.)
+
+# These instructions mostly share the same sequence.
+# This sequence is initiated by K-1.
+
+# Cycle 0: Save and clear a10
+# Transmit -a10 on trunk 2
+p K-1 a10.6i
+s a10.op6 S
+s a10.cc6 C
+s a10.rp6 1
+p a10.6o K-2
+# Receive at a13 (on trunk 2)
+# Use a program on a13 since it is shared by three instructions.
+# NOTE: This could use B-4 instead.
+p K-1 a13.9i
+s a13.op9 β
+s a13.cc9 0
+s a13.rp9 1
+
+# Dummy to reset order selector ring in cycle 1.
+p K-1 a4.12i
+s a4.op12 0
+s a4.cc12 0
+s a4.rp12 1
+p a4.12o G-6
+# Cycle 1: Send a6 (a10 program per instruction)
+#            Reset order selector ring
+# Transmit and hold a6
+# NOTE: Could use J-2 to save a program on a6.
+p K-2 a6.9i
+s a6.op9 A
+s a6.cc9 0
+s a6.rp9 1
+p a6.9o K-3
+# (per-instruction sequences receive at a10)
+# Cycle 2: Clear field of a6
+# Transmit -a10 on trunk 2
+p K-3 a10.7i
+s a10.op7 S
+s a10.cc7 C
+s a10.rp7 1
+p a10.7o K-4
+# Add -a10 to a6 via trunk 2,
+# clearing either a6(6-1) or a6(3-1)
+p K-3 a6.2i
+s a6.op2 α
+s a6.cc2 0
+
+# Dummy to trigger a15:AC1 in cycle 3
+p K-3 c.18i
+p c.18o J-1
+# Cycle 3: Get a15 in a10 to use trunk 1
+# J-1 triggers a15:AC1
+# Receive a10 on trunk 2
+p K-4 a10.8i
+s a10.op8 α
+s a10.cc8 0
+s a10.rp8 1
+p a10.8o K-5
+# Cycle 4: Send a10 (a6 program per instruction)
+# Transmit a10 on trunk 1
+p K-5 a10.9i
+s a10.op9 A
+s a10.cc9 C
+s a10.rp9 1
+p a10.9o K-6
+# (per-instruction sequences receive at a6)
+
+# Dummy to trigger a13:SC1 in cycle 5
+p K-5 a3.8i
+s a3.op8 0
+s a3.cc8 0
+s a3.rp8 1
+p a3.8o B-10
+# Cycle 5: Restore a10
+# B-10 triggers a13:SC1
+# Receive saved -a10 on trunk 2
+p K-6 a10.10i
+s a10.op10 α
+s a10.cc10 0
+s a10.rp10 1
+p a10.10o C-5
+
+# C-5 triggers the next instruction fetch in cycle 6.
+# Cycle 6: (Fetch and decode next instruction)
 
 # Per-instruction sequences
+# 6R3
 
+# Pulse amplifiers trigger K-1
 
+# Cycle 7: Wait
+# Dummy to delay 6R3 = E-6
+p E-6 c.21i
+p c.21o K-7
+
+# Cycle 8: Receive a6(3-1) at a10
+p K-7 a10.3i
+s a10.op3 β
+s a10.cc3 0
+# Dummy to wait for cycle 11.
+p K-7 a2.8i
+s a2.op8 0
+s a2.cc8 0
+s a2.rp8 3
+p a2.8o K-8
+
+# Cycle 11: Receive a15(3-1) at a6
+p K-8 a6.3i
+s a6.op3 β
+s a6.cc3 0
+# 6R6, shared by C.T.
+
+# Pulse amplifiers trigger K-1
+
+# Cycle 7: Wait
+# Dummy to delay 6R6 = E-7
+p E-7 c.22i
+p c.22o K-9
+
+# Cycle 8: Receive a6(6-1) at a10
+p K-9 a10.4i
+s a10.op4 γ
+s a10.cc4 0
+# Dummy to wait for cycle 11.
+p K-9 a2.7i
+s a2.op7 0
+s a2.cc7 0
+s a2.rp7 3
+p a2.7o K-10
+
+# Cycle 11: Receive a15(6-1) at a6
+p K-10 a6.4i
+s a6.op4 γ
+s a6.cc4 0
 # C.T.
 
-# Wire the PM discriminator to select a sequence based on a15 sign.
+# Cycle 4-7: PM discrimination
 # Cycle 4: Reset discriminator
 p F-5 pm2.cdi
 
 # Cycle 7: Discriminate P-M
 # G-2 -> J-1 triggers a15:AC1
-p G-2 pm2.i
-p G-3 pm2.di
-p pm2.1o G-5  # + branch taken sequence
+p G-2 pm2.i   # C.T.
+p G-3 pm2.di  # 2(11)
+p pm2.1o G-5  # + taken sequence
 p pm2.2o C-5  # - fetch next instruction
-# Cycle P8: Save -a10
+# Cycle M8: (Fetch and decode next instruction.)
+# Cycle P8: Await cycle P9.
+# Cycle P8: Await cycle P9.
+# G-5 -> E-7 triggers the 6R6 sequence
+p G-5 a3.7i
+s a3.op7 0
+s a3.cc7 0
+s a3.rp7 1
+p a3.7o K-11
+# Cycle P9: Get target in a15.
+# Cycle P9: Receive a6(6-4) in a15(3-1)
+p K-11 a15.4i
+s a15.op4 ε
+s a15.cc4 0
+# Cycle P10-14: (Common with K-1)
 # F.T. order uses E-8=3,4,5 for G-9, G-10, G-11.
 p sft.4o G-9
 p sft.5o G-10
