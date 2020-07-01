@@ -108,8 +108,8 @@ goes one step further and says what will happen if A<sub>13</sub> is
 <em>not</em> 0 beforehand, which hints at auxiliary <a
 href="#acc-inputs">inputs</a>.
 
-<blockquote>The &ldquo;bad&rdquo; effects of not having 13 clear in the various
-instructions that &ldquo;require&rdquo; it to be clear may occasionally prove
+<blockquote>The <q>bad</q> effects of not having 13 clear in the various
+instructions that <q>require</q> it to be clear may occasionally prove
 useful.</blockquote>
 
 <p>It's amusing to think programmers might have abused these quirks in a way
@@ -184,7 +184,7 @@ p a2.12o C-5
 <h3>Fetch sequence</h3>
 
 <p>Here we set up the 7-cycle instruction fetch sequence described in
-LCS48 &ldquo;II: Conversion of digit pulses to programming pulses&rdquo;.
+LCS48 <em>II: Conversion of digit pulses to programming pulses</em>.
 Parts of the sequence are reused to fetch arguments for <tt>NxD</tt> so are
 separately controllable, e.g. <tt>N6D</tt> triggers [[D-6]]&rarr;[[J-2]],
 [[E-1]] but not [[C-5]], so it will read from the function table but not decode
@@ -326,19 +326,23 @@ when it has overflowed; the <tt>i</tt> input just gates output digits.
 <h4>Code</h4>
 
 <<Fetch sequence>>=
-# Fetch 0: Select function table.
+# Fetch sequence
+# This sequence takes 7 cycles, so that is the minimum instruction latency.
+# Many instructions overlap execution with fetching the next instruction.
+
+# Cycle 0: Select function table.
 <<Fetch sequence: cycle 0>>
-# Fetch 1: Initiate function table read.
+# Cycle 1: Initiate function table read.
 <<Fetch sequence: cycle 1>>
-# Fetch 2: Send function table argument.
+# Cycle 2: Send function table argument.
 <<Fetch sequence: cycle 2>>
-# Fetch 3: Step order selector ring.
+# Cycle 3: Step order selector ring.
 <<Fetch sequence: cycle 3>>
-# Fetch 4: Clear decoder steppers and increment PC.
+# Cycle 4: Clear decoder steppers and increment PC.
 <<Fetch sequence: cycle 4>>
-# Fetch 5: Decode instruction data.
+# Cycle 5: Decode instruction data.
 <<Fetch sequence: cycle 5>>
-# Fetch 6: Wait for MP decoder.
+# Cycle 6: Wait for MP decoder.
 <<Fetch sequence: cycle 6>>
 @
 
@@ -536,28 +540,37 @@ s p.d20s1 1
 # Waiting for MP decoder to propagate stepper input to output.
 @
 
-<h3>Decode</h3>
+<h3><a name=decode>Decode</a></h3>
 
 <p>Decode opcodes to program lines following LCS48 Table 2.I.
 
-<p>LCS48 describes two slightly different instruction sets, a &ldquo;regular
-code&rdquo; and an &ldquo;alternate code&rdquo; with seven variant
-instructions.  Alternate instructions are annotated below as <em>n</em>a where
-<em>n</em> is the opcode.
+<p>LCS48 describes two slightly different instruction sets, a <q>regular
+code</q> and an <q>alternate code</q> with seven variant instructions. Alternate
+instructions are annotated below as <em>n</em>a where <em>n</em> is the opcode.
 
 <p>The sample programs in LCS48 use the regular code, so that's what is wired
 up here.  In some cases wiring for the alternate code is left present but
 commented out.  DU49 seems to have merged the two instruction sets.
 
 <<Decode>>=
+# Decode MP stepper outputs to program lines.
+
+# xl
 <<Decode: xl>>
+# xt
 <<Decode: xt>>
+# Arithmetic instructions
 <<Decode: arithmetic>>
+# Alternate instruction set
 <<Decode: alternate instructions>>
+# Control flow
 <<Decode: control flow>>
+# I/O
 <<Decode: I/O>>
+
+# Miscellaneous
 #p p.H2o      # Halt       (71)  NB doesn't decode to anything, so stops
-p p.K2o C-3   # 18<->20    (91)  9 cycles
+p p.K2o C-3   # 18↔20      (91)  9 cycles
 p p.K3o V-2   # 6(11,10,9) (92)
 p p.K4o V-4   # 6(8,7)     (93)
 @ %def C-3 V-2 V-4
@@ -653,7 +666,7 @@ p p.J5o D-11  # JK  (84)
 #p p.H4o E-4  # 6l  (73a) 9 cycles
 #p p.H5o V-1  # 6t  (74a)
 # Table 2.I has "H-0" for order 92a. Assume this is a typo for H-9 which is the
-# only H-line missing, and makes sense from pulse amp grouping.
+# only H-line missing, and makes sense from pulse amplifier grouping.
 #p p.K3o H-9  # 20t  (92a)
 #p p.K4o V-8  # N3D8 (93a) 20 cycles
 #p p.K5o ???  # N3D6 (94a) 20 cycles
@@ -662,7 +675,7 @@ p p.J5o D-11  # JK  (84)
 
 <h3><a name=trunks>Digit trunks</a></h3>
 
-<p>LCS48 has a note to &ldquo;see digit tray hook-up&rdquo;, so perhaps the
+<p>LCS48 has a note to <q>see digit tray hook-up</q>, so perhaps the
 author meant to attach a chart.  Alas there is none, so this is guesswork.
 
 <p>All LCS48 tells us explicitly is that for <code>1ℓ</code>, <tt>a1.α=2</tt>
@@ -731,6 +744,8 @@ single trunk. At least, it would be nice if constants used a less contended
 trunk, to permit using constant transceivers for dummy programs more often.
 
 <<Digit trunks>>=
+# Digit trunk connections
+
 #  1    most accumulators transmit on 1
 #  2    most accumulators receive on 2
 #  3    ft argument
@@ -745,8 +760,11 @@ p 9 1
 #  11=1 divider/square rooter shift (shared)
 p 11 1
 
+# Non-accumulator connections
 <<Digit trunks: non-accumulator connections>>
+# Accumulator connections
 <<Digit trunks: accumulator connections>>
+# Adapters
 <<Digit trunks: adapters>>
 @
 
@@ -859,6 +877,7 @@ p 11 a7.S  # Divider shift (1=11)
 # Accumulator 8 - F.T. argument
 p 2 a8.α
 p 3 a8.A
+# NB ε is used as a dummy for increment
 @ %def a8
 
 <<Digit trunks: accumulator connections>>=
@@ -1153,6 +1172,8 @@ combine decode lines into common control signals. For example, all the
 separate behavior controlled by individual decode lines.
 
 <<Pulse amplifiers>>=
+# Pulse amplifier connections
+
 # Listen orders (xl) -> C-1
 # Note that C-1 is also the encoding for 00 (C) which clears a15.
 # 6l is not included because it cannot overlap with fetch.
@@ -1280,21 +1301,21 @@ p pa.5.sb.1 B-4
 @
 
 <p>[[J-3]] clears A<sub>11</sub> and then receives on trunk 1 for constant
-instructions.  The likeliest candidate to reuse this sequence would be
-<code>F.T.</code>, but it needs to shift incoming digits from the function
-table so needs a separate input.  <code>11ℓ</code> wiring doesn't mention it
-(because A<sub>15</sub> transmits on trunk 2, not 1; see <a
-href="#trunks">digit trunk</a> wiring).
+instructions. <code>F.T.</code> operates on A<sub>11</sub> but needs to receive
+shifted digits from the function table, not trunk 1. Even so, programs are tight
+on A<sub>11</sub>, so just clearing and receiving nothing might have been useful
+to share&mdash;we squeak by without.
 
 <<Pulse amplifiers>>=
 # J-3 clears accumulator 11, then receives it on trunk 1.
-# It is used by constant transfers, but unclear what else.
+# It is used by constant transfers, and was probably reused by F.T.
+# originally but is not in this implementation.
 p pa.4.sa.11 D-4 # const
 p pa.4.sb.11 J-3
 @ %def J-3
 
 <p>The most important common control signals are [[C-5]] and its
-&ldquo;duals&rdquo; [[D-6]], [[J-2]], and [[E-1]], which control aspects of the
+<q>duals</q> [[D-6]], [[J-2]], and [[E-1]], which control aspects of the
 fetch and decode sequence.  7-cycle instructions re-assert [[C-5]] through
 pulse amplifiers directly on decode.  Longer duration orders and transfers need
 separate wiring to trigger [[C-5]].
@@ -1339,6 +1360,7 @@ p pa.6.sb.1 D-6
 <p><code>F.T.</code> can assert [[E-1]] without [[J-2]] to use A<sub>8</sub> as
 the ft argument.  But it's unclear when we would want to assert [[J-2]] without
 [[E-1]]&mdash;perhaps to reuse <tt>a6:A01</tt> with a harmless side-effect?
+Programs are tight on A<sub>6</sub> so this is certainly feasible.
 
 <<Pulse amplifiers>>=
 # J-2 and E-1 are duals of D-6
@@ -1444,6 +1466,18 @@ p pa.8.sa.1 G-5   # C.T. taken is basically 6R6
 p pa.8.sa.1 E-7   # 6R6
 @
 
+<<Pulse amplifiers>>=
+# 18↔20: Save temporary
+p pa.8.sa.2 C-3  # 18↔20
+p pa.8.sb.2 B-3  # a15 receive
+@
+
+<<Pulse amplifiers>>=
+# F.T.: Trigger F.T. read
+p pa.8.sa.3 H-11  # F.T.
+p pa.8.sb.3 E-1   # ft read
+@
+
 <h3>Instruction sequences</h3>
 
 <<Instructions>>=
@@ -1457,6 +1491,7 @@ p pa.8.sa.1 E-7   # 6R6
 <<Instructions: DS>>
 <<Instructions: NxD>>
 <<Instructions: control flow>>
+<<Instructions: 18↔20>>
 <<Instructions: F.T.>>
 <<Instructions: Pr.>>
 <<Instructions: Rd.>>
@@ -2072,9 +2107,10 @@ p m.Dα J-1
 # Apply correction from ier in lhpp
 p m.RS M-1
 p M-1 a11.4i
-
+s a11.op4 S
 p M-1 a13.4i
 s a13.op4 β
+
 # Apply correction from icand in rhpp
 p m.DS M-2
 p M-2 a12.3i
@@ -2761,9 +2797,9 @@ p a3.9o C-5
 <<Instructions: N2D cycle 14>>=
 # B-10 triggers a13:SC1
 # Receive a18
-p N-5 a8.3i
-s a8.op3 α
-s a8.cc3 0
+p N-5 a18.4i
+s a18.op4 α
+s a18.cc4 0
 @
 
 <h4><a name="cflow">Control flow</a></h4>
@@ -3112,7 +3148,7 @@ branch&mdash;A<sub>15</sub> is re-purposed as the target.
 
 <h5>Cycle 4-7</h5>
 
-<p>RIF shows part of the wiring for &ldquo;P.M. Discriminator #2&rdquo;, and
+<p>RIF shows part of the wiring for <q>P.M. Discriminator #2</q>, and
 the connection 9&rarr;[[C-5]] would make sense for <code>C.T.</code>, so we can
 probably assume it's the same.  Curiously, RIF shows [[G-4]] not the decode
 [[G-2]] connected to <tt>i</tt>.  Given the [[C-5]] connection, it seems
@@ -3158,58 +3194,115 @@ s a15.cc4 0
 
 <h4>18↔20</h4>
 
-<p>Uncharacteristically, LCS48 lists <code>18↔20</code> as 9 cycles, even
-though it can be hidden behind an overlapping fetch.  Perhaps it's avoiding an
-overlapping dummy program on A<sub>20</sub> in the fetch sequence.
-<code>18↔20</code> is gone from DU49 and DEC51.  The annotation in LCS48
-Section IV suggests A<sub>15</sub> must be 0 so assume it's used for the
-exchange.
+<p>LCS48 lists <code>18↔20</code> as 9 cycles, even though in theory it could
+overlap fetch&mdash;perhaps the [[C-5]] dummy <tt>a20.12i</tt> was the issue?
+<code>18↔20</code> is gone from DU49 and DEC51. LCS48 Section IV suggests
+A<sub>15</sub> must be 0 on entry, so assume it's used for the exchange.
 
 <pre>
-  7. a20:AC1, a15:β01  # a15=a20 [1]
-  8. a18:AC1, a20:β01  # a20=a18 [1]
-  9. a15:AC1, a18:α01  # a18=a15 [2]
+  7. a20:AC1, a15:β01  # Save a20 in a15 [1]
+  8. a18:AC1, a20:β01  # a18 to a20 [1]
+  9. a15:AC1, a18:α01  # Saved a20 to a18 [2]
 </pre>
 
 <<Instructions: 18↔20>>=
 # 18↔20
-@
+
+# Cycle 7: Save a20 in a15.
+# Transmit a20
+p C-3 a20.6i
+s a20.op6 A
+s a20.cc6 C
+s a20.rp6 1
+p a20.6o Q-7
+# C-3 -> J-1 triggers a15:β01
+
+# Cycle 8: a18 to a20
+# Transmit a18
+p Q-7 a18.10i
+s a18.op10 A
+s a18.cc10 C
+s a18.rp10 1
+p a18.10o J-1  # Trigger a15:AC1 in cycle 9
+# Receive a20
+p Q-7 a20.7i
+s a20.op7 β
+s a20.cc7 0
+s a20.rp7 1
+p a20.7o Q-8
+
+# Dummy to trigger C-5 in cycle 9
+p Q-7 a4.11i
+s a4.op4 0
+s a4.cc4 0
+s a4.rp4 1
+p a4.11o C-5
+
+# Cycle 9: Saved a20 to a18
+# J-1 triggers a15:AC1
+# Receive a18 on trunk 2
+p Q-8 a18.3i
+s a18.op3 α
+s a18.cc3 0
+@ %def Q-7 Q-8
 
 <h4><a name=ft>F.T.</a></h4>
 
-<p><code>F.T.</code> fetches data from any function table in 13 cycles by
-reusing fetch machinery without triggering decode.  But function table input #1
-is set up to send [[J-4]] which would trigger PC increment and advance the
-order selector ring, which is problematic because <code>F.T.</code> has no
-operand.
+<p><code>F.T.</code> fetches data from a function table in 13 cycles by reusing
+fetch machinery without triggering decode. 
+
+<<Instructions: F.T.>>=
+# F.T.
+
+# Cycle 7: Decode address from a8
+<<Instructions: F.T. cycle 7>>
+# Cycle 8: Initiate ft read, increment address, clear a11
+<<Instructions: F.T. cycle 8>>
+# Cycle 12: Store ft data in a11 and a15
+<<Instructions: F.T. cycle 12>>
+@
+
+<h5>Addressing</h5>
+
+<p>LCS48 says only that <code>F.T.</code> expects an address in A<sub>8</sub>.
+But there's a problem if digit 3 of the address is supposed to be 0-2 like it is
+for the PC, since <tt>ft.1i</tt> is set up to send [[J-4]] which would trigger
+PC increment and advance the order selector ring, skipping the next instruction.
 
 <p>The ballistics program in LCS48 has <code>N4D 04 86 8l F.T.</code>
 which&mdash;apart from the fact that FT2's constant data has address 90 in that
 listing&mdash;suggests that we're supposed to code 3-5 instead of 0-2 for
-function table 1/2/3 for <code>F.T.</code>  DU49 corroborates this encoding and
-clarifies that instruction lookups use A-2 and data lookups use A+2 to permit
-using lines -2 through 101 of each table.  Thus <code>N4D 04 86 8l F.T.</code>
-would index line 88 of table 2, which in the A-2 instruction address space is
-(confusingly) line 90.
+function table 1/2/3 for <code>F.T.</code> DU49 corroborates this encoding, and
+clarifies that instruction lookups use A-2 addressing, and data lookups use A+2
+addressing, to permit using lines -2 through 101 of each table. So <code>N4D 04
+86 8l F.T.</code> would index line 88 of table 2, which in the A-2 instruction
+address space is (confusingly) line 90.
 
-<p>If you wrote <code>N4D 01 00 8l F.T.</code> by mistake, it might either hang
-or store an instruction line and skip one order, depending on the wiring.  The
-world may never know.
+<p>If you wrote <code>N4D 01 00 8l F.T.</code> by mistake, it would most likely
+hang, fetching the next instruction but not decoding it.
 
-<<Instructions: F.T.>>=
-<<Instructions: F.T. cycle 7>>
-<<Instructions: F.T. cycle 8>>
-@
+<h5>Cycle 7</h5>
 
 <<Instructions: F.T. cycle 7>>=
-# F.T. order uses E-8=3,4,5 for G-9, G-10, G-11.
+# Transmit (and hold) a8 as ft address
+p H-11 a8.6i  # F.T.
+s a8.op6 A
+s a8.cc6 0
+s a8.rp6 1
+p a8.6o N-6
+
+# Decode digit 3 of address using ft selector
+# use G-9, G-10, and G-11 for E-8=3,4,5
 p sft.4o G-9
 p sft.5o G-10
 p sft.6o G-11
-@ %def G-9 G-10 G-11
+# H-11 -> E-1 triggers ft read via pulse amplifier
+@ %def N-6 G-9 G-10 G-11
+
+<h5>Cycle 8</h5>
 
 <<Instructions: F.T. cycle 8>>=
-# Read function table for F.T., using C to trigger sending the argument.
+# Read function table, using C to trigger sending the argument.
 # Note this uses A+2 addressing.
 p G-9 f1.2i
 s f1.op2 A+2
@@ -3236,13 +3329,42 @@ s f2.mpm1 T
 s f2.mpm2 T
 s f3.mpm1 T
 s f3.mpm2 T
+
+# Post-increment address
+p N-6 a8.3i
+s a8.op3 ε
+s a8.cc3 C
+# Clear a11.
+# NOTE: Could use J-3 instead.
+p N-6 a11.11i
+s a11.op11 0
+s a11.cc11 C
+s a11.rp11 1
 @ %def N-10
 
+<h5>Cycle 12</h5>
+
+<<Instructions: F.T. cycle 12>>=
+# The function table sends data on trunk 3 and 4 this cycle
+# Receive left digits at a11
+p N-10 a11.12i
+s a11.op12 β
+s a11.cc12 0
+s a11.rp12 1
+p a11.12o C-5  # Fetch and decode next instruction
+# Receive right digits at a15
+p N-10 a15.7i
+s a15.op7 γ
+s a15.cc7 0
+s a15.rp7 1
+@
+
 <h4>Pr.</h4>
+
 <<Instructions: Pr.>>=
 # Printer
 # TODO Add some way to specify printer wiring to the simulator.  This
-# instruction set expects to print a1, a2, and a15-20.
+# ISA expects to print a1, a2, and a15-20.
 p O-1 i.Pi  # Pr.
 p i.Po C-5  # fetch+decode
 s pr.1 P    # a1
@@ -3264,6 +3386,7 @@ s pr.16 P   # a20
 @
 
 <h4>Rd.</h4>
+
 <<Instructions: Rd.>>=
 # Reader
 p O-2 i.Ri  # Rd.
@@ -3493,8 +3616,8 @@ crunch for temporaries, it's slower than the clunky
 
 <h4>Decoding jk</h4>
 <p>LCS48 says nothing about decoding jk, and it was gone by DU49. Section II
-says that &ldquo;by the addition of four small units, it became possible to
-speed the process up considerably and have 60 orders&rdquo;, then goes on to
+says that <q>by the addition of four small units, it became possible to
+speed the process up considerably and have 60 orders</q>, then goes on to
 mention
 <ol>
 <li>Ten-stage stepper
@@ -3503,7 +3626,7 @@ mention
 </ol>
 <p>So something is certainly missing here.  (P-M discriminators aren't
 mentioned until Section III, and then only in passing, so probably aren't one
-of the &ldquo;four small units&rdquo; added for decode).
+of the <q>four small units</q> added for decode).
 
 <p>The least inventive solution is to throw more hardware at the problem, e.g.
 a P-M discriminator (j) wired to two additional six-stage steppers (k)
@@ -3634,17 +3757,17 @@ generates a separate, cross-referenced textual <a href="#index">index</a>.
 <td>[[J-10]]<br>
 <td>[[J-11]]<br>
 <tr style="vertical-align: top"><td style="font-weight: bold">K-
-<td>[[K-1]]<br>
-<td>[[K-2]]<br>
-<td>[[K-3]]<br>
-<td>[[K-4]]<br>
-<td>[[K-5]]<br>
-<td>[[K-6]]<br>
-<td>[[K-7]]<br>
-<td>[[K-8]]<br>
-<td>[[K-9]]<br>
-<td>[[K-10]]<br>
-<td>[[K-11]]<br>
+<td>[[K-1]]<br>cflow+0
+<td>[[K-2]]<br>cflow+1
+<td>[[K-3]]<br>cflow+2
+<td>[[K-4]]<br>cflow+3
+<td>[[K-5]]<br>cflow+4
+<td>[[K-6]]<br>cflow+5
+<td>[[K-7]]<br>6r3+8
+<td>[[K-8]]<br>6r3+9
+<td>[[K-9]]<br>6r6+8
+<td>[[K-10]]<br>6r6+9
+<td>[[K-11]]<br>ct+9
 <tr style="vertical-align: top"><td style="font-weight: bold">L-
 <td class=given>[[L-1]]<br>9t
 <td class=given>[[L-2]]<br>10t
@@ -3675,7 +3798,7 @@ generates a separate, cross-referenced textual <a href="#index">index</a>.
 <td>[[N-3]]<br>n2d+12
 <td>[[N-4]]<br>n2d+13
 <td>[[N-5]]<br>n2d+14
-<td>[[N-6]]<br>
+<td>[[N-6]]<br>ft+8
 <td>[[N-7]]<br>
 <td>[[N-8]]<br>
 <td>[[N-9]]<br>
@@ -3712,8 +3835,8 @@ generates a separate, cross-referenced textual <a href="#index">index</a>.
 <td>[[Q-4]]<br>div+x1
 <td>[[Q-5]]<br>div+x2
 <td>[[Q-6]]<br>div+x3
-<td>[[Q-7]]<br>
-<td>[[Q-8]]<br>
+<td>[[Q-7]]<br>1820+8
+<td>[[Q-8]]<br>1820+9
 <td>[[Q-9]]<br>
 <td>[[Q-10]]<br>
 <td>[[Q-11]]<br>

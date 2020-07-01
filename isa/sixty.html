@@ -109,8 +109,8 @@ goes one step further and says what will happen if A<sub>13</sub> is
 <em>not</em> 0 beforehand, which hints at auxiliary <a
 href="#acc-inputs">inputs</a>.
 
-<blockquote>The &ldquo;bad&rdquo; effects of not having 13 clear in the various
-instructions that &ldquo;require&rdquo; it to be clear may occasionally prove
+<blockquote>The <q>bad</q> effects of not having 13 clear in the various
+instructions that <q>require</q> it to be clear may occasionally prove
 useful.</blockquote>
 
 <p>It's amusing to think programmers might have abused these quirks in a way
@@ -185,7 +185,7 @@ p <a href="#NWbbij8-1Q1Gl0-2">a2</a>.12o <a href="#NWDbbij8-c">C-5</a>
 <h3>Fetch sequence</h3>
 
 <p>Here we set up the 7-cycle instruction fetch sequence described in
-LCS48 &ldquo;II: Conversion of digit pulses to programming pulses&rdquo;.
+LCS48 <em>II: Conversion of digit pulses to programming pulses</em>.
 Parts of the sequence are reused to fetch arguments for <tt>NxD</tt> so are
 separately controllable, e.g. <tt>N6D</tt> triggers <code><a href="#NWDbbij8-d">D-6</a></code>&rarr;<code><a href="#NWDbbij8-e">J-2</a></code>,
 <code><a href="#NWDbbij8-e">E-1</a></code> but not <code><a href="#NWDbbij8-c">C-5</a></code>, so it will read from the function table but not decode
@@ -327,19 +327,23 @@ when it has overflowed; the <tt>i</tt> input just gates output digits.
 <h4>Code</h4>
 
 <pre><a name="NWbbij8-1FjpQf-1" href="#NWDbbij8-4"><dfn>&lt;Fetch sequence&gt;=</dfn></a> <b>(<a href="#NWDbbij8-2">&lt;-U</a>)</b>
-# Fetch 0: Select function table.
+# Fetch sequence
+# This sequence takes 7 cycles, so that is the minimum instruction latency.
+# Many instructions overlap execution with fetching the next instruction.
+
+# Cycle 0: Select function table.
 <a name="NWbbij8-1FjpQf-1-u1" href="#NWDbbij8-5"><i>&lt;Fetch sequence: cycle 0&gt;</i></a>
-# Fetch 1: Initiate function table read.
+# Cycle 1: Initiate function table read.
 <a name="NWbbij8-1FjpQf-1-u2" href="#NWDbbij8-6"><i>&lt;Fetch sequence: cycle 1&gt;</i></a>
-# Fetch 2: Send function table argument.
+# Cycle 2: Send function table argument.
 <a name="NWbbij8-1FjpQf-1-u3" href="#NWDbbij8-7"><i>&lt;Fetch sequence: cycle 2&gt;</i></a>
-# Fetch 3: Step order selector ring.
+# Cycle 3: Step order selector ring.
 <a name="NWbbij8-1FjpQf-1-u4" href="#NWDbbij8-8"><i>&lt;Fetch sequence: cycle 3&gt;</i></a>
-# Fetch 4: Clear decoder steppers and increment PC.
+# Cycle 4: Clear decoder steppers and increment PC.
 <a name="NWbbij8-1FjpQf-1-u5" href="#NWDbbij8-9"><i>&lt;Fetch sequence: cycle 4&gt;</i></a>
-# Fetch 5: Decode instruction data.
+# Cycle 5: Decode instruction data.
 <a name="NWbbij8-1FjpQf-1-u6" href="#NWDbbij8-A"><i>&lt;Fetch sequence: cycle 5&gt;</i></a>
-# Fetch 6: Wait for MP decoder.
+# Cycle 6: Wait for MP decoder.
 <a name="NWbbij8-1FjpQf-1-u7" href="#NWDbbij8-C"><i>&lt;Fetch sequence: cycle 6&gt;</i></a>
 </pre><p>
 
@@ -537,28 +541,37 @@ s p.d20s1 1
 # Waiting for MP decoder to propagate stepper input to output.
 </pre><p>
 
-<h3>Decode</h3>
+<h3><a name=decode>Decode</a></h3>
 
 <p>Decode opcodes to program lines following LCS48 Table 2.I.
 
-<p><a name="NWDbbij8-D">LCS48 describes two slightly different instruction sets, a &ldquo;regular</a>
-code&rdquo; and an &ldquo;alternate code&rdquo; with seven variant
-instructions.  Alternate instructions are annotated below as <em>n</em>a where
-<em>n</em> is the opcode.
+<p><a name="NWDbbij8-D">LCS48 describes two slightly different instruction sets, a </a><q>regular
+code</q> and an <q>alternate code</q> with seven variant instructions. Alternate
+instructions are annotated below as <em>n</em>a where <em>n</em> is the opcode.
 
 <p>The sample programs in LCS48 use the regular code, so that's what is wired
 up here.  In some cases wiring for the alternate code is left present but
 commented out.  DU49 seems to have merged the two instruction sets.
 
 <pre><a name="NWbbij8-3b8gCj-1" href="#NWDbbij8-D"><dfn>&lt;Decode&gt;=</dfn></a> <b>(<a href="#NWDbbij8-2">&lt;-U</a>)</b>
+# Decode MP stepper outputs to program lines.
+
+# xl
 <a name="NWbbij8-3b8gCj-1-u1" href="#NWDbbij8-E"><i>&lt;Decode: xl&gt;</i></a>
+# xt
 <a name="NWbbij8-3b8gCj-1-u2" href="#NWDbbij8-F"><i>&lt;Decode: xt&gt;</i></a>
+# Arithmetic instructions
 <a name="NWbbij8-3b8gCj-1-u3" href="#NWDbbij8-G"><i>&lt;Decode: arithmetic&gt;</i></a>
+# Alternate instruction set
 <a name="NWbbij8-3b8gCj-1-u4" href="#NWDbbij8-J"><i>&lt;Decode: alternate instructions&gt;</i></a>
+# Control flow
 <a name="NWbbij8-3b8gCj-1-u5" href="#NWDbbij8-H"><i>&lt;Decode: control flow&gt;</i></a>
+# I/O
 <a name="NWbbij8-3b8gCj-1-u6" href="#NWDbbij8-I"><i>&lt;Decode: I/O&gt;</i></a>
+
+# Miscellaneous
 #p p.H2o      # Halt       (71)  NB doesn't decode to anything, so stops
-p p.K2o <a href="#NWDbbij8-D">C-3</a>   # 18&lt;-&gt;20    (91)  9 cycles
+p p.K2o <a href="#NWDbbij8-D">C-3</a>   # 18↔20      (91)  9 cycles
 p p.K3o <a href="#NWDbbij8-D">V-2</a>   # 6(11,10,9) (92)
 p p.K4o <a href="#NWDbbij8-D">V-4</a>   # 6(8,7)     (93)
 </pre><blockquote>Defines <a href="#NWI-C-3"><code>C-3</code></a>, <a href="#NWI-V-2"><code>V-2</code></a>, <a href="#NWI-V-4"><code>V-4</code></a> (links are to index).<p>
@@ -654,7 +667,7 @@ p p.J5o <a href="#NWDbbij8-I">D-11</a>  # JK  (84)
 #p p.H4o <a href="#NWDbbij8-J">E-4</a>  # 6l  (73a) 9 cycles
 #p p.H5o <a href="#NWDbbij8-J">V-1</a>  # 6t  (74a)
 # Table 2.I has &quot;H-0&quot; for order 92a. Assume this is a typo for <a href="#NWDbbij8-J">H-9</a> which is the
-# only H-line missing, and makes sense from pulse amp grouping.
+# only H-line missing, and makes sense from pulse amplifier grouping.
 #p p.K3o <a href="#NWDbbij8-J">H-9</a>  # 20t  (92a)
 #p p.K4o <a href="#NWDbbij8-J">V-8</a>  # N3D8 (93a) 20 cycles
 #p p.K5o ???  # N3D6 (94a) 20 cycles
@@ -663,7 +676,7 @@ p p.J5o <a href="#NWDbbij8-I">D-11</a>  # JK  (84)
 </blockquote><p>
 <h3><a name=trunks>Digit trunks</a></h3>
 
-<p>LCS48 has a note to &ldquo;see digit tray hook-up&rdquo;, so perhaps the
+<p>LCS48 has a note to <q>see digit tray hook-up</q>, so perhaps the
 author meant to attach a chart.  Alas there is none, so this is guesswork.
 
 <p>All LCS48 tells us explicitly is that for <code>1ℓ</code>, <tt>a1.α=2</tt>
@@ -732,6 +745,8 @@ single trunk. At least, it would be nice if constants used a less contended
 trunk, to permit using constant transceivers for dummy programs more often.
 
 <pre><a name="NWbbij8-48IebG-1" href="#NWDbbij8-K"><dfn>&lt;Digit trunks&gt;=</dfn></a> <b>(<a href="#NWDbbij8-2">&lt;-U</a>)</b>
+# Digit trunk connections
+
 #  1    most accumulators transmit on 1
 #  2    most accumulators receive on 2
 #  3    ft argument
@@ -746,8 +761,11 @@ p 9 1
 #  11=1 divider/square rooter shift (shared)
 p 11 1
 
+# Non-accumulator connections
 <a name="NWbbij8-48IebG-1-u1" href="#NWDbbij8-L"><i>&lt;Digit trunks: non-accumulator connections&gt;</i></a>
+# Accumulator connections
 <a name="NWbbij8-48IebG-1-u2" href="#NWDbbij8-M"><i>&lt;Digit trunks: accumulator connections&gt;</i></a>
+# Adapters
 <a name="NWbbij8-48IebG-1-u3" href="#NWDbbij8-N"><i>&lt;Digit trunks: adapters&gt;</i></a>
 </pre><p>
 
@@ -860,6 +878,7 @@ p 11 <a href="#NWbbij8-1Q1Gl0-7">a7</a>.S  # Divider shift (1=11)
 # Accumulator 8 - F.T. argument
 p 2 <a href="#NWbbij8-1Q1Gl0-8">a8</a>.α
 p 3 <a href="#NWbbij8-1Q1Gl0-8">a8</a>.A
+# NB ε is used as a dummy for increment
 </pre><blockquote>Defines <a href="#NWI-a8"><code>a8</code></a> (links are to index).<p>
 </blockquote><p>
 <pre><a name="NWbbij8-1Q1Gl0-9" href="#NWDbbij8-M"><dfn>&lt;Digit trunks: accumulator connections&gt;+=</dfn></a> <b>(<a href="#NWDbbij8-K">&lt;-U</a>)</b> <b>[<a href="#NWbbij8-1Q1Gl0-8">&lt;-</a>D<a href="#NWbbij8-1Q1Gl0-A">-&gt;</a>]</b>
@@ -1154,6 +1173,8 @@ combine decode lines into common control signals. For example, all the
 separate behavior controlled by individual decode lines.
 
 <pre><a name="NWbbij8-39GQxl-1" href="#NWDbbij8-Y"><dfn>&lt;Pulse amplifiers&gt;=</dfn></a> <b>(<a href="#NWDbbij8-2">&lt;-U</a>)</b> <b>[D<a href="#NWDbbij8-Z">-&gt;</a>]</b>
+# Pulse amplifier connections
+
 # Listen orders (xl) -&gt; <a href="#NWDbbij8-Y">C-1</a>
 # Note that <a href="#NWDbbij8-Y">C-1</a> is also the encoding for 00 (C) which clears <a href="#NWbbij8-1Q1Gl0-F">a15</a>.
 # 6l is not included because it cannot overlap with fetch.
@@ -1281,21 +1302,21 @@ p pa.5.sb.1 <a href="#NWDbbij8-i">B-4</a>
 </pre><p>
 
 <p><code><a name="NWDbbij8-b" href="#NWDbbij8-b">J-3</a></code> clears A<sub>11</sub> and then receives on trunk 1 for constant
-instructions.  The likeliest candidate to reuse this sequence would be
-<code>F.T.</code>, but it needs to shift incoming digits from the function
-table so needs a separate input.  <code>11ℓ</code> wiring doesn't mention it
-(because A<sub>15</sub> transmits on trunk 2, not 1; see <a
-href="#trunks">digit trunk</a> wiring).
+instructions. <code>F.T.</code> operates on A<sub>11</sub> but needs to receive
+shifted digits from the function table, not trunk 1. Even so, programs are tight
+on A<sub>11</sub>, so just clearing and receiving nothing might have been useful
+to share&mdash;we squeak by without.
 
 <pre><a name="NWbbij8-39GQxl-6" href="#NWDbbij8-Y"><dfn>&lt;Pulse amplifiers&gt;+=</dfn></a> <b>(<a href="#NWDbbij8-2">&lt;-U</a>)</b> <b>[<a href="#NWDbbij8-a">&lt;-</a>D<a href="#NWDbbij8-c">-&gt;</a>]</b>
 # <a href="#NWDbbij8-b">J-3</a> clears accumulator 11, then receives it on trunk 1.
-# It is used by constant transfers, but unclear what else.
+# It is used by constant transfers, and was probably reused by F.T.
+# originally but is not in this implementation.
 p pa.4.sa.11 <a href="#NWbbij8-39GQxl-3">D-4</a> # const
 p pa.4.sb.11 <a href="#NWDbbij8-b">J-3</a>
 </pre><blockquote>Defines <a href="#NWI-J-3"><code>J-3</code></a> (links are to index).<p>
 </blockquote><p>
 <p><a name="NWDbbij8-c">The most important common control signals are </a><code><a href="#NWDbbij8-c">C-5</a></code> and its
-&ldquo;duals&rdquo; <code><a href="#NWDbbij8-d">D-6</a></code>, <code><a href="#NWDbbij8-e">J-2</a></code>, and <code><a href="#NWDbbij8-e">E-1</a></code>, which control aspects of the
+<q>duals</q> <code><a href="#NWDbbij8-d">D-6</a></code>, <code><a href="#NWDbbij8-e">J-2</a></code>, and <code><a href="#NWDbbij8-e">E-1</a></code>, which control aspects of the
 fetch and decode sequence.  7-cycle instructions re-assert <code><a href="#NWDbbij8-c">C-5</a></code> through
 pulse amplifiers directly on decode.  Longer duration orders and transfers need
 separate wiring to trigger <code><a href="#NWDbbij8-c">C-5</a></code>.
@@ -1340,6 +1361,7 @@ p pa.6.sb.1 <a href="#NWDbbij8-d">D-6</a>
 <p><code><a name="NWDbbij8-e">F.T.</a></code> can assert <code><a href="#NWDbbij8-e">E-1</a></code> without <code><a href="#NWDbbij8-e">J-2</a></code> to use A<sub>8</sub> as
 the ft argument.  But it's unclear when we would want to assert <code><a href="#NWDbbij8-e">J-2</a></code> without
 <code><a href="#NWDbbij8-e">E-1</a></code>&mdash;perhaps to reuse <tt>a6:A01</tt> with a harmless side-effect?
+Programs are tight on A<sub>6</sub> so this is certainly feasible.
 
 <pre><a name="NWbbij8-39GQxl-9" href="#NWDbbij8-Y"><dfn>&lt;Pulse amplifiers&gt;+=</dfn></a> <b>(<a href="#NWDbbij8-2">&lt;-U</a>)</b> <b>[<a href="#NWDbbij8-d">&lt;-</a>D<a href="#NWDbbij8-f">-&gt;</a>]</b>
 # <a href="#NWDbbij8-e">J-2</a> and <a href="#NWDbbij8-e">E-1</a> are duals of <a href="#NWDbbij8-d">D-6</a>
@@ -1433,7 +1455,7 @@ p pa.7.sa.8 <a href="#NWDbbij8-G">H-10</a>
 p pa.7.sb.8 <a href="#NWDbbij8-i">B-4</a>
 </pre><p>
 
-<pre><a name="NWbbij8-39GQxl-H" href="#NWDbbij8-Y"><dfn>&lt;Pulse amplifiers&gt;+=</dfn></a> <b>(<a href="#NWDbbij8-2">&lt;-U</a>)</b> <b>[<a href="#NWbbij8-39GQxl-G">&lt;-</a>D]</b>
+<pre><a name="NWbbij8-39GQxl-H" href="#NWDbbij8-Y"><dfn>&lt;Pulse amplifiers&gt;+=</dfn></a> <b>(<a href="#NWDbbij8-2">&lt;-U</a>)</b> <b>[<a href="#NWbbij8-39GQxl-G">&lt;-</a>D<a href="#NWbbij8-39GQxl-I">-&gt;</a>]</b>
 # Control flow ops share a common sequence <a href="#NWDbbij8-1L">K-1</a>.
 p pa.7.sa.9  <a href="#NWDbbij8-H">E-6</a>  # 6R3
 p pa.7.sb.9  <a href="#NWDbbij8-1L">K-1</a>
@@ -1443,6 +1465,18 @@ p pa.7.sa.11 <a href="#NWDbbij8-H">G-2</a>  # C.T.
 p pa.7.sb.11 <a href="#NWDbbij8-i">J-1</a>  # <a href="#NWbbij8-1Q1Gl0-F">a15</a> send and clear
 p pa.8.sa.1 <a href="#NWDbbij8-1V">G-5</a>   # C.T. taken is basically 6R6
 p pa.8.sa.1 <a href="#NWDbbij8-H">E-7</a>   # 6R6
+</pre><p>
+
+<pre><a name="NWbbij8-39GQxl-I" href="#NWDbbij8-Y"><dfn>&lt;Pulse amplifiers&gt;+=</dfn></a> <b>(<a href="#NWDbbij8-2">&lt;-U</a>)</b> <b>[<a href="#NWbbij8-39GQxl-H">&lt;-</a>D<a href="#NWbbij8-39GQxl-J">-&gt;</a>]</b>
+# 18↔20: Save temporary
+p pa.8.sa.2 <a href="#NWDbbij8-D">C-3</a>  # 18↔20
+p pa.8.sb.2 <a href="#NWDbbij8-i">B-3</a>  # <a href="#NWbbij8-1Q1Gl0-F">a15</a> receive
+</pre><p>
+
+<pre><a name="NWbbij8-39GQxl-J" href="#NWDbbij8-Y"><dfn>&lt;Pulse amplifiers&gt;+=</dfn></a> <b>(<a href="#NWDbbij8-2">&lt;-U</a>)</b> <b>[<a href="#NWbbij8-39GQxl-I">&lt;-</a>D]</b>
+# F.T.: Trigger F.T. read
+p pa.8.sa.3 <a href="#NWDbbij8-I">H-11</a>  # F.T.
+p pa.8.sb.3 <a href="#NWDbbij8-e">E-1</a>   # ft read
 </pre><p>
 
 <h3><a name="NWDbbij8-h">Instruction sequences</a></h3>
@@ -1458,12 +1492,13 @@ p pa.8.sa.1 <a href="#NWDbbij8-H">E-7</a>   # 6R6
 <a name="NWbbij8-dXxwf-1-u7" href="#NWDbbij8-1B"><i>&lt;Instructions: DS&gt;</i></a>
 <a name="NWbbij8-dXxwf-1-u8" href="#NWDbbij8-1C"><i>&lt;Instructions: NxD&gt;</i></a>
 <a name="NWbbij8-dXxwf-1-u9" href="#NWDbbij8-1K"><i>&lt;Instructions: control flow&gt;</i></a>
-<a name="NWbbij8-dXxwf-1-u10" href="#NWDbbij8-1Z"><i>&lt;Instructions: F.T.&gt;</i></a>
-<a name="NWbbij8-dXxwf-1-u11" href="#NWDbbij8-1a"><i>&lt;Instructions: Pr.&gt;</i></a>
-<a name="NWbbij8-dXxwf-1-u12" href="#NWDbbij8-1b"><i>&lt;Instructions: Rd.&gt;</i></a>
+<a name="NWbbij8-dXxwf-1-u10" href="#NWDbbij8-1Y"><i>&lt;Instructions: 18↔20&gt;</i></a>
+<a name="NWbbij8-dXxwf-1-u11" href="#NWDbbij8-1Z"><i>&lt;Instructions: F.T.&gt;</i></a>
+<a name="NWbbij8-dXxwf-1-u12" href="#NWDbbij8-1d"><i>&lt;Instructions: Pr.&gt;</i></a>
+<a name="NWbbij8-dXxwf-1-u13" href="#NWDbbij8-1e"><i>&lt;Instructions: Rd.&gt;</i></a>
 
 # Reused programs on <a href="#NWbbij8-1Q1Gl0-D">a13</a> and <a href="#NWbbij8-1Q1Gl0-F">a15</a>
-<a name="NWbbij8-dXxwf-1-u13" href="#NWDbbij8-i"><i>&lt;Instructions: common programs&gt;</i></a>
+<a name="NWbbij8-dXxwf-1-u14" href="#NWDbbij8-i"><i>&lt;Instructions: common programs&gt;</i></a>
 </pre><p>
 
 <h4><a name=common><a name="NWDbbij8-i">Common programs</a></a></h4>
@@ -2073,9 +2108,10 @@ p m.Dα <a href="#NWDbbij8-i">J-1</a>
 # Apply correction from ier in lhpp
 p m.RS <a href="#NWbbij8-46QPtb-1">M-1</a>
 p <a href="#NWbbij8-46QPtb-1">M-1</a> <a href="#NWbbij8-1Q1Gl0-B">a11</a>.4i
-
+s <a href="#NWbbij8-1Q1Gl0-B">a11</a>.op4 S
 p <a href="#NWbbij8-46QPtb-1">M-1</a> <a href="#NWbbij8-1Q1Gl0-D">a13</a>.4i
 s <a href="#NWbbij8-1Q1Gl0-D">a13</a>.op4 β
+
 # Apply correction from icand in rhpp
 p m.DS <a href="#NWbbij8-46QPtb-1">M-2</a>
 p <a href="#NWbbij8-46QPtb-1">M-2</a> <a href="#NWbbij8-1Q1Gl0-C">a12</a>.3i
@@ -2762,9 +2798,9 @@ p <a href="#NWbbij8-1Q1Gl0-3">a3</a>.9o <a href="#NWDbbij8-c">C-5</a>
 <pre><a name="NWbbij8-2XHxa5-1" href="#NWDbbij8-1J"><dfn>&lt;Instructions: N2D cycle 14&gt;=</dfn></a> <b>(<a href="#NWDbbij8-1F">&lt;-U</a>)</b>
 # <a href="#NWDbbij8-i">B-10</a> triggers <a href="#NWbbij8-1Q1Gl0-D">a13</a>:SC1
 # Receive <a href="#NWbbij8-1Q1Gl0-I">a18</a>
-p <a href="#NWDbbij8-1I">N-5</a> <a href="#NWbbij8-1Q1Gl0-8">a8</a>.3i
-s <a href="#NWbbij8-1Q1Gl0-8">a8</a>.op3 α
-s <a href="#NWbbij8-1Q1Gl0-8">a8</a>.cc3 0
+p <a href="#NWDbbij8-1I">N-5</a> <a href="#NWbbij8-1Q1Gl0-I">a18</a>.4i
+s <a href="#NWbbij8-1Q1Gl0-I">a18</a>.op4 α
+s <a href="#NWbbij8-1Q1Gl0-I">a18</a>.cc4 0
 </pre><p>
 
 <h4><a name="cflow"><a name="NWDbbij8-1K">Control flow</a></a></h4>
@@ -3113,7 +3149,7 @@ branch&mdash;A<sub>15</sub> is re-purposed as the target.
 
 <h5>Cycle 4-7</h5>
 
-<p>RIF shows part of the wiring for &ldquo;P.M. Discriminator #2&rdquo;, and
+<p>RIF shows part of the wiring for <q>P.M. Discriminator #2</q>, and
 the connection 9&rarr;<code><a href="#NWDbbij8-c">C-5</a></code> would make sense for <code>C.T.</code>, so we can
 <a name="NWDbbij8-1V">probably assume it's the same.  Curiously, RIF shows </a><code>G-4</code> not the decode
 <code><a href="#NWDbbij8-H">G-2</a></code> connected to <tt>i</tt>.  Given the <code><a href="#NWDbbij8-c">C-5</a></code> connection, it seems
@@ -3159,76 +3195,133 @@ s <a href="#NWbbij8-1Q1Gl0-F">a15</a>.cc4 0
 
 <h4>18↔20</h4>
 
-<p>Uncharacteristically, LCS48 lists <code>18↔20</code> as 9 cycles, even
-though it can be hidden behind an overlapping fetch.  Perhaps it's avoiding an
-overlapping dummy program on A<sub>20</sub> in the fetch sequence.
-<code>18↔20</code> is gone from DU49 and DEC51.  The annotation in LCS48
-<a name="NWDbbij8-1Y">Section IV suggests A</a><sub>15</sub> must be 0 so assume it's used for the
-exchange.
+<p>LCS48 lists <code>18↔20</code> as 9 cycles, even though in theory it could
+overlap fetch&mdash;perhaps the <code><a href="#NWDbbij8-c">C-5</a></code> dummy <tt>a20.12i</tt> was the issue?
+<code><a name="NWDbbij8-1Y">18↔20</a></code> is gone from DU49 and DEC51. LCS48 Section IV suggests
+A<sub>15</sub> must be 0 on entry, so assume it's used for the exchange.
 
 <pre>
-  7. a20:AC1, a15:β01  # a15=a20 [1]
-  8. a18:AC1, a20:β01  # a20=a18 [1]
-  9. a15:AC1, a18:α01  # a18=a15 [2]
+  7. a20:AC1, a15:β01  # Save a20 in a15 [1]
+  8. a18:AC1, a20:β01  # a18 to a20 [1]
+  9. a15:AC1, a18:α01  # Saved a20 to a18 [2]
 </pre>
 
-<pre><a name="NWbbij8-VMWjI-1" href="#NWDbbij8-1Y"><dfn>&lt;Instructions: 18↔20&gt;=</dfn></a>
+<pre><a name="NWbbij8-VMWjI-1" href="#NWDbbij8-1Y"><dfn>&lt;Instructions: 18↔20&gt;=</dfn></a> <b>(<a href="#NWDbbij8-h">&lt;-U</a>)</b>
 # 18↔20
+
+# Cycle 7: Save <a href="#NWbbij8-1Q1Gl0-K">a20</a> in <a href="#NWbbij8-1Q1Gl0-F">a15</a>.
+# Transmit <a href="#NWbbij8-1Q1Gl0-K">a20</a>
+p <a href="#NWDbbij8-D">C-3</a> <a href="#NWbbij8-1Q1Gl0-K">a20</a>.6i
+s <a href="#NWbbij8-1Q1Gl0-K">a20</a>.op6 A
+s <a href="#NWbbij8-1Q1Gl0-K">a20</a>.cc6 C
+s <a href="#NWbbij8-1Q1Gl0-K">a20</a>.rp6 1
+p <a href="#NWbbij8-1Q1Gl0-K">a20</a>.6o <a href="#NWDbbij8-1Y">Q-7</a>
+# <a href="#NWDbbij8-D">C-3</a> -&gt; <a href="#NWDbbij8-i">J-1</a> triggers <a href="#NWbbij8-1Q1Gl0-F">a15</a>:β01
+
+# Cycle 8: <a href="#NWbbij8-1Q1Gl0-I">a18</a> to <a href="#NWbbij8-1Q1Gl0-K">a20</a>
+# Transmit <a href="#NWbbij8-1Q1Gl0-I">a18</a>
+p <a href="#NWDbbij8-1Y">Q-7</a> <a href="#NWbbij8-1Q1Gl0-I">a18</a>.10i
+s <a href="#NWbbij8-1Q1Gl0-I">a18</a>.op10 A
+s <a href="#NWbbij8-1Q1Gl0-I">a18</a>.cc10 C
+s <a href="#NWbbij8-1Q1Gl0-I">a18</a>.rp10 1
+p <a href="#NWbbij8-1Q1Gl0-I">a18</a>.10o <a href="#NWDbbij8-i">J-1</a>  # Trigger <a href="#NWbbij8-1Q1Gl0-F">a15</a>:AC1 in cycle 9
+# Receive <a href="#NWbbij8-1Q1Gl0-K">a20</a>
+p <a href="#NWDbbij8-1Y">Q-7</a> <a href="#NWbbij8-1Q1Gl0-K">a20</a>.7i
+s <a href="#NWbbij8-1Q1Gl0-K">a20</a>.op7 β
+s <a href="#NWbbij8-1Q1Gl0-K">a20</a>.cc7 0
+s <a href="#NWbbij8-1Q1Gl0-K">a20</a>.rp7 1
+p <a href="#NWbbij8-1Q1Gl0-K">a20</a>.7o <a href="#NWDbbij8-1Y">Q-8</a>
+
+# Dummy to trigger <a href="#NWDbbij8-c">C-5</a> in cycle 9
+p <a href="#NWDbbij8-1Y">Q-7</a> <a href="#NWbbij8-1Q1Gl0-4">a4</a>.11i
+s <a href="#NWbbij8-1Q1Gl0-4">a4</a>.op4 0
+s <a href="#NWbbij8-1Q1Gl0-4">a4</a>.cc4 0
+s <a href="#NWbbij8-1Q1Gl0-4">a4</a>.rp4 1
+p <a href="#NWbbij8-1Q1Gl0-4">a4</a>.11o <a href="#NWDbbij8-c">C-5</a>
+
+# Cycle 9: Saved <a href="#NWbbij8-1Q1Gl0-K">a20</a> to <a href="#NWbbij8-1Q1Gl0-I">a18</a>
+# <a href="#NWDbbij8-i">J-1</a> triggers <a href="#NWbbij8-1Q1Gl0-F">a15</a>:AC1
+# Receive <a href="#NWbbij8-1Q1Gl0-I">a18</a> on trunk 2
+p <a href="#NWDbbij8-1Y">Q-8</a> <a href="#NWbbij8-1Q1Gl0-I">a18</a>.3i
+s <a href="#NWbbij8-1Q1Gl0-I">a18</a>.op3 α
+s <a href="#NWbbij8-1Q1Gl0-I">a18</a>.cc3 0
+</pre><blockquote>Defines <a href="#NWI-Q-7"><code>Q-7</code></a>, <a href="#NWI-Q-8"><code>Q-8</code></a> (links are to index).<p>
+</blockquote><p>
+<h4><a name=ft><a name="NWDbbij8-1Z">F.T.</a></a></h4>
+
+<p><code>F.T.</code> fetches data from a function table in 13 cycles by reusing
+fetch machinery without triggering decode. 
+
+<pre><a name="NWbbij8-1ZedcE-1" href="#NWDbbij8-1Z"><dfn>&lt;Instructions: F.T.&gt;=</dfn></a> <b>(<a href="#NWDbbij8-h">&lt;-U</a>)</b>
+# F.T.
+
+# Cycle 7: Decode address from <a href="#NWbbij8-1Q1Gl0-8">a8</a>
+<a name="NWbbij8-1ZedcE-1-u1" href="#NWDbbij8-1a"><i>&lt;Instructions: F.T. cycle 7&gt;</i></a>
+# Cycle 8: Initiate ft read, increment address, clear <a href="#NWbbij8-1Q1Gl0-B">a11</a>
+<a name="NWbbij8-1ZedcE-1-u2" href="#NWDbbij8-1b"><i>&lt;Instructions: F.T. cycle 8&gt;</i></a>
+# Cycle 12: Store ft data in <a href="#NWbbij8-1Q1Gl0-B">a11</a> and <a href="#NWbbij8-1Q1Gl0-F">a15</a>
+<a name="NWbbij8-1ZedcE-1-u3" href="#NWDbbij8-1c"><i>&lt;Instructions: F.T. cycle 12&gt;</i></a>
 </pre><p>
 
-<h4><a name=ft>F.T.</a></h4>
+<h5>Addressing</h5>
 
-<p><code>F.T.</code> fetches data from any function table in 13 cycles by
-reusing fetch machinery without triggering decode.  But function table input #1
-is set up to send <code><a href="#NWDbbij8-6">J-4</a></code> which would trigger PC increment and advance the
-order selector ring, which is problematic because <code>F.T.</code> has no
-operand.
+<p>LCS48 says only that <code>F.T.</code> expects an address in A<sub>8</sub>.
+But there's a problem if digit 3 of the address is supposed to be 0-2 like it is
+for the PC, since <tt>ft.1i</tt> is set up to send <code><a href="#NWDbbij8-6">J-4</a></code> which would trigger
+PC increment and advance the order selector ring, skipping the next instruction.
 
 <p>The ballistics program in LCS48 has <code>N4D 04 86 8l F.T.</code>
 which&mdash;apart from the fact that FT2's constant data has address 90 in that
 listing&mdash;suggests that we're supposed to code 3-5 instead of 0-2 for
-function table 1/2/3 for <code>F.T.</code>  DU49 corroborates this encoding and
-<a name="NWDbbij8-1Z">clarifies that instruction lookups use A-2 and data lookups use A+2 to permit</a>
-using lines -2 through 101 of each table.  Thus <code>N4D 04 86 8l F.T.</code>
-would index line 88 of table 2, which in the A-2 instruction address space is
-(confusingly) line 90.
+function table 1/2/3 for <code>F.T.</code> DU49 corroborates this encoding, and
+clarifies that instruction lookups use A-2 addressing, and data lookups use A+2
+<a name="NWDbbij8-1a">addressing, to permit using lines -2 through 101 of each table. So </a><code>N4D 04
+86 8l F.T.</code> would index line 88 of table 2, which in the A-2 instruction
+address space is (confusingly) line 90.
 
-<p>If you wrote <code>N4D 01 00 8l F.T.</code> by mistake, it might either hang
-or store an instruction line and skip one order, depending on the wiring.  The
-world may never know.
+<p>If you wrote <code>N4D 01 00 8l F.T.</code> by mistake, it would most likely
+hang, fetching the next instruction but not decoding it.
 
-<pre><a name="NWbbij8-1ZedcE-1" href="#NWDbbij8-1Z"><dfn>&lt;Instructions: F.T.&gt;=</dfn></a> <b>(<a href="#NWDbbij8-h">&lt;-U</a>)</b>
-<a name="NWbbij8-1ZedcE-1-u1" href="#NWbbij8-oijFK-1"><i>&lt;Instructions: F.T. cycle 7&gt;</i></a>
-<a name="NWbbij8-1ZedcE-1-u2" href="#NWbbij8-2MEkW2-1"><i>&lt;Instructions: F.T. cycle 8&gt;</i></a>
-</pre><p>
+<h5>Cycle 7</h5>
 
-<pre><a name="NWbbij8-oijFK-1" href="#NWbbij8-oijFK-1"><dfn>&lt;Instructions: F.T. cycle 7&gt;=</dfn></a> <b>(<a href="#NWDbbij8-1Z">&lt;-U</a>)</b>
-# F.T. order uses <a href="#NWbbij8-3dwPcF-D">E-8</a>=3,4,5 for <a href="#NWbbij8-oijFK-1">G-9</a>, <a href="#NWbbij8-oijFK-1">G-10</a>, <a href="#NWbbij8-oijFK-1">G-11</a>.
-p sft.4o <a href="#NWbbij8-oijFK-1">G-9</a>
-p sft.5o <a href="#NWbbij8-oijFK-1">G-10</a>
-p sft.6o <a href="#NWbbij8-oijFK-1">G-11</a>
-</pre><blockquote>Defines <a href="#NWI-G-10"><code>G-10</code></a>, <a href="#NWI-G-11"><code>G-11</code></a>, <a href="#NWI-G-9"><code>G-9</code></a> (links are to index).<p>
+<pre><a name="NWbbij8-oijFK-1" href="#NWDbbij8-1a"><dfn>&lt;Instructions: F.T. cycle 7&gt;=</dfn></a> <b>(<a href="#NWDbbij8-1Z">&lt;-U</a>)</b>
+# Transmit (and hold) <a href="#NWbbij8-1Q1Gl0-8">a8</a> as ft address
+p <a href="#NWDbbij8-I">H-11</a> <a href="#NWbbij8-1Q1Gl0-8">a8</a>.6i  # F.T.
+s <a href="#NWbbij8-1Q1Gl0-8">a8</a>.op6 A
+s <a href="#NWbbij8-1Q1Gl0-8">a8</a>.cc6 0
+s <a href="#NWbbij8-1Q1Gl0-8">a8</a>.rp6 1
+p <a href="#NWbbij8-1Q1Gl0-8">a8</a>.6o <a href="#NWDbbij8-1a">N-6</a>
+
+# Decode digit 3 of address using ft selector
+# use <a href="#NWDbbij8-1a">G-9</a>, <a href="#NWDbbij8-1a">G-10</a>, and <a href="#NWDbbij8-1a">G-11</a> for <a href="#NWbbij8-3dwPcF-D">E-8</a>=3,4,5
+p sft.4o <a href="#NWDbbij8-1a">G-9</a>
+p sft.5o <a href="#NWDbbij8-1a">G-10</a>
+p sft.6o <a href="#NWDbbij8-1a">G-11</a>
+# <a href="#NWDbbij8-I">H-11</a> -&gt; <a href="#NWDbbij8-e">E-1</a> triggers ft read via pulse amplifier
+</pre><blockquote>Defines <a href="#NWI-G-10"><code>G-10</code></a>, <a href="#NWI-G-11"><code>G-11</code></a>, <a href="#NWI-G-9"><code>G-9</code></a>, <a href="#NWI-N-6"><code>N-6</code></a> (links are to index).<p>
 </blockquote><p>
-<pre><a name="NWbbij8-2MEkW2-1" href="#NWbbij8-2MEkW2-1"><dfn>&lt;Instructions: F.T. cycle 8&gt;=</dfn></a> <b>(<a href="#NWDbbij8-1Z">&lt;-U</a>)</b>
-# Read function table for F.T., using C to trigger sending the argument.
+<h5><a name="NWDbbij8-1b">Cycle 8</a></h5>
+
+<pre><a name="NWbbij8-2MEkW2-1" href="#NWDbbij8-1b"><dfn>&lt;Instructions: F.T. cycle 8&gt;=</dfn></a> <b>(<a href="#NWDbbij8-1Z">&lt;-U</a>)</b>
+# Read function table, using C to trigger sending the argument.
 # Note this uses A+2 addressing.
-p <a href="#NWbbij8-oijFK-1">G-9</a> f1.2i
+p <a href="#NWDbbij8-1a">G-9</a> f1.2i
 s f1.op2 A+2
 s f1.cl2 C
 s f1.rp2 1
-p f1.C <a href="#NWbbij8-2MEkW2-1">N-10</a>
+p f1.C <a href="#NWDbbij8-1b">N-10</a>
 
-p <a href="#NWbbij8-oijFK-1">G-10</a> f2.2i
+p <a href="#NWDbbij8-1a">G-10</a> f2.2i
 s f2.op2 A+2
 s f2.cl2 C
 s f2.rp2 1
-p f2.C <a href="#NWbbij8-2MEkW2-1">N-10</a>
+p f2.C <a href="#NWDbbij8-1b">N-10</a>
 
-p <a href="#NWbbij8-oijFK-1">G-11</a> f3.2i
+p <a href="#NWDbbij8-1a">G-11</a> f3.2i
 s f3.op2 A+2
 s f3.cl2 0
 s f3.rp2 1
-p f3.C <a href="#NWbbij8-2MEkW2-1">N-10</a>
+p f3.C <a href="#NWDbbij8-1b">N-10</a>
 
 # Look up signs from the tables, too.
 s f1.mpm1 T
@@ -3237,13 +3330,42 @@ s f2.mpm1 T
 s f2.mpm2 T
 s f3.mpm1 T
 s f3.mpm2 T
+
+# Post-increment address
+p <a href="#NWDbbij8-1a">N-6</a> <a href="#NWbbij8-1Q1Gl0-8">a8</a>.3i
+s <a href="#NWbbij8-1Q1Gl0-8">a8</a>.op3 ε
+s <a href="#NWbbij8-1Q1Gl0-8">a8</a>.cc3 C
+# Clear <a href="#NWbbij8-1Q1Gl0-B">a11</a>.
+# NOTE: Could use <a href="#NWDbbij8-b">J-3</a> instead.
+p <a href="#NWDbbij8-1a">N-6</a> <a href="#NWbbij8-1Q1Gl0-B">a11</a>.11i
+s <a href="#NWbbij8-1Q1Gl0-B">a11</a>.op11 0
+s <a href="#NWbbij8-1Q1Gl0-B">a11</a>.cc11 C
+s <a href="#NWbbij8-1Q1Gl0-B">a11</a>.rp11 1
 </pre><blockquote>Defines <a href="#NWI-N-10"><code>N-10</code></a> (links are to index).<p>
 </blockquote><p>
-<h4><a name="NWDbbij8-1a">Pr.</a></h4>
-<pre><a name="NWbbij8-1i2Pya-1" href="#NWDbbij8-1a"><dfn>&lt;Instructions: Pr.&gt;=</dfn></a> <b>(<a href="#NWDbbij8-h">&lt;-U</a>)</b>
+<h5><a name="NWDbbij8-1c">Cycle 12</a></h5>
+
+<pre><a name="NWbbij8-JzScn-1" href="#NWDbbij8-1c"><dfn>&lt;Instructions: F.T. cycle 12&gt;=</dfn></a> <b>(<a href="#NWDbbij8-1Z">&lt;-U</a>)</b>
+# The function table sends data on trunk 3 and 4 this cycle
+# Receive left digits at <a href="#NWbbij8-1Q1Gl0-B">a11</a>
+p <a href="#NWDbbij8-1b">N-10</a> <a href="#NWbbij8-1Q1Gl0-B">a11</a>.12i
+s <a href="#NWbbij8-1Q1Gl0-B">a11</a>.op12 β
+s <a href="#NWbbij8-1Q1Gl0-B">a11</a>.cc12 0
+s <a href="#NWbbij8-1Q1Gl0-B">a11</a>.rp12 1
+p <a href="#NWbbij8-1Q1Gl0-B">a11</a>.12o <a href="#NWDbbij8-c">C-5</a>  # Fetch and decode next instruction
+# Receive right digits at <a href="#NWbbij8-1Q1Gl0-F">a15</a>
+p <a href="#NWDbbij8-1b">N-10</a> <a href="#NWbbij8-1Q1Gl0-F">a15</a>.7i
+s <a href="#NWbbij8-1Q1Gl0-F">a15</a>.op7 γ
+s <a href="#NWbbij8-1Q1Gl0-F">a15</a>.cc7 0
+s <a href="#NWbbij8-1Q1Gl0-F">a15</a>.rp7 1
+</pre><p>
+
+<h4><a name="NWDbbij8-1d">Pr.</a></h4>
+
+<pre><a name="NWbbij8-1i2Pya-1" href="#NWDbbij8-1d"><dfn>&lt;Instructions: Pr.&gt;=</dfn></a> <b>(<a href="#NWDbbij8-h">&lt;-U</a>)</b>
 # Printer
 # TODO Add some way to specify printer wiring to the simulator.  This
-# instruction set expects to print <a href="#NWDbbij8-M">a1</a>, <a href="#NWbbij8-1Q1Gl0-2">a2</a>, and <a href="#NWbbij8-1Q1Gl0-F">a15</a>-20.
+# ISA expects to print <a href="#NWDbbij8-M">a1</a>, <a href="#NWbbij8-1Q1Gl0-2">a2</a>, and <a href="#NWbbij8-1Q1Gl0-F">a15</a>-20.
 p <a href="#NWDbbij8-I">O-1</a> i.Pi  # Pr.
 p i.Po <a href="#NWDbbij8-c">C-5</a>  # fetch+decode
 s pr.1 P    # <a href="#NWDbbij8-M">a1</a>
@@ -3264,8 +3386,9 @@ s pr.15 P   # <a href="#NWbbij8-1Q1Gl0-K">a20</a>
 s pr.16 P   # <a href="#NWbbij8-1Q1Gl0-K">a20</a>
 </pre><p>
 
-<h4><a name="NWDbbij8-1b">Rd.</a></h4>
-<pre><a name="NWbbij8-1hmzTM-1" href="#NWDbbij8-1b"><dfn>&lt;Instructions: Rd.&gt;=</dfn></a> <b>(<a href="#NWDbbij8-h">&lt;-U</a>)</b>
+<h4><a name="NWDbbij8-1e">Rd.</a></h4>
+
+<pre><a name="NWbbij8-1hmzTM-1" href="#NWDbbij8-1e"><dfn>&lt;Instructions: Rd.&gt;=</dfn></a> <b>(<a href="#NWDbbij8-h">&lt;-U</a>)</b>
 # Reader
 p <a href="#NWDbbij8-I">O-2</a> i.Ri  # Rd.
 p i.Ro <a href="#NWDbbij8-c">C-5</a>  # fetch+decode
@@ -3494,8 +3617,8 @@ crunch for temporaries, it's slower than the clunky
 
 <h4>Decoding jk</h4>
 <p>LCS48 says nothing about decoding jk, and it was gone by DU49. Section II
-says that &ldquo;by the addition of four small units, it became possible to
-speed the process up considerably and have 60 orders&rdquo;, then goes on to
+says that <q>by the addition of four small units, it became possible to
+speed the process up considerably and have 60 orders</q>, then goes on to
 mention
 <ol>
 <li>Ten-stage stepper
@@ -3504,7 +3627,7 @@ mention
 </ol>
 <p>So something is certainly missing here.  (P-M discriminators aren't
 mentioned until Section III, and then only in passing, so probably aren't one
-of the &ldquo;four small units&rdquo; added for decode).
+of the <q>four small units</q> added for decode).
 
 <p>The least inventive solution is to throw more hardware at the problem, e.g.
 a P-M discriminator (j) wired to two additional six-stage steppers (k)
@@ -3607,9 +3730,9 @@ generates a separate, cross-referenced textual <a href="#index">index</a>.
 <td class=given2><code><a href="#NWDbbij8-3">G-6</a></code><br>os.cdi
 <td class=given2><code>G-7</code><br>pm1.cdi
 <td class=given><code><a href="#NWDbbij8-9">G-8</a></code><br>os.i
-<td><code><a href="#NWbbij8-oijFK-1">G-9</a></code><br>sft.4o
-<td><code><a href="#NWbbij8-oijFK-1">G-10</a></code><br>sft.5o
-<td><code><a href="#NWbbij8-oijFK-1">G-11</a></code><br>sft.6o
+<td><code><a href="#NWDbbij8-1a">G-9</a></code><br>sft.4o
+<td><code><a href="#NWDbbij8-1a">G-10</a></code><br>sft.5o
+<td><code><a href="#NWDbbij8-1a">G-11</a></code><br>sft.6o
 <tr style="vertical-align: top"><td style="font-weight: bold">H-
 <td class=given><code><a href="#NWDbbij8-E">H-1</a></code><br>14l
 <td class=given><code><a href="#NWDbbij8-E">H-2</a></code><br>16l
@@ -3635,17 +3758,17 @@ generates a separate, cross-referenced textual <a href="#index">index</a>.
 <td><code>J-10</code><br>
 <td><code>J-11</code><br>
 <tr style="vertical-align: top"><td style="font-weight: bold">K-
-<td><code><a href="#NWDbbij8-1L">K-1</a></code><br>
-<td><code><a href="#NWDbbij8-1M">K-2</a></code><br>
-<td><code><a href="#NWDbbij8-1N">K-3</a></code><br>
-<td><code><a href="#NWDbbij8-1O">K-4</a></code><br>
-<td><code><a href="#NWDbbij8-1P">K-5</a></code><br>
-<td><code><a href="#NWDbbij8-1Q">K-6</a></code><br>
-<td><code><a href="#NWDbbij8-1S">K-7</a></code><br>
-<td><code><a href="#NWDbbij8-1S">K-8</a></code><br>
-<td><code><a href="#NWDbbij8-1T">K-9</a></code><br>
-<td><code><a href="#NWDbbij8-1T">K-10</a></code><br>
-<td><code><a href="#NWDbbij8-1W">K-11</a></code><br>
+<td><code><a href="#NWDbbij8-1L">K-1</a></code><br>cflow+0
+<td><code><a href="#NWDbbij8-1M">K-2</a></code><br>cflow+1
+<td><code><a href="#NWDbbij8-1N">K-3</a></code><br>cflow+2
+<td><code><a href="#NWDbbij8-1O">K-4</a></code><br>cflow+3
+<td><code><a href="#NWDbbij8-1P">K-5</a></code><br>cflow+4
+<td><code><a href="#NWDbbij8-1Q">K-6</a></code><br>cflow+5
+<td><code><a href="#NWDbbij8-1S">K-7</a></code><br>6r3+8
+<td><code><a href="#NWDbbij8-1S">K-8</a></code><br>6r3+9
+<td><code><a href="#NWDbbij8-1T">K-9</a></code><br>6r6+8
+<td><code><a href="#NWDbbij8-1T">K-10</a></code><br>6r6+9
+<td><code><a href="#NWDbbij8-1W">K-11</a></code><br>ct+9
 <tr style="vertical-align: top"><td style="font-weight: bold">L-
 <td class=given><code><a href="#NWDbbij8-F">L-1</a></code><br>9t
 <td class=given><code><a href="#NWDbbij8-F">L-2</a></code><br>10t
@@ -3676,11 +3799,11 @@ generates a separate, cross-referenced textual <a href="#index">index</a>.
 <td><code><a href="#NWDbbij8-1G">N-3</a></code><br>n2d+12
 <td><code><a href="#NWDbbij8-1H">N-4</a></code><br>n2d+13
 <td><code><a href="#NWDbbij8-1I">N-5</a></code><br>n2d+14
-<td><code>N-6</code><br>
+<td><code><a href="#NWDbbij8-1a">N-6</a></code><br>ft+8
 <td><code>N-7</code><br>
 <td><code>N-8</code><br>
 <td><code>N-9</code><br>
-<td><code><a href="#NWbbij8-2MEkW2-1">N-10</a></code><br>ft.C
+<td><code><a href="#NWDbbij8-1b">N-10</a></code><br>ft.C
 <td><code>N-11</code><br>
 <tr style="vertical-align: top"><td style="font-weight: bold">O-
 <td class=given><code><a href="#NWDbbij8-I">O-1</a></code><br>Pr.
@@ -3713,8 +3836,8 @@ generates a separate, cross-referenced textual <a href="#index">index</a>.
 <td><code><a href="#NWDbbij8-10">Q-4</a></code><br>div+x1
 <td><code><a href="#NWDbbij8-10">Q-5</a></code><br>div+x2
 <td><code><a href="#NWDbbij8-11">Q-6</a></code><br>div+x3
-<td><code>Q-7</code><br>
-<td><code>Q-8</code><br>
+<td><code><a href="#NWDbbij8-1Y">Q-7</a></code><br>1820+8
+<td><code><a href="#NWDbbij8-1Y">Q-8</a></code><br>1820+9
 <td><code>Q-9</code><br>
 <td><code>Q-10</code><br>
 <td><code>Q-11</code><br>
@@ -3768,7 +3891,7 @@ generates a separate, cross-referenced textual <a href="#index">index</a>.
 <td><code>V-11</code><br>
 </table>
 
-<h2><a name=index><a name="NWDbbij8-1c">Index</a></a></h2>
+<h2><a name=index><a name="NWDbbij8-1f">Index</a></a></h2>
 <h3>Chunks</h3>
 <ul>
 <li><a href="#NWDbbij8-2"><i>&lt;*&gt;</i></a>: <a href="#NWDbbij8-2">D1</a>
@@ -3794,7 +3917,7 @@ generates a separate, cross-referenced textual <a href="#index">index</a>.
 <li><a href="#NWDbbij8-C"><i>&lt;Fetch sequence: cycle 6&gt;</i></a>: <a href="#NWDbbij8-4">U1</a>, <a href="#NWDbbij8-C">D2</a>
 <li><a href="#NWDbbij8-1"><i>&lt;File header&gt;</i></a>: <a href="#NWDbbij8-1">D1</a>, <a href="#NWDbbij8-2">U2</a>
 <li><a href="#NWDbbij8-h"><i>&lt;Instructions&gt;</i></a>: <a href="#NWDbbij8-2">U1</a>, <a href="#NWDbbij8-h">D2</a>
-<li><a href="#NWDbbij8-1Y"><i>&lt;Instructions: 18↔20&gt;</i></a>: <a href="#NWDbbij8-1Y">D1</a>
+<li><a href="#NWDbbij8-1Y"><i>&lt;Instructions: 18↔20&gt;</i></a>: <a href="#NWDbbij8-h">U1</a>, <a href="#NWDbbij8-1Y">D2</a>
 <li><a href="#NWDbbij8-o"><i>&lt;Instructions: 6(11,10,9)&gt;</i></a>: <a href="#NWDbbij8-n">U1</a>, <a href="#NWDbbij8-o">D2</a>
 <li><a href="#NWDbbij8-p"><i>&lt;Instructions: 6(8,7)&gt;</i></a>: <a href="#NWDbbij8-n">U1</a>, <a href="#NWDbbij8-p">D2</a>
 <li><a href="#NWDbbij8-1S"><i>&lt;Instructions: 6R3&gt;</i></a>: <a href="#NWDbbij8-1K">U1</a>, <a href="#NWDbbij8-1S">D2</a>
@@ -3837,8 +3960,9 @@ generates a separate, cross-referenced textual <a href="#index">index</a>.
 <li><a href="#NWbbij8-tJbYq-1"><i>&lt;Instructions: DS cycle 8&gt;</i></a>: <a href="#NWDbbij8-1B">U1</a>, <a href="#NWbbij8-tJbYq-1">D2</a>
 <li><a href="#NWbbij8-3cUX5I-1"><i>&lt;Instructions: DS cycle 9&gt;</i></a>: <a href="#NWDbbij8-1B">U1</a>, <a href="#NWbbij8-3cUX5I-1">D2</a>
 <li><a href="#NWDbbij8-1Z"><i>&lt;Instructions: F.T.&gt;</i></a>: <a href="#NWDbbij8-h">U1</a>, <a href="#NWDbbij8-1Z">D2</a>
-<li><a href="#NWbbij8-oijFK-1"><i>&lt;Instructions: F.T. cycle 7&gt;</i></a>: <a href="#NWDbbij8-1Z">U1</a>, <a href="#NWbbij8-oijFK-1">D2</a>
-<li><a href="#NWbbij8-2MEkW2-1"><i>&lt;Instructions: F.T. cycle 8&gt;</i></a>: <a href="#NWDbbij8-1Z">U1</a>, <a href="#NWbbij8-2MEkW2-1">D2</a>
+<li><a href="#NWDbbij8-1c"><i>&lt;Instructions: F.T. cycle 12&gt;</i></a>: <a href="#NWDbbij8-1Z">U1</a>, <a href="#NWDbbij8-1c">D2</a>
+<li><a href="#NWDbbij8-1a"><i>&lt;Instructions: F.T. cycle 7&gt;</i></a>: <a href="#NWDbbij8-1Z">U1</a>, <a href="#NWDbbij8-1a">D2</a>
+<li><a href="#NWDbbij8-1b"><i>&lt;Instructions: F.T. cycle 8&gt;</i></a>: <a href="#NWDbbij8-1Z">U1</a>, <a href="#NWDbbij8-1b">D2</a>
 <li><a href="#NWDbbij8-q"><i>&lt;Instructions: M&gt;</i></a>: <a href="#NWDbbij8-n">U1</a>, <a href="#NWDbbij8-q">D2</a>
 <li><a href="#NWDbbij8-r"><i>&lt;Instructions: multiply&gt;</i></a>: <a href="#NWDbbij8-h">U1</a>, <a href="#NWDbbij8-r">D2</a>
 <li><a href="#NWbbij8-2rUGcQ-1"><i>&lt;Instructions: multiply configuration&gt;</i></a>: <a href="#NWbbij8-2rUGcQ-1">D1</a>
@@ -3854,8 +3978,8 @@ generates a separate, cross-referenced textual <a href="#index">index</a>.
 <li><a href="#NWDbbij8-1E"><i>&lt;Instructions: N4D&gt;</i></a>: <a href="#NWDbbij8-1C">U1</a>, <a href="#NWDbbij8-1E">D2</a>
 <li><a href="#NWDbbij8-1D"><i>&lt;Instructions: N6D&gt;</i></a>: <a href="#NWDbbij8-1C">U1</a>, <a href="#NWDbbij8-1D">D2</a>
 <li><a href="#NWDbbij8-1C"><i>&lt;Instructions: NxD&gt;</i></a>: <a href="#NWDbbij8-h">U1</a>, <a href="#NWDbbij8-1C">D2</a>
-<li><a href="#NWDbbij8-1a"><i>&lt;Instructions: Pr.&gt;</i></a>: <a href="#NWDbbij8-h">U1</a>, <a href="#NWDbbij8-1a">D2</a>
-<li><a href="#NWDbbij8-1b"><i>&lt;Instructions: Rd.&gt;</i></a>: <a href="#NWDbbij8-h">U1</a>, <a href="#NWDbbij8-1b">D2</a>
+<li><a href="#NWDbbij8-1d"><i>&lt;Instructions: Pr.&gt;</i></a>: <a href="#NWDbbij8-h">U1</a>, <a href="#NWDbbij8-1d">D2</a>
+<li><a href="#NWDbbij8-1e"><i>&lt;Instructions: Rd.&gt;</i></a>: <a href="#NWDbbij8-h">U1</a>, <a href="#NWDbbij8-1e">D2</a>
 <li><a href="#NWDbbij8-14"><i>&lt;Instructions: square root&gt;</i></a>: <a href="#NWDbbij8-s">U1</a>, <a href="#NWDbbij8-14">D2</a>
 <li><a href="#NWbbij8-1IRWQ4-1"><i>&lt;Instructions: square root configuration&gt;</i></a>: <a href="#NWDbbij8-14">U1</a>, <a href="#NWbbij8-1IRWQ4-1">D2</a>
 <li><a href="#NWDbbij8-17"><i>&lt;Instructions: square root cycle 11+&gt;</i></a>: <a href="#NWDbbij8-14">U1</a>, <a href="#NWDbbij8-17">D2</a>
@@ -3868,32 +3992,32 @@ generates a separate, cross-referenced textual <a href="#index">index</a>.
 <li><a href="#NWbbij8-1BWiEO-1"><i>&lt;Instructions: xl cycle 7&gt;</i></a>: <a href="#NWDbbij8-j">U1</a>, <a href="#NWbbij8-1BWiEO-1">D2</a>
 <li><a href="#NWDbbij8-k"><i>&lt;Instructions: xl cycle 8&gt;</i></a>: <a href="#NWDbbij8-j">U1</a>, <a href="#NWDbbij8-k">D2</a>
 <li><a href="#NWDbbij8-l"><i>&lt;Instructions: xt&gt;</i></a>: <a href="#NWDbbij8-h">U1</a>, <a href="#NWDbbij8-l">D2</a>
-<li><a href="#NWDbbij8-Y"><i>&lt;Pulse amplifiers&gt;</i></a>: <a href="#NWDbbij8-2">U1</a>, <a href="#NWDbbij8-Y">D2</a>, <a href="#NWDbbij8-Z">D3</a>, <a href="#NWbbij8-39GQxl-3">D4</a>, <a href="#NWbbij8-39GQxl-4">D5</a>, <a href="#NWDbbij8-a">D6</a>, <a href="#NWDbbij8-b">D7</a>, <a href="#NWDbbij8-c">D8</a>, <a href="#NWDbbij8-d">D9</a>, <a href="#NWDbbij8-e">D10</a>, <a href="#NWDbbij8-f">D11</a>, <a href="#NWbbij8-39GQxl-B">D12</a>, <a href="#NWDbbij8-g">D13</a>, <a href="#NWbbij8-39GQxl-D">D14</a>, <a href="#NWbbij8-39GQxl-E">D15</a>, <a href="#NWbbij8-39GQxl-F">D16</a>, <a href="#NWbbij8-39GQxl-G">D17</a>, <a href="#NWbbij8-39GQxl-H">D18</a>
+<li><a href="#NWDbbij8-Y"><i>&lt;Pulse amplifiers&gt;</i></a>: <a href="#NWDbbij8-2">U1</a>, <a href="#NWDbbij8-Y">D2</a>, <a href="#NWDbbij8-Z">D3</a>, <a href="#NWbbij8-39GQxl-3">D4</a>, <a href="#NWbbij8-39GQxl-4">D5</a>, <a href="#NWDbbij8-a">D6</a>, <a href="#NWDbbij8-b">D7</a>, <a href="#NWDbbij8-c">D8</a>, <a href="#NWDbbij8-d">D9</a>, <a href="#NWDbbij8-e">D10</a>, <a href="#NWDbbij8-f">D11</a>, <a href="#NWbbij8-39GQxl-B">D12</a>, <a href="#NWDbbij8-g">D13</a>, <a href="#NWbbij8-39GQxl-D">D14</a>, <a href="#NWbbij8-39GQxl-E">D15</a>, <a href="#NWbbij8-39GQxl-F">D16</a>, <a href="#NWbbij8-39GQxl-G">D17</a>, <a href="#NWbbij8-39GQxl-H">D18</a>, <a href="#NWbbij8-39GQxl-I">D19</a>, <a href="#NWbbij8-39GQxl-J">D20</a>
 <li><a href="#NWDbbij8-3"><i>&lt;Reset&gt;</i></a>: <a href="#NWDbbij8-2">U1</a>, <a href="#NWDbbij8-3">D2</a>
 </ul>
 
 <h3>Identifiers</h3>
 <ul>
 <li><a name="NWI-A-1" href="#NWDbbij8-3">A-1</a>: <a href="#NWDbbij8-3">D1</a>, <a href="#NWDbbij8-g">U2</a>
-<li><a name="NWI-a1" href="#NWDbbij8-M">a1</a>: <a href="#NWDbbij8-M">D1</a>, <a href="#NWbbij8-39GQxl-4">U2</a>, <a href="#NWbbij8-1BWiEO-1">U3</a>, <a href="#NWDbbij8-k">U4</a>, <a href="#NWDbbij8-l">U5</a>, <a href="#NWDbbij8-n">U6</a>, <a href="#NWbbij8-27m3th-1">U7</a>, <a href="#NWbbij8-YiVb7-1">U8</a>, <a href="#NWDbbij8-o">U9</a>, <a href="#NWDbbij8-p">U10</a>, <a href="#NWDbbij8-q">U11</a>, <a href="#NWDbbij8-y">U12</a>, <a href="#NWDbbij8-1a">U13</a>
+<li><a name="NWI-a1" href="#NWDbbij8-M">a1</a>: <a href="#NWDbbij8-M">D1</a>, <a href="#NWbbij8-39GQxl-4">U2</a>, <a href="#NWbbij8-1BWiEO-1">U3</a>, <a href="#NWDbbij8-k">U4</a>, <a href="#NWDbbij8-l">U5</a>, <a href="#NWDbbij8-n">U6</a>, <a href="#NWbbij8-27m3th-1">U7</a>, <a href="#NWbbij8-YiVb7-1">U8</a>, <a href="#NWDbbij8-o">U9</a>, <a href="#NWDbbij8-p">U10</a>, <a href="#NWDbbij8-q">U11</a>, <a href="#NWDbbij8-y">U12</a>, <a href="#NWDbbij8-1d">U13</a>
 <li><a name="NWI-a10" href="#NWbbij8-1Q1Gl0-A">a10</a>: <a href="#NWbbij8-1Q1Gl0-A">D1</a>, <a href="#NWbbij8-1BWiEO-1">U2</a>, <a href="#NWDbbij8-k">U3</a>, <a href="#NWDbbij8-l">U4</a>, <a href="#NWDbbij8-1L">U5</a>, <a href="#NWDbbij8-1M">U6</a>, <a href="#NWDbbij8-1N">U7</a>, <a href="#NWDbbij8-1O">U8</a>, <a href="#NWDbbij8-1P">U9</a>, <a href="#NWDbbij8-1Q">U10</a>, <a href="#NWDbbij8-1R">U11</a>, <a href="#NWDbbij8-1S">U12</a>, <a href="#NWDbbij8-1T">U13</a>
-<li><a name="NWI-a11" href="#NWbbij8-1Q1Gl0-B">a11</a>: <a href="#NWbbij8-1Q1Gl0-B">D1</a>, <a href="#NWbbij8-1BWiEO-1">U2</a>, <a href="#NWDbbij8-k">U3</a>, <a href="#NWDbbij8-l">U4</a>, <a href="#NWDbbij8-m">U5</a>, <a href="#NWbbij8-2I6QWZ-1">U6</a>, <a href="#NWbbij8-3pcRnH-1">U7</a>, <a href="#NWbbij8-46QPtb-1">U8</a>, <a href="#NWbbij8-2rUGcQ-1">U9</a>, <a href="#NWDbbij8-1B">U10</a>, <a href="#NWbbij8-2s57Jk-1">U11</a>, <a href="#NWbbij8-tJbYq-1">U12</a>, <a href="#NWbbij8-3cUX5I-1">U13</a>, <a href="#NWbbij8-hucpr-1">U14</a>
+<li><a name="NWI-a11" href="#NWbbij8-1Q1Gl0-B">a11</a>: <a href="#NWbbij8-1Q1Gl0-B">D1</a>, <a href="#NWbbij8-1BWiEO-1">U2</a>, <a href="#NWDbbij8-k">U3</a>, <a href="#NWDbbij8-l">U4</a>, <a href="#NWDbbij8-m">U5</a>, <a href="#NWbbij8-2I6QWZ-1">U6</a>, <a href="#NWbbij8-3pcRnH-1">U7</a>, <a href="#NWbbij8-46QPtb-1">U8</a>, <a href="#NWbbij8-2rUGcQ-1">U9</a>, <a href="#NWDbbij8-1B">U10</a>, <a href="#NWbbij8-2s57Jk-1">U11</a>, <a href="#NWbbij8-tJbYq-1">U12</a>, <a href="#NWbbij8-3cUX5I-1">U13</a>, <a href="#NWbbij8-hucpr-1">U14</a>, <a href="#NWDbbij8-1Z">U15</a>, <a href="#NWDbbij8-1b">U16</a>, <a href="#NWDbbij8-1c">U17</a>
 <li><a name="NWI-a12" href="#NWbbij8-1Q1Gl0-C">a12</a>: <a href="#NWbbij8-1Q1Gl0-C">D1</a>, <a href="#NWbbij8-1BWiEO-1">U2</a>, <a href="#NWDbbij8-k">U3</a>, <a href="#NWDbbij8-l">U4</a>, <a href="#NWbbij8-458JxQ-1">U5</a>, <a href="#NWbbij8-46QPtb-1">U6</a>, <a href="#NWbbij8-2rUGcQ-1">U7</a>
 <li><a name="NWI-a13" href="#NWbbij8-1Q1Gl0-D">a13</a>: <a href="#NWDbbij8-E">U1</a>, <a href="#NWDbbij8-M">U2</a>, <a href="#NWbbij8-1Q1Gl0-A">U3</a>, <a href="#NWbbij8-1Q1Gl0-D">D4</a>, <a href="#NWbbij8-1Q1Gl0-I">U5</a>, <a href="#NWbbij8-1Q1Gl0-K">U6</a>, <a href="#NWDbbij8-a">U7</a>, <a href="#NWbbij8-39GQxl-D">U8</a>, <a href="#NWbbij8-39GQxl-E">U9</a>, <a href="#NWDbbij8-h">U10</a>, <a href="#NWDbbij8-i">U11</a>, <a href="#NWbbij8-1BWiEO-1">U12</a>, <a href="#NWDbbij8-k">U13</a>, <a href="#NWDbbij8-l">U14</a>, <a href="#NWDbbij8-n">U15</a>, <a href="#NWbbij8-27m3th-1">U16</a>, <a href="#NWbbij8-YiVb7-1">U17</a>, <a href="#NWbbij8-46QPtb-1">U18</a>, <a href="#NWbbij8-CkUPL-1">U19</a>, <a href="#NWbbij8-2rUGcQ-1">U20</a>, <a href="#NWDbbij8-x">U21</a>, <a href="#NWDbbij8-y">U22</a>, <a href="#NWDbbij8-12">U23</a>, <a href="#NWDbbij8-15">U24</a>, <a href="#NWDbbij8-16">U25</a>, <a href="#NWDbbij8-19">U26</a>, <a href="#NWDbbij8-1A">U27</a>, <a href="#NWbbij8-2s57Jk-1">U28</a>, <a href="#NWbbij8-3cUX5I-1">U29</a>, <a href="#NWbbij8-hucpr-1">U30</a>, <a href="#NWDbbij8-1C">U31</a>, <a href="#NWDbbij8-1F">U32</a>, <a href="#NWDbbij8-1I">U33</a>, <a href="#NWDbbij8-1J">U34</a>, <a href="#NWDbbij8-1M">U35</a>, <a href="#NWDbbij8-1Q">U36</a>, <a href="#NWDbbij8-1R">U37</a>
 <li><a name="NWI-a14" href="#NWbbij8-1Q1Gl0-E">a14</a>: <a href="#NWbbij8-1Q1Gl0-E">D1</a>, <a href="#NWbbij8-1BWiEO-1">U2</a>, <a href="#NWDbbij8-k">U3</a>, <a href="#NWDbbij8-l">U4</a>
-<li><a name="NWI-a15" href="#NWbbij8-1Q1Gl0-F">a15</a>: <a href="#NWDbbij8-E">U1</a>, <a href="#NWbbij8-1Q1Gl0-F">D2</a>, <a href="#NWDbbij8-X">U3</a>, <a href="#NWbbij8-3dwPcF-D">U4</a>, <a href="#NWDbbij8-Y">U5</a>, <a href="#NWDbbij8-a">U6</a>, <a href="#NWbbij8-39GQxl-B">U7</a>, <a href="#NWbbij8-39GQxl-E">U8</a>, <a href="#NWbbij8-39GQxl-H">U9</a>, <a href="#NWDbbij8-h">U10</a>, <a href="#NWDbbij8-i">U11</a>, <a href="#NWDbbij8-j">U12</a>, <a href="#NWbbij8-1BWiEO-1">U13</a>, <a href="#NWDbbij8-k">U14</a>, <a href="#NWDbbij8-l">U15</a>, <a href="#NWDbbij8-m">U16</a>, <a href="#NWbbij8-2I6QWZ-1">U17</a>, <a href="#NWbbij8-27m3th-1">U18</a>, <a href="#NWbbij8-4JTaG1-1">U19</a>, <a href="#NWDbbij8-o">U20</a>, <a href="#NWDbbij8-p">U21</a>, <a href="#NWDbbij8-q">U22</a>, <a href="#NWDbbij8-r">U23</a>, <a href="#NWbbij8-265D4S-1">U24</a>, <a href="#NWbbij8-46QPtb-1">U25</a>, <a href="#NWbbij8-CkUPL-1">U26</a>, <a href="#NWbbij8-2rUGcQ-1">U27</a>, <a href="#NWDbbij8-t">U28</a>, <a href="#NWDbbij8-u">U29</a>, <a href="#NWDbbij8-v">U30</a>, <a href="#NWDbbij8-w">U31</a>, <a href="#NWDbbij8-10">U32</a>, <a href="#NWDbbij8-11">U33</a>, <a href="#NWDbbij8-14">U34</a>, <a href="#NWDbbij8-18">U35</a>, <a href="#NWDbbij8-19">U36</a>, <a href="#NWDbbij8-1B">U37</a>, <a href="#NWbbij8-2s57Jk-1">U38</a>, <a href="#NWbbij8-tJbYq-1">U39</a>, <a href="#NWbbij8-3cUX5I-1">U40</a>, <a href="#NWDbbij8-1F">U41</a>, <a href="#NWDbbij8-1H">U42</a>, <a href="#NWDbbij8-1I">U43</a>, <a href="#NWDbbij8-1L">U44</a>, <a href="#NWDbbij8-1O">U45</a>, <a href="#NWDbbij8-1P">U46</a>, <a href="#NWDbbij8-1S">U47</a>, <a href="#NWDbbij8-1T">U48</a>, <a href="#NWDbbij8-1U">U49</a>, <a href="#NWDbbij8-1V">U50</a>, <a href="#NWDbbij8-1X">U51</a>, <a href="#NWDbbij8-1a">U52</a>
-<li><a name="NWI-a16" href="#NWbbij8-1Q1Gl0-G">a16</a>: <a href="#NWbbij8-1Q1Gl0-G">D1</a>, <a href="#NWbbij8-1BWiEO-1">U2</a>, <a href="#NWDbbij8-k">U3</a>, <a href="#NWDbbij8-l">U4</a>, <a href="#NWDbbij8-q">U5</a>, <a href="#NWDbbij8-1a">U6</a>
-<li><a name="NWI-a17" href="#NWbbij8-1Q1Gl0-H">a17</a>: <a href="#NWbbij8-1Q1Gl0-H">D1</a>, <a href="#NWbbij8-1BWiEO-1">U2</a>, <a href="#NWDbbij8-k">U3</a>, <a href="#NWDbbij8-l">U4</a>, <a href="#NWDbbij8-1a">U5</a>
-<li><a name="NWI-a18" href="#NWbbij8-1Q1Gl0-I">a18</a>: <a href="#NWbbij8-1Q1Gl0-I">D1</a>, <a href="#NWDbbij8-f">U2</a>, <a href="#NWbbij8-1BWiEO-1">U3</a>, <a href="#NWDbbij8-k">U4</a>, <a href="#NWDbbij8-l">U5</a>, <a href="#NWDbbij8-1C">U6</a>, <a href="#NWDbbij8-1D">U7</a>, <a href="#NWDbbij8-1E">U8</a>, <a href="#NWDbbij8-1F">U9</a>, <a href="#NWDbbij8-1H">U10</a>, <a href="#NWDbbij8-1I">U11</a>, <a href="#NWDbbij8-1J">U12</a>, <a href="#NWDbbij8-1a">U13</a>
-<li><a name="NWI-a19" href="#NWbbij8-1Q1Gl0-J">a19</a>: <a href="#NWbbij8-1Q1Gl0-J">D1</a>, <a href="#NWbbij8-1BWiEO-1">U2</a>, <a href="#NWDbbij8-k">U3</a>, <a href="#NWDbbij8-l">U4</a>, <a href="#NWbbij8-27m3th-1">U5</a>, <a href="#NWDbbij8-1a">U6</a>
-<li><a name="NWI-a2" href="#NWbbij8-1Q1Gl0-2">a2</a>: <a href="#NWDbbij8-3">U1</a>, <a href="#NWbbij8-1Q1Gl0-2">D2</a>, <a href="#NWbbij8-1BWiEO-1">U3</a>, <a href="#NWDbbij8-k">U4</a>, <a href="#NWDbbij8-l">U5</a>, <a href="#NWDbbij8-o">U6</a>, <a href="#NWDbbij8-16">U7</a>, <a href="#NWbbij8-2s57Jk-1">U8</a>, <a href="#NWbbij8-3cUX5I-1">U9</a>, <a href="#NWDbbij8-1S">U10</a>, <a href="#NWDbbij8-1T">U11</a>, <a href="#NWDbbij8-1a">U12</a>
-<li><a name="NWI-a20" href="#NWbbij8-1Q1Gl0-K">a20</a>: <a href="#NWDbbij8-5">U1</a>, <a href="#NWbbij8-1Q1Gl0-K">D2</a>, <a href="#NWDbbij8-1a">U3</a>
+<li><a name="NWI-a15" href="#NWbbij8-1Q1Gl0-F">a15</a>: <a href="#NWDbbij8-E">U1</a>, <a href="#NWbbij8-1Q1Gl0-F">D2</a>, <a href="#NWDbbij8-X">U3</a>, <a href="#NWbbij8-3dwPcF-D">U4</a>, <a href="#NWDbbij8-Y">U5</a>, <a href="#NWDbbij8-a">U6</a>, <a href="#NWbbij8-39GQxl-B">U7</a>, <a href="#NWbbij8-39GQxl-E">U8</a>, <a href="#NWbbij8-39GQxl-H">U9</a>, <a href="#NWbbij8-39GQxl-I">U10</a>, <a href="#NWDbbij8-h">U11</a>, <a href="#NWDbbij8-i">U12</a>, <a href="#NWDbbij8-j">U13</a>, <a href="#NWbbij8-1BWiEO-1">U14</a>, <a href="#NWDbbij8-k">U15</a>, <a href="#NWDbbij8-l">U16</a>, <a href="#NWDbbij8-m">U17</a>, <a href="#NWbbij8-2I6QWZ-1">U18</a>, <a href="#NWbbij8-27m3th-1">U19</a>, <a href="#NWbbij8-4JTaG1-1">U20</a>, <a href="#NWDbbij8-o">U21</a>, <a href="#NWDbbij8-p">U22</a>, <a href="#NWDbbij8-q">U23</a>, <a href="#NWDbbij8-r">U24</a>, <a href="#NWbbij8-265D4S-1">U25</a>, <a href="#NWbbij8-46QPtb-1">U26</a>, <a href="#NWbbij8-CkUPL-1">U27</a>, <a href="#NWbbij8-2rUGcQ-1">U28</a>, <a href="#NWDbbij8-t">U29</a>, <a href="#NWDbbij8-u">U30</a>, <a href="#NWDbbij8-v">U31</a>, <a href="#NWDbbij8-w">U32</a>, <a href="#NWDbbij8-10">U33</a>, <a href="#NWDbbij8-11">U34</a>, <a href="#NWDbbij8-14">U35</a>, <a href="#NWDbbij8-18">U36</a>, <a href="#NWDbbij8-19">U37</a>, <a href="#NWDbbij8-1B">U38</a>, <a href="#NWbbij8-2s57Jk-1">U39</a>, <a href="#NWbbij8-tJbYq-1">U40</a>, <a href="#NWbbij8-3cUX5I-1">U41</a>, <a href="#NWDbbij8-1F">U42</a>, <a href="#NWDbbij8-1H">U43</a>, <a href="#NWDbbij8-1I">U44</a>, <a href="#NWDbbij8-1L">U45</a>, <a href="#NWDbbij8-1O">U46</a>, <a href="#NWDbbij8-1P">U47</a>, <a href="#NWDbbij8-1S">U48</a>, <a href="#NWDbbij8-1T">U49</a>, <a href="#NWDbbij8-1U">U50</a>, <a href="#NWDbbij8-1V">U51</a>, <a href="#NWDbbij8-1X">U52</a>, <a href="#NWDbbij8-1Y">U53</a>, <a href="#NWDbbij8-1Z">U54</a>, <a href="#NWDbbij8-1c">U55</a>, <a href="#NWDbbij8-1d">U56</a>
+<li><a name="NWI-a16" href="#NWbbij8-1Q1Gl0-G">a16</a>: <a href="#NWbbij8-1Q1Gl0-G">D1</a>, <a href="#NWbbij8-1BWiEO-1">U2</a>, <a href="#NWDbbij8-k">U3</a>, <a href="#NWDbbij8-l">U4</a>, <a href="#NWDbbij8-q">U5</a>, <a href="#NWDbbij8-1d">U6</a>
+<li><a name="NWI-a17" href="#NWbbij8-1Q1Gl0-H">a17</a>: <a href="#NWbbij8-1Q1Gl0-H">D1</a>, <a href="#NWbbij8-1BWiEO-1">U2</a>, <a href="#NWDbbij8-k">U3</a>, <a href="#NWDbbij8-l">U4</a>, <a href="#NWDbbij8-1d">U5</a>
+<li><a name="NWI-a18" href="#NWbbij8-1Q1Gl0-I">a18</a>: <a href="#NWbbij8-1Q1Gl0-I">D1</a>, <a href="#NWDbbij8-f">U2</a>, <a href="#NWbbij8-1BWiEO-1">U3</a>, <a href="#NWDbbij8-k">U4</a>, <a href="#NWDbbij8-l">U5</a>, <a href="#NWDbbij8-1C">U6</a>, <a href="#NWDbbij8-1D">U7</a>, <a href="#NWDbbij8-1E">U8</a>, <a href="#NWDbbij8-1F">U9</a>, <a href="#NWDbbij8-1H">U10</a>, <a href="#NWDbbij8-1I">U11</a>, <a href="#NWDbbij8-1J">U12</a>, <a href="#NWDbbij8-1Y">U13</a>, <a href="#NWDbbij8-1d">U14</a>
+<li><a name="NWI-a19" href="#NWbbij8-1Q1Gl0-J">a19</a>: <a href="#NWbbij8-1Q1Gl0-J">D1</a>, <a href="#NWbbij8-1BWiEO-1">U2</a>, <a href="#NWDbbij8-k">U3</a>, <a href="#NWDbbij8-l">U4</a>, <a href="#NWbbij8-27m3th-1">U5</a>, <a href="#NWDbbij8-1d">U6</a>
+<li><a name="NWI-a2" href="#NWbbij8-1Q1Gl0-2">a2</a>: <a href="#NWDbbij8-3">U1</a>, <a href="#NWbbij8-1Q1Gl0-2">D2</a>, <a href="#NWbbij8-1BWiEO-1">U3</a>, <a href="#NWDbbij8-k">U4</a>, <a href="#NWDbbij8-l">U5</a>, <a href="#NWDbbij8-o">U6</a>, <a href="#NWDbbij8-16">U7</a>, <a href="#NWbbij8-2s57Jk-1">U8</a>, <a href="#NWbbij8-3cUX5I-1">U9</a>, <a href="#NWDbbij8-1S">U10</a>, <a href="#NWDbbij8-1T">U11</a>, <a href="#NWDbbij8-1d">U12</a>
+<li><a name="NWI-a20" href="#NWbbij8-1Q1Gl0-K">a20</a>: <a href="#NWDbbij8-5">U1</a>, <a href="#NWbbij8-1Q1Gl0-K">D2</a>, <a href="#NWDbbij8-1Y">U3</a>, <a href="#NWDbbij8-1d">U4</a>
 <li><a name="NWI-a3" href="#NWbbij8-1Q1Gl0-3">a3</a>: <a href="#NWbbij8-1Q1Gl0-3">D1</a>, <a href="#NWbbij8-1BWiEO-1">U2</a>, <a href="#NWDbbij8-k">U3</a>, <a href="#NWDbbij8-l">U4</a>, <a href="#NWDbbij8-p">U5</a>, <a href="#NWDbbij8-1D">U6</a>, <a href="#NWDbbij8-1E">U7</a>, <a href="#NWDbbij8-1G">U8</a>, <a href="#NWDbbij8-1I">U9</a>, <a href="#NWDbbij8-1Q">U10</a>, <a href="#NWDbbij8-1W">U11</a>
-<li><a name="NWI-a4" href="#NWbbij8-1Q1Gl0-4">a4</a>: <a href="#NWbbij8-1Q1Gl0-4">D1</a>, <a href="#NWbbij8-1BWiEO-1">U2</a>, <a href="#NWDbbij8-k">U3</a>, <a href="#NWDbbij8-l">U4</a>, <a href="#NWDbbij8-s">U5</a>, <a href="#NWDbbij8-w">U6</a>, <a href="#NWDbbij8-y">U7</a>, <a href="#NWDbbij8-11">U8</a>, <a href="#NWDbbij8-12">U9</a>, <a href="#NWDbbij8-14">U10</a>, <a href="#NWDbbij8-1M">U11</a>
+<li><a name="NWI-a4" href="#NWbbij8-1Q1Gl0-4">a4</a>: <a href="#NWbbij8-1Q1Gl0-4">D1</a>, <a href="#NWbbij8-1BWiEO-1">U2</a>, <a href="#NWDbbij8-k">U3</a>, <a href="#NWDbbij8-l">U4</a>, <a href="#NWDbbij8-s">U5</a>, <a href="#NWDbbij8-w">U6</a>, <a href="#NWDbbij8-y">U7</a>, <a href="#NWDbbij8-11">U8</a>, <a href="#NWDbbij8-12">U9</a>, <a href="#NWDbbij8-14">U10</a>, <a href="#NWDbbij8-1M">U11</a>, <a href="#NWDbbij8-1Y">U12</a>
 <li><a name="NWI-a5" href="#NWbbij8-1Q1Gl0-5">a5</a>: <a href="#NWbbij8-1Q1Gl0-5">D1</a>, <a href="#NWbbij8-1BWiEO-1">U2</a>, <a href="#NWDbbij8-k">U3</a>, <a href="#NWDbbij8-l">U4</a>, <a href="#NWDbbij8-s">U5</a>, <a href="#NWDbbij8-t">U6</a>, <a href="#NWDbbij8-u">U7</a>, <a href="#NWDbbij8-w">U8</a>, <a href="#NWDbbij8-x">U9</a>, <a href="#NWDbbij8-14">U10</a>, <a href="#NWDbbij8-15">U11</a>
 <li><a name="NWI-a6" href="#NWbbij8-1Q1Gl0-6">a6</a>: <a href="#NWDbbij8-5">U1</a>, <a href="#NWDbbij8-7">U2</a>, <a href="#NWDbbij8-9">U3</a>, <a href="#NWbbij8-1Q1Gl0-6">D4</a>, <a href="#NWbbij8-1Q1Gl0-A">U5</a>, <a href="#NWbbij8-3dwPcF-D">U6</a>, <a href="#NWDbbij8-Z">U7</a>, <a href="#NWDbbij8-o">U8</a>, <a href="#NWDbbij8-p">U9</a>, <a href="#NWDbbij8-1L">U10</a>, <a href="#NWDbbij8-1N">U11</a>, <a href="#NWDbbij8-1O">U12</a>, <a href="#NWDbbij8-1Q">U13</a>, <a href="#NWDbbij8-1S">U14</a>, <a href="#NWDbbij8-1T">U15</a>, <a href="#NWDbbij8-1X">U16</a>
 <li><a name="NWI-a7" href="#NWbbij8-1Q1Gl0-7">a7</a>: <a href="#NWbbij8-1Q1Gl0-7">D1</a>, <a href="#NWbbij8-1BWiEO-1">U2</a>, <a href="#NWDbbij8-k">U3</a>, <a href="#NWDbbij8-l">U4</a>, <a href="#NWDbbij8-s">U5</a>, <a href="#NWDbbij8-16">U6</a>, <a href="#NWDbbij8-19">U7</a>, <a href="#NWDbbij8-1A">U8</a>
-<li><a name="NWI-a8" href="#NWbbij8-1Q1Gl0-8">a8</a>: <a href="#NWbbij8-1Q1Gl0-8">D1</a>, <a href="#NWbbij8-3dwPcF-D">U2</a>, <a href="#NWDbbij8-Z">U3</a>, <a href="#NWbbij8-1BWiEO-1">U4</a>, <a href="#NWDbbij8-k">U5</a>, <a href="#NWDbbij8-l">U6</a>, <a href="#NWDbbij8-1J">U7</a>
+<li><a name="NWI-a8" href="#NWbbij8-1Q1Gl0-8">a8</a>: <a href="#NWbbij8-1Q1Gl0-8">D1</a>, <a href="#NWbbij8-3dwPcF-D">U2</a>, <a href="#NWDbbij8-Z">U3</a>, <a href="#NWbbij8-1BWiEO-1">U4</a>, <a href="#NWDbbij8-k">U5</a>, <a href="#NWDbbij8-l">U6</a>, <a href="#NWDbbij8-1Z">U7</a>, <a href="#NWDbbij8-1a">U8</a>, <a href="#NWDbbij8-1b">U9</a>
 <li><a name="NWI-a9" href="#NWbbij8-1Q1Gl0-9">a9</a>: <a href="#NWbbij8-1Q1Gl0-9">D1</a>, <a href="#NWbbij8-1BWiEO-1">U2</a>, <a href="#NWDbbij8-k">U3</a>, <a href="#NWDbbij8-l">U4</a>, <a href="#NWDbbij8-s">U5</a>, <a href="#NWDbbij8-t">U6</a>, <a href="#NWDbbij8-v">U7</a>, <a href="#NWDbbij8-10">U8</a>, <a href="#NWDbbij8-18">U9</a>
 <li><a name="NWI-ad.permute.1" href="#NWDbbij8-N">ad.permute.1</a>: <a href="#NWbbij8-1Q1Gl0-B">U1</a>, <a href="#NWDbbij8-N">D2</a>
 <li><a name="NWI-ad.permute.10" href="#NWDbbij8-S">ad.permute.10</a>: <a href="#NWbbij8-1Q1Gl0-6">U1</a>, <a href="#NWbbij8-1Q1Gl0-K">U2</a>, <a href="#NWDbbij8-S">D3</a>
@@ -3934,16 +4058,16 @@ generates a separate, cross-referenced textual <a href="#index">index</a>.
 <li><a name="NWI-B-10" href="#NWDbbij8-i">B-10</a>: <a href="#NWDbbij8-i">D1</a>, <a href="#NWDbbij8-1I">U2</a>, <a href="#NWDbbij8-1J">U3</a>, <a href="#NWDbbij8-1Q">U4</a>, <a href="#NWDbbij8-1R">U5</a>
 <li><a name="NWI-B-11" href="#NWDbbij8-i">B-11</a>: <a href="#NWbbij8-39GQxl-D">U1</a>, <a href="#NWbbij8-39GQxl-E">U2</a>, <a href="#NWbbij8-39GQxl-F">U3</a>, <a href="#NWDbbij8-i">D4</a>, <a href="#NWbbij8-YiVb7-1">D5</a>, <a href="#NWbbij8-CkUPL-1">U6</a>, <a href="#NWDbbij8-12">U7</a>, <a href="#NWDbbij8-19">U8</a>, <a href="#NWDbbij8-1A">U9</a>, <a href="#NWbbij8-3cUX5I-1">U10</a>, <a href="#NWbbij8-hucpr-1">U11</a>
 <li><a name="NWI-B-2" href="#NWDbbij8-A">B-2</a>: <a href="#NWDbbij8-A">D1</a>
-<li><a name="NWI-B-3" href="#NWDbbij8-i">B-3</a>: <a href="#NWDbbij8-a">U1</a>, <a href="#NWbbij8-39GQxl-E">U2</a>, <a href="#NWDbbij8-i">D3</a>, <a href="#NWDbbij8-l">U4</a>, <a href="#NWbbij8-2I6QWZ-1">U5</a>, <a href="#NWbbij8-4JTaG1-1">U6</a>, <a href="#NWbbij8-46QPtb-1">U7</a>, <a href="#NWbbij8-CkUPL-1">U8</a>, <a href="#NWDbbij8-u">U9</a>, <a href="#NWDbbij8-v">U10</a>, <a href="#NWDbbij8-10">U11</a>, <a href="#NWDbbij8-11">U12</a>, <a href="#NWbbij8-tJbYq-1">U13</a>, <a href="#NWbbij8-3cUX5I-1">U14</a>, <a href="#NWDbbij8-1H">U15</a>, <a href="#NWDbbij8-1I">U16</a>
+<li><a name="NWI-B-3" href="#NWDbbij8-i">B-3</a>: <a href="#NWDbbij8-a">U1</a>, <a href="#NWbbij8-39GQxl-E">U2</a>, <a href="#NWbbij8-39GQxl-I">U3</a>, <a href="#NWDbbij8-i">D4</a>, <a href="#NWDbbij8-l">U5</a>, <a href="#NWbbij8-2I6QWZ-1">U6</a>, <a href="#NWbbij8-4JTaG1-1">U7</a>, <a href="#NWbbij8-46QPtb-1">U8</a>, <a href="#NWbbij8-CkUPL-1">U9</a>, <a href="#NWDbbij8-u">U10</a>, <a href="#NWDbbij8-v">U11</a>, <a href="#NWDbbij8-10">U12</a>, <a href="#NWDbbij8-11">U13</a>, <a href="#NWbbij8-tJbYq-1">U14</a>, <a href="#NWbbij8-3cUX5I-1">U15</a>, <a href="#NWDbbij8-1H">U16</a>, <a href="#NWDbbij8-1I">U17</a>
 <li><a name="NWI-B-4" href="#NWDbbij8-i">B-4</a>: <a href="#NWDbbij8-a">U1</a>, <a href="#NWbbij8-39GQxl-G">U2</a>, <a href="#NWDbbij8-i">D3</a>, <a href="#NWbbij8-27m3th-1">U4</a>, <a href="#NWDbbij8-x">U5</a>, <a href="#NWDbbij8-y">U6</a>, <a href="#NWDbbij8-15">U7</a>, <a href="#NWDbbij8-16">U8</a>, <a href="#NWbbij8-2s57Jk-1">U9</a>, <a href="#NWDbbij8-1M">U10</a>
 <li><a name="NWI-B-5" href="#NWDbbij8-A">B-5</a>: <a href="#NWDbbij8-A">D1</a>
 <li><a name="NWI-C-1" href="#NWDbbij8-Y">C-1</a>: <a href="#NWDbbij8-G">U1</a>, <a href="#NWDbbij8-Y">D2</a>, <a href="#NWDbbij8-c">U3</a>, <a href="#NWbbij8-1BWiEO-1">U4</a>
 <li><a name="NWI-C-10" href="#NWDbbij8-G">C-10</a>: <a href="#NWDbbij8-G">D1</a>, <a href="#NWbbij8-39GQxl-B">U2</a>
 <li><a name="NWI-C-11" href="#NWDbbij8-G">C-11</a>: <a href="#NWDbbij8-G">D1</a>, <a href="#NWDbbij8-d">U2</a>, <a href="#NWbbij8-39GQxl-B">U3</a>
 <li><a name="NWI-C-2" href="#NWDbbij8-F">C-2</a>: <a href="#NWDbbij8-F">D1</a>, <a href="#NWDbbij8-c">U2</a>, <a href="#NWDbbij8-l">U3</a>
-<li><a name="NWI-C-3" href="#NWDbbij8-D">C-3</a>: <a href="#NWDbbij8-D">D1</a>
+<li><a name="NWI-C-3" href="#NWDbbij8-D">C-3</a>: <a href="#NWDbbij8-D">D1</a>, <a href="#NWbbij8-39GQxl-I">U2</a>, <a href="#NWDbbij8-1Y">U3</a>
 <li><a name="NWI-C-4" href="#NWbbij8-27m3th-1">C-4</a>: <a href="#NWbbij8-39GQxl-B">U1</a>, <a href="#NWDbbij8-n">U2</a>, <a href="#NWbbij8-27m3th-1">D3</a>
-<li><a name="NWI-C-5" href="#NWDbbij8-c">C-5</a>: <a href="#NWDbbij8-3">U1</a>, <a href="#NWDbbij8-5">U2</a>, <a href="#NWDbbij8-c">D3</a>, <a href="#NWDbbij8-d">U4</a>, <a href="#NWDbbij8-h">U5</a>, <a href="#NWbbij8-CkUPL-1">U6</a>, <a href="#NWDbbij8-12">U7</a>, <a href="#NWDbbij8-1A">U8</a>, <a href="#NWDbbij8-1I">U9</a>, <a href="#NWDbbij8-1R">U10</a>, <a href="#NWDbbij8-1V">U11</a>, <a href="#NWDbbij8-1a">U12</a>, <a href="#NWDbbij8-1b">U13</a>
+<li><a name="NWI-C-5" href="#NWDbbij8-c">C-5</a>: <a href="#NWDbbij8-3">U1</a>, <a href="#NWDbbij8-5">U2</a>, <a href="#NWDbbij8-c">D3</a>, <a href="#NWDbbij8-d">U4</a>, <a href="#NWDbbij8-h">U5</a>, <a href="#NWbbij8-CkUPL-1">U6</a>, <a href="#NWDbbij8-12">U7</a>, <a href="#NWDbbij8-1A">U8</a>, <a href="#NWDbbij8-1I">U9</a>, <a href="#NWDbbij8-1R">U10</a>, <a href="#NWDbbij8-1V">U11</a>, <a href="#NWDbbij8-1Y">U12</a>, <a href="#NWDbbij8-1c">U13</a>, <a href="#NWDbbij8-1d">U14</a>, <a href="#NWDbbij8-1e">U15</a>
 <li><a name="NWI-C-6" href="#NWDbbij8-f">C-6</a>: <a href="#NWDbbij8-d">U1</a>, <a href="#NWDbbij8-f">D2</a>, <a href="#NWDbbij8-1C">U3</a>
 <li><a name="NWI-C-7" href="#NWDbbij8-E">C-7</a>: <a href="#NWDbbij8-E">D1</a>, <a href="#NWDbbij8-Y">U2</a>, <a href="#NWbbij8-1BWiEO-1">U3</a>
 <li><a name="NWI-C-8" href="#NWDbbij8-J">C-8</a>: <a href="#NWDbbij8-J">D1</a>, <a href="#NWDbbij8-Y">U2</a>, <a href="#NWbbij8-39GQxl-B">U3</a>, <a href="#NWbbij8-1BWiEO-1">U4</a>
@@ -3959,7 +4083,7 @@ generates a separate, cross-referenced textual <a href="#index">index</a>.
 <li><a name="NWI-D-7" href="#NWDbbij8-I">D-7</a>: <a href="#NWDbbij8-I">D1</a>, <a href="#NWbbij8-39GQxl-3">U2</a>, <a href="#NWbbij8-2I6QWZ-1">U3</a>
 <li><a name="NWI-D-8" href="#NWDbbij8-I">D-8</a>: <a href="#NWDbbij8-I">D1</a>, <a href="#NWbbij8-39GQxl-3">U2</a>, <a href="#NWbbij8-2I6QWZ-1">U3</a>
 <li><a name="NWI-D-9" href="#NWDbbij8-I">D-9</a>: <a href="#NWDbbij8-I">D1</a>, <a href="#NWbbij8-39GQxl-3">U2</a>, <a href="#NWbbij8-2I6QWZ-1">U3</a>
-<li><a name="NWI-E-1" href="#NWDbbij8-e">E-1</a>: <a href="#NWDbbij8-5">U1</a>, <a href="#NWDbbij8-e">D2</a>
+<li><a name="NWI-E-1" href="#NWDbbij8-e">E-1</a>: <a href="#NWDbbij8-5">U1</a>, <a href="#NWDbbij8-e">D2</a>, <a href="#NWbbij8-39GQxl-J">U3</a>, <a href="#NWDbbij8-1a">U4</a>
 <li><a name="NWI-E-10" href="#NWDbbij8-5">E-10</a>: <a href="#NWDbbij8-5">D1</a>, <a href="#NWDbbij8-A">U2</a>
 <li><a name="NWI-E-11" href="#NWDbbij8-5">E-11</a>: <a href="#NWDbbij8-5">D1</a>, <a href="#NWDbbij8-6">U2</a>
 <li><a name="NWI-E-2" href="#NWbbij8-3dwPcF-D">E-2</a>: <a href="#NWDbbij8-A">U1</a>, <a href="#NWbbij8-3dwPcF-D">D2</a>
@@ -3968,7 +4092,7 @@ generates a separate, cross-referenced textual <a href="#index">index</a>.
 <li><a name="NWI-E-5" href="#NWDbbij8-G">E-5</a>: <a href="#NWDbbij8-G">D1</a>, <a href="#NWbbij8-458JxQ-1">U2</a>
 <li><a name="NWI-E-6" href="#NWDbbij8-H">E-6</a>: <a href="#NWDbbij8-H">D1</a>, <a href="#NWbbij8-39GQxl-H">U2</a>, <a href="#NWDbbij8-1S">U3</a>
 <li><a name="NWI-E-7" href="#NWDbbij8-H">E-7</a>: <a href="#NWDbbij8-H">D1</a>, <a href="#NWbbij8-39GQxl-H">U2</a>, <a href="#NWDbbij8-1T">U3</a>, <a href="#NWDbbij8-1W">U4</a>
-<li><a name="NWI-E-8" href="#NWbbij8-3dwPcF-D">E-8</a>: <a href="#NWDbbij8-5">U1</a>, <a href="#NWbbij8-3dwPcF-D">D2</a>, <a href="#NWbbij8-oijFK-1">U3</a>
+<li><a name="NWI-E-8" href="#NWbbij8-3dwPcF-D">E-8</a>: <a href="#NWDbbij8-5">U1</a>, <a href="#NWbbij8-3dwPcF-D">D2</a>, <a href="#NWDbbij8-1a">U3</a>
 <li><a name="NWI-E-9" href="#NWDbbij8-5">E-9</a>: <a href="#NWDbbij8-3">U1</a>, <a href="#NWDbbij8-5">D2</a>, <a href="#NWDbbij8-6">U3</a>, <a href="#NWDbbij8-g">U4</a>
 <li><a name="NWI-F-1" href="#NWDbbij8-5">F-1</a>: <a href="#NWDbbij8-5">D1</a>, <a href="#NWDbbij8-6">U2</a>
 <li><a name="NWI-F-2" href="#NWDbbij8-5">F-2</a>: <a href="#NWDbbij8-5">D1</a>, <a href="#NWDbbij8-6">U2</a>
@@ -3976,17 +4100,17 @@ generates a separate, cross-referenced textual <a href="#index">index</a>.
 <li><a name="NWI-F-4" href="#NWDbbij8-8">F-4</a>: <a href="#NWDbbij8-8">D1</a>, <a href="#NWDbbij8-9">U2</a>
 <li><a name="NWI-F-5" href="#NWDbbij8-8">F-5</a>: <a href="#NWDbbij8-8">D1</a>, <a href="#NWDbbij8-9">U2</a>, <a href="#NWDbbij8-1V">U3</a>
 <li><a name="NWI-F-6" href="#NWbbij8-3dwPcF-D">F-6</a>: <a href="#NWDbbij8-A">U1</a>, <a href="#NWbbij8-3dwPcF-D">D2</a>
-<li><a name="NWI-G-10" href="#NWbbij8-oijFK-1">G-10</a>: <a href="#NWbbij8-oijFK-1">D1</a>, <a href="#NWbbij8-2MEkW2-1">U2</a>
-<li><a name="NWI-G-11" href="#NWbbij8-oijFK-1">G-11</a>: <a href="#NWbbij8-oijFK-1">D1</a>, <a href="#NWbbij8-2MEkW2-1">U2</a>
+<li><a name="NWI-G-10" href="#NWDbbij8-1a">G-10</a>: <a href="#NWDbbij8-1a">D1</a>, <a href="#NWDbbij8-1b">U2</a>
+<li><a name="NWI-G-11" href="#NWDbbij8-1a">G-11</a>: <a href="#NWDbbij8-1a">D1</a>, <a href="#NWDbbij8-1b">U2</a>
 <li><a name="NWI-G-2" href="#NWDbbij8-H">G-2</a>: <a href="#NWDbbij8-H">D1</a>, <a href="#NWbbij8-39GQxl-H">U2</a>, <a href="#NWDbbij8-1V">U3</a>
 <li><a name="NWI-G-3" href="#NWbbij8-3dwPcF-D">G-3</a>: <a href="#NWbbij8-3dwPcF-D">D1</a>, <a href="#NWDbbij8-1V">U2</a>
 <li><a name="NWI-G-5" href="#NWDbbij8-1V">G-5</a>: <a href="#NWbbij8-39GQxl-H">U1</a>, <a href="#NWDbbij8-1V">D2</a>, <a href="#NWDbbij8-1W">U3</a>
 <li><a name="NWI-G-6" href="#NWDbbij8-3">G-6</a>: <a href="#NWDbbij8-3">D1</a>, <a href="#NWDbbij8-g">U2</a>, <a href="#NWDbbij8-1M">U3</a>
 <li><a name="NWI-G-8" href="#NWDbbij8-9">G-8</a>: <a href="#NWDbbij8-9">D1</a>, <a href="#NWDbbij8-A">U2</a>
-<li><a name="NWI-G-9" href="#NWbbij8-oijFK-1">G-9</a>: <a href="#NWbbij8-oijFK-1">D1</a>, <a href="#NWbbij8-2MEkW2-1">U2</a>
+<li><a name="NWI-G-9" href="#NWDbbij8-1a">G-9</a>: <a href="#NWDbbij8-1a">D1</a>, <a href="#NWDbbij8-1b">U2</a>
 <li><a name="NWI-H-1" href="#NWDbbij8-E">H-1</a>: <a href="#NWDbbij8-E">D1</a>, <a href="#NWDbbij8-Y">U2</a>, <a href="#NWbbij8-1BWiEO-1">U3</a>
 <li><a name="NWI-H-10" href="#NWDbbij8-G">H-10</a>: <a href="#NWDbbij8-G">D1</a>, <a href="#NWDbbij8-c">U2</a>, <a href="#NWbbij8-39GQxl-G">U3</a>, <a href="#NWbbij8-2s57Jk-1">U4</a>
-<li><a name="NWI-H-11" href="#NWDbbij8-I">H-11</a>: <a href="#NWDbbij8-I">D1</a>
+<li><a name="NWI-H-11" href="#NWDbbij8-I">H-11</a>: <a href="#NWDbbij8-I">D1</a>, <a href="#NWbbij8-39GQxl-J">U2</a>, <a href="#NWDbbij8-1a">U3</a>
 <li><a name="NWI-H-2" href="#NWDbbij8-E">H-2</a>: <a href="#NWDbbij8-E">D1</a>, <a href="#NWDbbij8-Y">U2</a>, <a href="#NWbbij8-1BWiEO-1">U3</a>
 <li><a name="NWI-H-3" href="#NWDbbij8-E">H-3</a>: <a href="#NWDbbij8-E">D1</a>, <a href="#NWDbbij8-Y">U2</a>, <a href="#NWbbij8-1BWiEO-1">U3</a>
 <li><a name="NWI-H-4" href="#NWDbbij8-E">H-4</a>: <a href="#NWDbbij8-E">D1</a>, <a href="#NWDbbij8-Y">U2</a>, <a href="#NWbbij8-1BWiEO-1">U3</a>
@@ -3995,9 +4119,9 @@ generates a separate, cross-referenced textual <a href="#index">index</a>.
 <li><a name="NWI-H-7" href="#NWDbbij8-F">H-7</a>: <a href="#NWDbbij8-F">D1</a>, <a href="#NWDbbij8-Z">U2</a>, <a href="#NWDbbij8-l">U3</a>
 <li><a name="NWI-H-8" href="#NWDbbij8-F">H-8</a>: <a href="#NWDbbij8-F">D1</a>, <a href="#NWDbbij8-Z">U2</a>, <a href="#NWDbbij8-l">U3</a>
 <li><a name="NWI-H-9" href="#NWDbbij8-J">H-9</a>: <a href="#NWDbbij8-J">D1</a>, <a href="#NWDbbij8-Z">U2</a>
-<li><a name="NWI-J-1" href="#NWDbbij8-i">J-1</a>: <a href="#NWbbij8-39GQxl-B">U1</a>, <a href="#NWbbij8-39GQxl-F">U2</a>, <a href="#NWbbij8-39GQxl-H">U3</a>, <a href="#NWDbbij8-i">D4</a>, <a href="#NWbbij8-1BWiEO-1">U5</a>, <a href="#NWDbbij8-k">U6</a>, <a href="#NWDbbij8-n">U7</a>, <a href="#NWbbij8-27m3th-1">U8</a>, <a href="#NWbbij8-265D4S-1">U9</a>, <a href="#NWDbbij8-u">U10</a>, <a href="#NWDbbij8-10">U11</a>, <a href="#NWDbbij8-18">U12</a>, <a href="#NWbbij8-2s57Jk-1">U13</a>, <a href="#NWDbbij8-1O">U14</a>, <a href="#NWDbbij8-1P">U15</a>, <a href="#NWDbbij8-1V">U16</a>
+<li><a name="NWI-J-1" href="#NWDbbij8-i">J-1</a>: <a href="#NWbbij8-39GQxl-B">U1</a>, <a href="#NWbbij8-39GQxl-F">U2</a>, <a href="#NWbbij8-39GQxl-H">U3</a>, <a href="#NWDbbij8-i">D4</a>, <a href="#NWbbij8-1BWiEO-1">U5</a>, <a href="#NWDbbij8-k">U6</a>, <a href="#NWDbbij8-n">U7</a>, <a href="#NWbbij8-27m3th-1">U8</a>, <a href="#NWbbij8-265D4S-1">U9</a>, <a href="#NWDbbij8-u">U10</a>, <a href="#NWDbbij8-10">U11</a>, <a href="#NWDbbij8-18">U12</a>, <a href="#NWbbij8-2s57Jk-1">U13</a>, <a href="#NWDbbij8-1O">U14</a>, <a href="#NWDbbij8-1P">U15</a>, <a href="#NWDbbij8-1V">U16</a>, <a href="#NWDbbij8-1Y">U17</a>
 <li><a name="NWI-J-2" href="#NWDbbij8-e">J-2</a>: <a href="#NWDbbij8-5">U1</a>, <a href="#NWDbbij8-e">D2</a>, <a href="#NWDbbij8-1N">U3</a>
-<li><a name="NWI-J-3" href="#NWDbbij8-b">J-3</a>: <a href="#NWDbbij8-b">D1</a>, <a href="#NWbbij8-2I6QWZ-1">U2</a>
+<li><a name="NWI-J-3" href="#NWDbbij8-b">J-3</a>: <a href="#NWDbbij8-b">D1</a>, <a href="#NWbbij8-2I6QWZ-1">U2</a>, <a href="#NWDbbij8-1b">U3</a>
 <li><a name="NWI-J-4" href="#NWDbbij8-6">J-4</a>: <a href="#NWDbbij8-6">D1</a>, <a href="#NWDbbij8-7">U2</a>, <a href="#NWDbbij8-o">U3</a>, <a href="#NWDbbij8-p">U4</a>
 <li><a name="NWI-K-1" href="#NWDbbij8-1L">K-1</a>: <a href="#NWbbij8-39GQxl-H">U1</a>, <a href="#NWDbbij8-1L">D2</a>, <a href="#NWDbbij8-1M">U3</a>, <a href="#NWDbbij8-1S">U4</a>, <a href="#NWDbbij8-1T">U5</a>, <a href="#NWDbbij8-1U">U6</a>
 <li><a name="NWI-K-10" href="#NWDbbij8-1T">K-10</a>: <a href="#NWDbbij8-1T">D1</a>
@@ -4025,13 +4149,14 @@ generates a separate, cross-referenced textual <a href="#index">index</a>.
 <li><a name="NWI-M-2" href="#NWbbij8-46QPtb-1">M-2</a>: <a href="#NWbbij8-39GQxl-E">U1</a>, <a href="#NWbbij8-46QPtb-1">D2</a>
 <li><a name="NWI-M-3" href="#NWbbij8-CkUPL-1">M-3</a>: <a href="#NWbbij8-39GQxl-E">U1</a>, <a href="#NWbbij8-CkUPL-1">D2</a>
 <li><a name="NWI-N-1" href="#NWDbbij8-1D">N-1</a>: <a href="#NWDbbij8-1D">D1</a>
-<li><a name="NWI-N-10" href="#NWbbij8-2MEkW2-1">N-10</a>: <a href="#NWbbij8-2MEkW2-1">D1</a>
+<li><a name="NWI-N-10" href="#NWDbbij8-1b">N-10</a>: <a href="#NWDbbij8-1b">D1</a>, <a href="#NWDbbij8-1c">U2</a>
 <li><a name="NWI-N-2" href="#NWDbbij8-1E">N-2</a>: <a href="#NWDbbij8-1E">D1</a>
 <li><a name="NWI-N-3" href="#NWDbbij8-1G">N-3</a>: <a href="#NWDbbij8-1G">D1</a>, <a href="#NWDbbij8-1H">U2</a>
 <li><a name="NWI-N-4" href="#NWDbbij8-1H">N-4</a>: <a href="#NWDbbij8-1H">D1</a>, <a href="#NWDbbij8-1I">U2</a>
 <li><a name="NWI-N-5" href="#NWDbbij8-1I">N-5</a>: <a href="#NWDbbij8-1I">D1</a>, <a href="#NWDbbij8-1J">U2</a>
-<li><a name="NWI-O-1" href="#NWDbbij8-I">O-1</a>: <a href="#NWDbbij8-I">D1</a>, <a href="#NWDbbij8-1a">U2</a>
-<li><a name="NWI-O-2" href="#NWDbbij8-I">O-2</a>: <a href="#NWDbbij8-I">D1</a>, <a href="#NWDbbij8-1b">U2</a>
+<li><a name="NWI-N-6" href="#NWDbbij8-1a">N-6</a>: <a href="#NWDbbij8-1a">D1</a>, <a href="#NWDbbij8-1b">U2</a>
+<li><a name="NWI-O-1" href="#NWDbbij8-I">O-1</a>: <a href="#NWDbbij8-I">D1</a>, <a href="#NWDbbij8-1d">U2</a>
+<li><a name="NWI-O-2" href="#NWDbbij8-I">O-2</a>: <a href="#NWDbbij8-I">D1</a>, <a href="#NWDbbij8-1e">U2</a>
 <li><a name="NWI-O-8" href="#NWbbij8-1BWiEO-1">O-8</a>: <a href="#NWbbij8-1BWiEO-1">D1</a>, <a href="#NWDbbij8-k">U2</a>
 <li><a name="NWI-Q-1" href="#NWDbbij8-x">Q-1</a>: <a href="#NWDbbij8-x">D1</a>, <a href="#NWDbbij8-y">U2</a>
 <li><a name="NWI-Q-2" href="#NWDbbij8-y">Q-2</a>: <a href="#NWDbbij8-y">D1</a>, <a href="#NWDbbij8-z">U2</a>
@@ -4039,6 +4164,8 @@ generates a separate, cross-referenced textual <a href="#index">index</a>.
 <li><a name="NWI-Q-4" href="#NWDbbij8-10">Q-4</a>: <a href="#NWDbbij8-10">D1</a>
 <li><a name="NWI-Q-5" href="#NWDbbij8-10">Q-5</a>: <a href="#NWDbbij8-10">D1</a>, <a href="#NWDbbij8-11">U2</a>
 <li><a name="NWI-Q-6" href="#NWDbbij8-11">Q-6</a>: <a href="#NWbbij8-39GQxl-F">U1</a>, <a href="#NWDbbij8-11">D2</a>, <a href="#NWDbbij8-12">U3</a>
+<li><a name="NWI-Q-7" href="#NWDbbij8-1Y">Q-7</a>: <a href="#NWDbbij8-1Y">D1</a>
+<li><a name="NWI-Q-8" href="#NWDbbij8-1Y">Q-8</a>: <a href="#NWDbbij8-1Y">D1</a>
 <li><a name="NWI-R-1" href="#NWDbbij8-15">R-1</a>: <a href="#NWDbbij8-15">D1</a>, <a href="#NWDbbij8-16">U2</a>
 <li><a name="NWI-R-10" href="#NWDbbij8-u">R-10</a>: <a href="#NWbbij8-39GQxl-F">U1</a>, <a href="#NWDbbij8-u">D2</a>, <a href="#NWDbbij8-y">U3</a>, <a href="#NWDbbij8-16">U4</a>
 <li><a name="NWI-R-11" href="#NWDbbij8-u">R-11</a>: <a href="#NWDbbij8-u">D1</a>

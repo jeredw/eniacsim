@@ -13,7 +13,11 @@ s a2.op12 0
 s a2.cc12 0
 s a2.rp12 1
 p a2.12o C-5
-# Fetch 0: Select function table.
+# Fetch sequence
+# This sequence takes 7 cycles, so that is the minimum instruction latency.
+# Many instructions overlap execution with fetching the next instruction.
+
+# Cycle 0: Select function table.
 # Select the FT to read.
 # Decode E-8=0,1,2 into E-11, F-1, or F-2.
 p E-1 sft.i
@@ -35,7 +39,7 @@ s a20.op12 0
 s a20.cc12 0
 s a20.rp12 5
 p a20.12o E-10
-# Fetch 1: Initiate function table read.
+# Cycle 1: Initiate function table read.
 # Clear FT selector for next fetch.
 p E-9 sft.cdi
 
@@ -57,7 +61,7 @@ s f3.op1 A-2
 s f3.cl1 NC
 s f3.rp1 1
 p f3.NC J-4
-# Fetch 2: Send function table argument.
+# Cycle 2: Send function table argument.
 # Send value for FT argument.
 # Note this is also used by the 6(11,10,9) and 6(8,7) sequences.
 p J-4 a6.6i
@@ -65,7 +69,7 @@ s a6.op6 A
 s a6.cc6 0
 s a6.rp6 1
 p a6.6o F-3
-# Fetch 3: Step order selector ring.
+# Cycle 3: Step order selector ring.
 # Step the instruction ring counter.
 p F-3 os.Ri
 p os.Ro F-4  # overflow -> inc PC
@@ -73,7 +77,7 @@ p os.Ro F-4  # overflow -> inc PC
 # Dummy program to trigger Fetch 4.
 p F-3 i.Ci4
 p i.Co4 F-5
-# Fetch 4: Clear decoder steppers and increment PC.
+# Cycle 4: Clear decoder steppers and increment PC.
 # Clear steppers prior to decode
 p F-5 st.cdi
 p F-5 p.Acdi
@@ -94,7 +98,7 @@ s a6.cc1 C
 # Dummy to enable order selector output next cycle.
 p F-5 i.Ci1
 p G-8 i.Co1
-# Fetch 5: Decode instruction data.
+# Cycle 5: Decode instruction data.
 # Order selector passes FT data.
 p G-8 os.i
 
@@ -161,8 +165,11 @@ s p.d17s1 1
 s p.d18s1 1
 s p.d19s1 1
 s p.d20s1 1
-# Fetch 6: Wait for MP decoder.
+# Cycle 6: Wait for MP decoder.
 # Waiting for MP decoder to propagate stepper input to output.
+# Decode MP stepper outputs to program lines.
+
+# xl
 p p.A2o S-1   # 1l  (01)
 p p.A3o S-2   # 2l  (02)
 p p.A4o S-3   # 3l  (03)
@@ -180,6 +187,7 @@ p p.C3o H-2   # 16l (22)
 p p.C4o H-3   # 17l (23)
 p p.C5o H-4   # 18l (24)
 p p.C6o H-5   # 19l (25)
+# xt
 p p.D2o V-9   # 1t  (31)
 p p.D3o S-7   # 2t  (32)
 p p.D4o S-8   # 3t  (33)
@@ -197,6 +205,7 @@ p p.F3o C-9   # 16t (52)
 p p.F4o H-6   # 17t (53)
 p p.F5o H-7   # 18t (54)
 p p.G5o H-8   # 19t (64)
+# Arithmetic instructions
 p p.A1o C-1   # C   (00)  (also the general xl)
 p p.D1o E-5   # X   (30)  "15 cycles"
 p p.F6o E-3   # ÷   (55)  ~75 cycles
@@ -205,18 +214,21 @@ p p.G4o V-3   # M   (63)
 p p.G6o H-10  # DS  (65)
 p p.J6o C-10  # Sh' (85)  20 cycles
 p p.K1o C-11  # Sh  (90)  20 cycles
+# Alternate instruction set
 #p p.K2o C-8  # 20l (91a)
 #p p.H4o E-4  # 6l  (73a) 9 cycles
 #p p.H5o V-1  # 6t  (74a)
 # Table 2.I has "H-0" for order 92a. Assume this is a typo for H-9 which is the
-# only H-line missing, and makes sense from pulse amp grouping.
+# only H-line missing, and makes sense from pulse amplifier grouping.
 #p p.K3o H-9  # 20t  (92a)
 #p p.K4o V-8  # N3D8 (93a) 20 cycles
 #p p.K5o ???  # N3D6 (94a) 20 cycles
 #p p.K6o ???  # N6D6 (95a) 26 cycles
+# Control flow
 p p.H6o G-2   # C.T.(75)  14/8 cycles
 p p.H4o E-6   # 6R3 (73)  13 cycles
 p p.H5o E-7   # 6R6 (74)  13 cycles
+# I/O
 p p.G2o O-1   # Pr. (61)  60 cards / min
 p p.G3o O-2   # Rd. (62)  100 cards / min
 p p.H3o H-11  # F.T.(72)  13 cycles
@@ -228,10 +240,14 @@ p p.J2o D-8   # CD  (81)
 p p.J3o D-9   # EF  (82)
 p p.J4o D-10  # GH  (83)
 p p.J5o D-11  # JK  (84)
+
+# Miscellaneous
 #p p.H2o      # Halt       (71)  NB doesn't decode to anything, so stops
-p p.K2o C-3   # 18<->20    (91)  9 cycles
+p p.K2o C-3   # 18↔20      (91)  9 cycles
 p p.K3o V-2   # 6(11,10,9) (92)
 p p.K4o V-4   # 6(8,7)     (93)
+# Digit trunk connections
+
 #  1    most accumulators transmit on 1
 #  2    most accumulators receive on 2
 #  3    ft argument
@@ -246,6 +262,7 @@ p 9 1
 #  11=1 divider/square rooter shift (shared)
 p 11 1
 
+# Non-accumulator connections
 # Trunk 1 - accumulators, constants
 p 1 c.o     # Constants for AB/CD/EF/GH/JK
 
@@ -275,6 +292,7 @@ p 7 m.rhppI
 
 # Trunk 10 - divider/square rooter answer
 p 10 d.ans
+# Accumulator connections
 # Accumulator 1
 p 2 a1.α
 p 1 a1.β
@@ -326,6 +344,7 @@ p 11 a7.S  # Divider shift (1=11)
 # Accumulator 8 - F.T. argument
 p 2 a8.α
 p 3 a8.A
+# NB ε is used as a dummy for increment
 # Accumulator 9 - shift
 p ad.s.1.1 a9.α
 p 2 a9.β
@@ -402,6 +421,7 @@ p ad.permute.9 a20.γ  # For 6R6
 p ad.permute.10 a20.δ  # For 6R6
 p 1 a20.A
 p 2 a20.S  # Save to a13
+# Adapters
 # Function table output A, shifted to the left for F.T.
 p 4 ad.permute.1
 s ad.permute.1 11,6,5,4,3,2,1,0,0,0,0
@@ -500,6 +520,8 @@ p ad.dp.3.2 F-6
 # G-3 selects the sign of a15 from trunk 2 for C.T.
 p 2 ad.dp.4.11
 p ad.dp.4.11 G-3
+# Pulse amplifier connections
+
 # Listen orders (xl) -> C-1
 # Note that C-1 is also the encoding for 00 (C) which clears a15.
 # 6l is not included because it cannot overlap with fetch.
@@ -606,7 +628,8 @@ p pa.4.sb.10 B-3
 p pa.5.sa.1 D-5  # a1tmp
 p pa.5.sb.1 B-4
 # J-3 clears accumulator 11, then receives it on trunk 1.
-# It is used by constant transfers, but unclear what else.
+# It is used by constant transfers, and was probably reused by F.T.
+# originally but is not in this implementation.
 p pa.4.sa.11 D-4 # const
 p pa.4.sb.11 J-3
 # C-5 triggers fetching _and decoding_ another instruction.
@@ -702,6 +725,12 @@ p pa.7.sa.11 G-2  # C.T.
 p pa.7.sb.11 J-1  # a15 send and clear
 p pa.8.sa.1 G-5   # C.T. taken is basically 6R6
 p pa.8.sa.1 E-7   # 6R6
+# 18↔20: Save temporary
+p pa.8.sa.2 C-3  # 18↔20
+p pa.8.sb.2 B-3  # a15 receive
+# F.T.: Trigger F.T. read
+p pa.8.sa.3 H-11  # F.T.
+p pa.8.sb.3 E-1   # ft read
 # Control sequences for each instruction, from decode until reasserting C-5
 # xl (and C)
 
@@ -1081,9 +1110,10 @@ s a12.rp6 1
 # Apply correction from ier in lhpp
 p m.RS M-1
 p M-1 a11.4i
-
+s a11.op4 S
 p M-1 a13.4i
 s a13.op4 β
+
 # Apply correction from icand in rhpp
 p m.DS M-2
 p M-2 a12.3i
@@ -1434,9 +1464,9 @@ p a3.9o C-5
 # Cycle 14: Restore a18 from a13 (trunk 2)
 # B-10 triggers a13:SC1
 # Receive a18
-p N-5 a8.3i
-s a8.op3 α
-s a8.cc3 0
+p N-5 a18.4i
+s a18.op4 α
+s a18.cc4 0
 # Control flow (6R3, 6R6 and C.T.)
 
 # These instructions mostly share the same sequence.
@@ -1600,11 +1630,62 @@ p K-11 a15.4i
 s a15.op4 ε
 s a15.cc4 0
 # Cycle P10-14: (Common with K-1)
-# F.T. order uses E-8=3,4,5 for G-9, G-10, G-11.
+# 18↔20
+
+# Cycle 7: Save a20 in a15.
+# Transmit a20
+p C-3 a20.6i
+s a20.op6 A
+s a20.cc6 C
+s a20.rp6 1
+p a20.6o Q-7
+# C-3 -> J-1 triggers a15:β01
+
+# Cycle 8: a18 to a20
+# Transmit a18
+p Q-7 a18.10i
+s a18.op10 A
+s a18.cc10 C
+s a18.rp10 1
+p a18.10o J-1  # Trigger a15:AC1 in cycle 9
+# Receive a20
+p Q-7 a20.7i
+s a20.op7 β
+s a20.cc7 0
+s a20.rp7 1
+p a20.7o Q-8
+
+# Dummy to trigger C-5 in cycle 9
+p Q-7 a4.11i
+s a4.op4 0
+s a4.cc4 0
+s a4.rp4 1
+p a4.11o C-5
+
+# Cycle 9: Saved a20 to a18
+# J-1 triggers a15:AC1
+# Receive a18 on trunk 2
+p Q-8 a18.3i
+s a18.op3 α
+s a18.cc3 0
+# F.T.
+
+# Cycle 7: Decode address from a8
+# Transmit (and hold) a8 as ft address
+p H-11 a8.6i  # F.T.
+s a8.op6 A
+s a8.cc6 0
+s a8.rp6 1
+p a8.6o N-6
+
+# Decode digit 3 of address using ft selector
+# use G-9, G-10, and G-11 for E-8=3,4,5
 p sft.4o G-9
 p sft.5o G-10
 p sft.6o G-11
-# Read function table for F.T., using C to trigger sending the argument.
+# H-11 -> E-1 triggers ft read via pulse amplifier
+# Cycle 8: Initiate ft read, increment address, clear a11
+# Read function table, using C to trigger sending the argument.
 # Note this uses A+2 addressing.
 p G-9 f1.2i
 s f1.op2 A+2
@@ -1631,9 +1712,33 @@ s f2.mpm1 T
 s f2.mpm2 T
 s f3.mpm1 T
 s f3.mpm2 T
+
+# Post-increment address
+p N-6 a8.3i
+s a8.op3 ε
+s a8.cc3 C
+# Clear a11.
+# NOTE: Could use J-3 instead.
+p N-6 a11.11i
+s a11.op11 0
+s a11.cc11 C
+s a11.rp11 1
+# Cycle 12: Store ft data in a11 and a15
+# The function table sends data on trunk 3 and 4 this cycle
+# Receive left digits at a11
+p N-10 a11.12i
+s a11.op12 β
+s a11.cc12 0
+s a11.rp12 1
+p a11.12o C-5  # Fetch and decode next instruction
+# Receive right digits at a15
+p N-10 a15.7i
+s a15.op7 γ
+s a15.cc7 0
+s a15.rp7 1
 # Printer
 # TODO Add some way to specify printer wiring to the simulator.  This
-# instruction set expects to print a1, a2, and a15-20.
+# ISA expects to print a1, a2, and a15-20.
 p O-1 i.Pi  # Pr.
 p i.Po C-5  # fetch+decode
 s pr.1 P    # a1
