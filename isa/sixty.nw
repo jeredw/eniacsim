@@ -35,6 +35,9 @@ table.dense td, table.dense th {
 .given2 {
   background: #ffd7f1;
 }
+.dummy {
+  background: #efefef;
+}
 </style>
 </head>
 <body>
@@ -119,8 +122,8 @@ opcodes</a> later on.
 <p><b>Accumulator <a name="#acc-inputs">inputs</a>.</b> Many
 instructions require shifting digits, and that must be done at accumulator
 inputs.  There are 20&times;5 inputs, so you wouldn't expect this to be a
-bottleneck, but the instruction set places a lot of pressure on A<sub>15</sub>
-and A<sub>13</sub>.  Two of A<sub>13</sub> and A<sub>15</sub>'s ten inputs are
+bottleneck, but the instruction set places a lot of pressure on A<sub>13</sub>
+and A<sub>15</sub>.  Two of A<sub>13</sub> and A<sub>15</sub>'s ten inputs are
 tied up for the multiplier, and most of the rest have implied connections to
 support instructions that don't reserve A<sub>13</sub>.
 
@@ -131,6 +134,9 @@ and restore A<sub>n</sub>.  For example, the LCS48 paragraph about
 required PC shift this way.  This is corroborated in DEC51,
 <blockquote>If 13 is not clear, its number will be subtracted from 10
 (10-13&rarr;10) on the positive branch.</blockquote>
+
+<p>The reconstructed input wiring is summarized in this
+<a href="#inputs">chart</a>.
 
 <p><b>Reusing programs.</b> A<sub>15</sub> and A<sub>13</sub> are used for most
 instructions, so their programs must be <a href="#common">reused</a> for
@@ -698,9 +704,9 @@ implying instructions are also on trunk 2.
  
 <h4>Reconstructed wiring</h4>
 
-<p>Here is a chart of accumulator digit terminals used in this reconstruction,
-and their connections.  The base number gives the digit trunk, and any
-superscript or annotation indicates a connected adapter.
+<p>Here is a <a name=inputs>chart</a> of accumulator digit terminals used in
+this reconstruction, and their connections. The base number gives the digit
+trunk, and any superscript or annotation indicates a connected adapter.
 
 <table style="text-align:center">
 <tr>
@@ -1722,6 +1728,7 @@ s a15.op3 δ
 # 1t
 p V-9 a1.2i
 s a1.op2 A
+# 2t
 p S-7 a2.2i
 s a2.op2 A
 # 3t
@@ -3210,11 +3217,11 @@ A<sub>15</sub> must be 0 on entry, so assume it's used for the exchange.
 
 # Cycle 7: Save a20 in a15.
 # Transmit a20
-p C-3 a20.6i
-s a20.op6 A
-s a20.cc6 C
-s a20.rp6 1
-p a20.6o Q-7
+p C-3 a20.5i
+s a20.op5 A
+s a20.cc5 C
+s a20.rp5 1
+p a20.5o Q-7
 # C-3 -> J-1 triggers a15:β01
 
 # Cycle 8: a18 to a20
@@ -3225,11 +3232,11 @@ s a18.cc10 C
 s a18.rp10 1
 p a18.10o J-1  # Trigger a15:AC1 in cycle 9
 # Receive a20
-p Q-7 a20.7i
-s a20.op7 β
-s a20.cc7 0
-s a20.rp7 1
-p a20.7o Q-8
+p Q-7 a20.6i
+s a20.op6 β
+s a20.cc6 0
+s a20.rp6 1
+p a20.6o Q-8
 
 # Dummy to trigger C-5 in cycle 9
 p Q-7 a4.11i
@@ -3778,7 +3785,7 @@ generates a separate, cross-referenced textual <a href="#index">index</a>.
 <td class=given>[[L-7]]<br>8l
 <td class=given>[[L-8]]<br>9l
 <td class=given>[[L-9]]<br>10l
-<td class=given>[[L-10]]<br>11l
+<td class=given>[[L-10]]<br>11ℓ
 <td class=given>[[L-11]]<br>12l
 <tr style="vertical-align: top"><td style="font-weight: bold">M-
 <td>[[M-1]]<br>X+rs
@@ -3853,7 +3860,7 @@ generates a separate, cross-referenced textual <a href="#index">index</a>.
 <td>[[R-10]]<br>divsq+9
 <td>[[R-11]]<br>divsq+10
 <tr style="vertical-align: top"><td style="font-weight: bold">S-
-<td class=given>[[S-1]]<br>1l
+<td class=given>[[S-1]]<br>1ℓ
 <td class=given>[[S-2]]<br>2l
 <td class=given>[[S-3]]<br>3l
 <td class=given>[[S-4]]<br>4l
@@ -3888,6 +3895,311 @@ generates a separate, cross-referenced textual <a href="#index">index</a>.
 <td class=given>[[V-9]]<br>1t
 <td class=given2>[[V-10]]<br><s>div+8</s>
 <td>[[V-11]]<br>
+</table>
+
+<h2><a name=accprog>Accumulator program allocation</a></h2>
+
+<p>This chart shows accumulator program allocation by sequence. Cells correspond
+to programs, with numbers given by their column, on the accumulator given by
+their row. The top line of a cell shows what program line (if any) triggers that
+program, and the bottom line says what sequence it is associated with. Dummies
+are colored gray.
+
+<table class="dense" style="text-align: center; padding: 2px;">
+<tr>
+<th>
+<th>1i
+<th>2i
+<th>3i
+<th>4i
+<th>5i
+<th>6i
+<th>7i
+<th>8i
+<th>9i
+<th>10i
+<th>11i
+<th>12i
+<tr>
+<td>[[a1]]<br>
+<td title="1i">[[O-8]]<br>1ℓ
+<td title="2i">[[V-9]]<br>1t
+<td title="3i">[[T-8]]<br>a1tmp
+<td title="4i">[[T-5]]<br>M
+<td title="5i">[[S-1]]<br>1ℓ
+<td title="6i">[[D-5]]<br>a1tmp
+<td title="7i">[[T-2]]<br><span style="font-size:80%">6(11,10,9)</span>
+<td title="8i">[[T-3]]<br><span style="font-size:80%">6(11,10,9)</span>
+<td title="9i">[[T-10]]<br>6(8,7)
+<td title="10i">[[T-11]]<br>6(8,7)
+<td title="11i">[[T-4]]<br>M
+<td title="12i" class=dummy>[[Q-1]]<br>div
+<tr>
+<td>[[a2]]<br>
+<td title="1i">-<br>2l
+<td title="2i">[[S-7]]<br>2t
+<td title="3i">
+<td title="4i">
+<td title="5i">[[S-2]]<br>2l
+<td title="6i" class=dummy>[[V-2]]<br><span style="font-size:80%">6(11,10,9)</span>
+<td title="7i" class=dummy>[[K-9]]<br>6R6
+<td title="8i" class=dummy>[[K-7]]<br>6R3
+<td title="9i" class=dummy>[[R-8]]<br>DS
+<td title="10i" class=dummy>[[H-10]]<br>DS
+<td title="11i" class=dummy>[[R-1]]<br>sqrt
+<td title="12i" class=dummy>[[A-1]]<br>reset
+<tr>
+<td>[[a3]]<br>
+<td title="1i">-<br>3l
+<td title="2i">[[S-8]]<br>3t
+<td title="3i">
+<td title="4i">
+<td title="5i">[[S-3]]<br>3l
+<td title="6i" class=dummy>[[V-4]]<br>6(8,7)
+<td title="7i" class=dummy>[[G-5]]<br>C.T.
+<td title="8i" class=dummy>[[K-5]]<br>cflow
+<td title="9i" class=dummy>[[N-4]]<br>N2D
+<td class=dummy>[[D-1]]<br>N2D
+<td class=dummy>[[D-2]]<br>N4D
+<td class=dummy>[[V-7]]<br>N6D
+<tr>
+<td>[[a4]]<br>Quot.
+<td title="1i">-<br>4l
+<td title="2i">[[S-9]]<br>4t
+<td title="3i">
+<td title="4i">
+<td title="5i">[[S-4]]<br>4l
+<td title="6i">[[Q-1]]<br>div
+<td title="7i">[[Q-5]]<br>div
+<td title="8i">[[Q-6]]<br>div
+<td title="9i">
+<td title="10i">
+<td title="11i" class=dummy>[[Q-7]]<br>18↔20
+<td title="12i" class=dummy>[[K-1]]<br>cflow
+<tr>
+<td>[[a5]]<br>Num
+<td title="1i">-<br>5l
+<td title="2i">[[S-10]]<br>5t
+<td title="3i">
+<td title="4i">
+<td title="5i">[[S-5]]<br>5l
+<td title="6i">[[R-10]]<br>divsq
+<td title="7i">[[E-3]]<br>div
+<td title="8i">[[B-1]]<br>sqrt
+<td title="9i">
+<td title="10i">
+<td title="11i">
+<td title="12i">
+<tr>
+<td>[[a6]]<br>PC
+<td title="1i">[[F-4]]<br>fetch
+<td title="2i">[[K-3]]<br>cflow
+<td title="3i">[[K-8]]<br>6R3
+<td title="4i">[[K-10]]<br>6R6
+<td title="5i">[[J-2]]<br>fetch
+<td title="6i">[[J-4]]<br>fetch
+<td title="7i">[[T-1]]<br><span style="font-size:80%">6(11,10,9)</span>
+<td title="8i">[[T-9]]<br>6(8,7)
+<td title="9i">[[K-2]]<br>cflow
+<td title="10i">
+<td title="11i">
+<td title="12i">
+<tr>
+<td>[[a7]]<br>Denom.
+<td title="1i">-<br>7l
+<td title="2i">[[S-11]]<br>7t
+<td title="3i">
+<td title="4i">
+<td title="5i">[[S-6]]<br>7l
+<td title="6i">[[R-1]]<br>sqrt
+<td title="7i">[[R-5]]<br>sqrt
+<td title="8i">[[R-6]]<br>sqrt
+<td title="9i">
+<td title="10i">
+<td title="11i">
+<td title="12i">
+<tr>
+<td>[[a8]]<br>Arg.
+<td title="1i">-<br>8l
+<td title="2i">[[C-2]]<br>8t
+<td title="3i">[[N-6]]<br>F.T.
+<td title="4i">
+<td title="5i">[[L-7]]<br>8l
+<td title="6i">[[H-11]]<br>F.T.
+<td title="7i">
+<td title="8i">
+<td title="9i">
+<td title="10i">
+<td title="11i">
+<td title="12i">
+<tr>
+<td>[[a9]]<br>Shift
+<td title="1i">-<br>9l
+<td title="2i">[[L-1]]<br>9t
+<td title="3i">[[R-2]]<br>divsq
+<td title="4i">
+<td title="5i">[[L-8]]<br>9l
+<td title="6i">[[Q-3]]<br>div
+<td title="7i">[[Q-4]]<br>div
+<td title="8i">[[R-3]]<br>sqrt
+<td title="9i">[[R-4]]<br>sqrt
+<td title="10i">
+<td title="11i">
+<td title="12i">
+<tr>
+<td>[[a10]]<br>
+<td title="1i">-<br>10l
+<td title="2i">[[L-2]]<br>10t
+<td title="3i">[[K-7]]<br>6R3
+<td title="4i">[[K-9]]<br>6R6
+<td title="5i">[[L-9]]<br>10l
+<td title="6i">[[K-1]]<br>cflow
+<td title="7i">[[K-3]]<br>cflow
+<td title="8i">[[K-4]]<br>cflow
+<td title="9i">[[K-5]]<br>cflow
+<td title="10i">[[K-6]]<br>cflow
+<td title="11i">
+<td title="12i">
+<tr>
+<td>[[a11]]<br>Ier
+<td title="1i">-<br>11ℓ
+<td title="2i">[[L-3]]<br>11t
+<td title="3i">[[T-6]]<br>const
+<td title="4i">[[M-1]]<br>X
+<td title="5i">[[L-10]]<br>11ℓ
+<td title="6i">[[J-3]]<br>const
+<td title="7i">[[H-10]]<br>DS
+<td title="8i">[[R-7]]<br>DS
+<td title="9i">[[R-8]]<br>DS
+<td title="10i">[[R-9]]<br>DS
+<td title="11i">[[N-6]]<br>F.T.
+<td title="12i">[[N-10]]<br>F.T.
+<tr>
+<td>[[a12]]<br>Icand
+<td title="1i">-<br>12l
+<td title="2i">[[L-4]]<br>12t
+<td title="3i">[[M-2]]<br>X
+<td title="4i">
+<td title="5i">[[L-11]]<br>12l
+<td title="6i">[[E-5]]<br>X
+<td title="7i">
+<td title="8i">
+<td title="9i">
+<td title="10i">
+<td title="11i">
+<td title="12i">
+<tr>
+<td>[[a13]]<br>LHPP
+<td title="1i">-<br>13l
+<td title="2i">[[L-5]]<br>13t
+<td title="3i">[[B-4]]<br>*
+<td title="4i">[[M-1]]<br>X
+<td title="5i">[[C-7]]<br>13l
+<td title="6i">[[B-11]]<br>*
+<td title="7i">[[C-6]]<br>NxD
+<td title="8i">[[B-10]]<br>*
+<td title="9i">[[K-1]]<br>cflow
+<td title="10i">
+<td title="11i">
+<td title="12i">
+<tr>
+<td>[[a14]]<br>
+<td title="1i">-<br>14l
+<td title="2i">[[L-6]]<br>14t
+<td title="3i">
+<td title="4i">
+<td title="5i">[[H-1]]<br>14l
+<td title="6i">
+<td title="7i">
+<td title="8i">
+<td title="9i">
+<td title="10i">
+<td title="11i">
+<td title="12i">
+<tr>
+<td>[[a15]]<br>RHPP
+<td title="1i">[[J-1]]<br>*
+<td title="2i">[[B-3]]<br>*
+<td title="3i">[[C-2]]<br>8t
+<td title="4i">[[K-11]]<br>C.T.
+<td title="5i">[[T-7]]<br>a1tmp
+<td title="6i">[[R-5]]<br>sqrt
+<td title="7i">[[N-10]]<br>F.T.
+<td title="8i">
+<td title="9i">
+<td title="10i">
+<td title="11i">
+<td title="12i">
+<tr>
+<td>[[a16]]<br>
+<td title="1i">-<br>16l
+<td title="2i">[[C-9]]<br>16t
+<td title="3i">
+<td title="4i">
+<td title="5i">[[H-2]]<br>16l
+<td title="6i" class=dummy>[[V-3]]<br>M
+<td title="7i">
+<td title="8i">
+<td title="9i">
+<td title="10i">
+<td title="11i">
+<td title="12i">
+<tr>
+<td>[[a17]]<br>
+<td title="1i">-<br>17l
+<td title="2i">17t
+<td title="3i">
+<td title="4i">
+<td title="5i">[[H-3]]<br>17t
+<td title="6i">
+<td title="7i">
+<td title="8i">
+<td title="9i">
+<td title="10i">
+<td title="11i">
+<td title="12i">
+<tr>
+<td>[[a18]]<br>
+<td title="1i">-<br>18l
+<td title="2i">[[H-7]]<br>18t
+<td title="3i">[[Q-8]]<br>18↔20
+<td title="4i">[[N-5]]<br>N2D
+<td title="5i">[[H-4]]<br>18l
+<td title="6i">[[N-1]]<br>N6D
+<td title="7i">[[N-2]]<br>N4D
+<td title="8i">[[N-3]]<br>N2D
+<td title="9i">[[N-4]]<br>N2D
+<td title="10i">[[Q-7]]<br>18↔20
+<td title="11i">
+<td title="12i">
+<tr>
+<td>[[a19]]<br>
+<td title="1i">-<br>19l
+<td title="2i">[[H-8]]<br>19t
+<td title="3i">
+<td title="4i">
+<td title="5i">[[H-5]]<br>19l
+<td title="6i">
+<td title="7i">
+<td title="8i">
+<td title="9i">
+<td title="10i">
+<td title="11i">
+<td title="12i" class=dummy>a1tmp
+<tr>
+<td>[[a20]]<br>
+<td title="1i">
+<td title="2i">
+<td title="3i">
+<td title="4i">
+<td title="5i">[[C-3]]<br>18↔20
+<td title="6i">[[Q-7]]<br>18↔20
+<td title="7i">
+<td title="8i">
+<td title="9i">
+<td title="10i">
+<td title="11i">
+<td title="12i" class=dummy>fetch
 </table>
 
 <h2><a name=index>Index</a></h2>

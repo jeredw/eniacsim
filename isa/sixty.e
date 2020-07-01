@@ -885,6 +885,7 @@ s a15.op3 δ
 # 1t
 p V-9 a1.2i
 s a1.op2 A
+# 2t
 p S-7 a2.2i
 s a2.op2 A
 # 3t
@@ -1634,11 +1635,11 @@ s a15.cc4 0
 
 # Cycle 7: Save a20 in a15.
 # Transmit a20
-p C-3 a20.6i
-s a20.op6 A
-s a20.cc6 C
-s a20.rp6 1
-p a20.6o Q-7
+p C-3 a20.5i
+s a20.op5 A
+s a20.cc5 C
+s a20.rp5 1
+p a20.5o Q-7
 # C-3 -> J-1 triggers a15:β01
 
 # Cycle 8: a18 to a20
@@ -1649,11 +1650,11 @@ s a18.cc10 C
 s a18.rp10 1
 p a18.10o J-1  # Trigger a15:AC1 in cycle 9
 # Receive a20
-p Q-7 a20.7i
-s a20.op7 β
-s a20.cc7 0
-s a20.rp7 1
-p a20.7o Q-8
+p Q-7 a20.6i
+s a20.op6 β
+s a20.cc6 0
+s a20.rp6 1
+p a20.6o Q-8
 
 # Dummy to trigger C-5 in cycle 9
 p Q-7 a4.11i

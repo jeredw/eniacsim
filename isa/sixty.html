@@ -36,6 +36,9 @@ table.dense td, table.dense th {
 .given2 {
   background: #ffd7f1;
 }
+.dummy {
+  background: #efefef;
+}
 </style>
 </head>
 <body>
@@ -120,8 +123,8 @@ opcodes</a> later on.
 <p><b>Accumulator <a name="#acc-inputs">inputs</a>.</b> Many
 instructions require shifting digits, and that must be done at accumulator
 inputs.  There are 20&times;5 inputs, so you wouldn't expect this to be a
-bottleneck, but the instruction set places a lot of pressure on A<sub>15</sub>
-and A<sub>13</sub>.  Two of A<sub>13</sub> and A<sub>15</sub>'s ten inputs are
+bottleneck, but the instruction set places a lot of pressure on A<sub>13</sub>
+and A<sub>15</sub>.  Two of A<sub>13</sub> and A<sub>15</sub>'s ten inputs are
 tied up for the multiplier, and most of the rest have implied connections to
 support instructions that don't reserve A<sub>13</sub>.
 
@@ -132,6 +135,9 @@ and restore A<sub>n</sub>.  For example, the LCS48 paragraph about
 required PC shift this way.  This is corroborated in DEC51,
 <blockquote>If 13 is not clear, its number will be subtracted from 10
 (10-13&rarr;10) on the positive branch.</blockquote>
+
+<p>The reconstructed input wiring is summarized in this
+<a href="#inputs">chart</a>.
 
 <p><b>Reusing programs.</b> A<sub>15</sub> and A<sub>13</sub> are used for most
 instructions, so their programs must be <a href="#common">reused</a> for
@@ -699,9 +705,9 @@ implying instructions are also on trunk 2.
  
 <h4>Reconstructed wiring</h4>
 
-<p>Here is a chart of accumulator digit terminals used in this reconstruction,
-and their connections.  The base number gives the digit trunk, and any
-superscript or annotation indicates a connected adapter.
+<p>Here is a <a name=inputs>chart</a> of accumulator digit terminals used in
+this reconstruction, and their connections. The base number gives the digit
+trunk, and any superscript or annotation indicates a connected adapter.
 
 <table style="text-align:center">
 <tr>
@@ -1723,6 +1729,7 @@ s <a href="#NWbbij8-1Q1Gl0-F">a15</a>.op3 δ
 # 1t
 p <a href="#NWDbbij8-F">V-9</a> <a href="#NWDbbij8-M">a1</a>.2i
 s <a href="#NWDbbij8-M">a1</a>.op2 A
+# 2t
 p <a href="#NWDbbij8-F">S-7</a> <a href="#NWbbij8-1Q1Gl0-2">a2</a>.2i
 s <a href="#NWbbij8-1Q1Gl0-2">a2</a>.op2 A
 # 3t
@@ -3211,11 +3218,11 @@ A<sub>15</sub> must be 0 on entry, so assume it's used for the exchange.
 
 # Cycle 7: Save <a href="#NWbbij8-1Q1Gl0-K">a20</a> in <a href="#NWbbij8-1Q1Gl0-F">a15</a>.
 # Transmit <a href="#NWbbij8-1Q1Gl0-K">a20</a>
-p <a href="#NWDbbij8-D">C-3</a> <a href="#NWbbij8-1Q1Gl0-K">a20</a>.6i
-s <a href="#NWbbij8-1Q1Gl0-K">a20</a>.op6 A
-s <a href="#NWbbij8-1Q1Gl0-K">a20</a>.cc6 C
-s <a href="#NWbbij8-1Q1Gl0-K">a20</a>.rp6 1
-p <a href="#NWbbij8-1Q1Gl0-K">a20</a>.6o <a href="#NWDbbij8-1Y">Q-7</a>
+p <a href="#NWDbbij8-D">C-3</a> <a href="#NWbbij8-1Q1Gl0-K">a20</a>.5i
+s <a href="#NWbbij8-1Q1Gl0-K">a20</a>.op5 A
+s <a href="#NWbbij8-1Q1Gl0-K">a20</a>.cc5 C
+s <a href="#NWbbij8-1Q1Gl0-K">a20</a>.rp5 1
+p <a href="#NWbbij8-1Q1Gl0-K">a20</a>.5o <a href="#NWDbbij8-1Y">Q-7</a>
 # <a href="#NWDbbij8-D">C-3</a> -&gt; <a href="#NWDbbij8-i">J-1</a> triggers <a href="#NWbbij8-1Q1Gl0-F">a15</a>:β01
 
 # Cycle 8: <a href="#NWbbij8-1Q1Gl0-I">a18</a> to <a href="#NWbbij8-1Q1Gl0-K">a20</a>
@@ -3226,11 +3233,11 @@ s <a href="#NWbbij8-1Q1Gl0-I">a18</a>.cc10 C
 s <a href="#NWbbij8-1Q1Gl0-I">a18</a>.rp10 1
 p <a href="#NWbbij8-1Q1Gl0-I">a18</a>.10o <a href="#NWDbbij8-i">J-1</a>  # Trigger <a href="#NWbbij8-1Q1Gl0-F">a15</a>:AC1 in cycle 9
 # Receive <a href="#NWbbij8-1Q1Gl0-K">a20</a>
-p <a href="#NWDbbij8-1Y">Q-7</a> <a href="#NWbbij8-1Q1Gl0-K">a20</a>.7i
-s <a href="#NWbbij8-1Q1Gl0-K">a20</a>.op7 β
-s <a href="#NWbbij8-1Q1Gl0-K">a20</a>.cc7 0
-s <a href="#NWbbij8-1Q1Gl0-K">a20</a>.rp7 1
-p <a href="#NWbbij8-1Q1Gl0-K">a20</a>.7o <a href="#NWDbbij8-1Y">Q-8</a>
+p <a href="#NWDbbij8-1Y">Q-7</a> <a href="#NWbbij8-1Q1Gl0-K">a20</a>.6i
+s <a href="#NWbbij8-1Q1Gl0-K">a20</a>.op6 β
+s <a href="#NWbbij8-1Q1Gl0-K">a20</a>.cc6 0
+s <a href="#NWbbij8-1Q1Gl0-K">a20</a>.rp6 1
+p <a href="#NWbbij8-1Q1Gl0-K">a20</a>.6o <a href="#NWDbbij8-1Y">Q-8</a>
 
 # Dummy to trigger <a href="#NWDbbij8-c">C-5</a> in cycle 9
 p <a href="#NWDbbij8-1Y">Q-7</a> <a href="#NWbbij8-1Q1Gl0-4">a4</a>.11i
@@ -3779,7 +3786,7 @@ generates a separate, cross-referenced textual <a href="#index">index</a>.
 <td class=given><code><a href="#NWDbbij8-E">L-7</a></code><br>8l
 <td class=given><code><a href="#NWDbbij8-E">L-8</a></code><br>9l
 <td class=given><code><a href="#NWDbbij8-E">L-9</a></code><br>10l
-<td class=given><code><a href="#NWDbbij8-E">L-10</a></code><br>11l
+<td class=given><code><a href="#NWDbbij8-E">L-10</a></code><br>11ℓ
 <td class=given><code><a href="#NWDbbij8-E">L-11</a></code><br>12l
 <tr style="vertical-align: top"><td style="font-weight: bold">M-
 <td><code><a href="#NWbbij8-46QPtb-1">M-1</a></code><br>X+rs
@@ -3854,7 +3861,7 @@ generates a separate, cross-referenced textual <a href="#index">index</a>.
 <td><code><a href="#NWDbbij8-u">R-10</a></code><br>divsq+9
 <td><code><a href="#NWDbbij8-u">R-11</a></code><br>divsq+10
 <tr style="vertical-align: top"><td style="font-weight: bold">S-
-<td class=given><code><a href="#NWDbbij8-E">S-1</a></code><br>1l
+<td class=given><code><a href="#NWDbbij8-E">S-1</a></code><br>1ℓ
 <td class=given><code><a href="#NWDbbij8-E">S-2</a></code><br>2l
 <td class=given><code><a href="#NWDbbij8-E">S-3</a></code><br>3l
 <td class=given><code><a href="#NWDbbij8-E">S-4</a></code><br>4l
@@ -3889,6 +3896,311 @@ generates a separate, cross-referenced textual <a href="#index">index</a>.
 <td class=given><code><a href="#NWDbbij8-F">V-9</a></code><br>1t
 <td class=given2><code>V-10</code><br><s>div+8</s>
 <td><code>V-11</code><br>
+</table>
+
+<h2><a name=accprog>Accumulator program allocation</a></h2>
+
+<p>This chart shows accumulator program allocation by sequence. Cells correspond
+to programs, with numbers given by their column, on the accumulator given by
+their row. The top line of a cell shows what program line (if any) triggers that
+program, and the bottom line says what sequence it is associated with. Dummies
+are colored gray.
+
+<table class="dense" style="text-align: center; padding: 2px;">
+<tr>
+<th>
+<th>1i
+<th>2i
+<th>3i
+<th>4i
+<th>5i
+<th>6i
+<th>7i
+<th>8i
+<th>9i
+<th>10i
+<th>11i
+<th>12i
+<tr>
+<td><code><a href="#NWDbbij8-M">a1</a></code><br>
+<td title="1i"><code><a href="#NWbbij8-1BWiEO-1">O-8</a></code><br>1ℓ
+<td title="2i"><code><a href="#NWDbbij8-F">V-9</a></code><br>1t
+<td title="3i"><code><a href="#NWbbij8-4JTaG1-1">T-8</a></code><br>a1tmp
+<td title="4i"><code><a href="#NWDbbij8-q">T-5</a></code><br>M
+<td title="5i"><code><a href="#NWDbbij8-E">S-1</a></code><br>1ℓ
+<td title="6i"><code><a href="#NWbbij8-39GQxl-4">D-5</a></code><br>a1tmp
+<td title="7i"><code><a href="#NWDbbij8-o">T-2</a></code><br><span style="font-size:80%">6(11,10,9)</span>
+<td title="8i"><code><a href="#NWDbbij8-o">T-3</a></code><br><span style="font-size:80%">6(11,10,9)</span>
+<td title="9i"><code><a href="#NWDbbij8-p">T-10</a></code><br>6(8,7)
+<td title="10i"><code><a href="#NWDbbij8-p">T-11</a></code><br>6(8,7)
+<td title="11i"><code><a href="#NWDbbij8-q">T-4</a></code><br>M
+<td title="12i" class=dummy><code><a href="#NWDbbij8-x">Q-1</a></code><br>div
+<tr>
+<td><code><a href="#NWbbij8-1Q1Gl0-2">a2</a></code><br>
+<td title="1i">-<br>2l
+<td title="2i"><code><a href="#NWDbbij8-F">S-7</a></code><br>2t
+<td title="3i">
+<td title="4i">
+<td title="5i"><code><a href="#NWDbbij8-E">S-2</a></code><br>2l
+<td title="6i" class=dummy><code><a href="#NWDbbij8-D">V-2</a></code><br><span style="font-size:80%">6(11,10,9)</span>
+<td title="7i" class=dummy><code><a href="#NWDbbij8-1T">K-9</a></code><br>6R6
+<td title="8i" class=dummy><code><a href="#NWDbbij8-1S">K-7</a></code><br>6R3
+<td title="9i" class=dummy><code><a href="#NWbbij8-tJbYq-1">R-8</a></code><br>DS
+<td title="10i" class=dummy><code><a href="#NWDbbij8-G">H-10</a></code><br>DS
+<td title="11i" class=dummy><code><a href="#NWDbbij8-15">R-1</a></code><br>sqrt
+<td title="12i" class=dummy><code><a href="#NWDbbij8-3">A-1</a></code><br>reset
+<tr>
+<td><code><a href="#NWbbij8-1Q1Gl0-3">a3</a></code><br>
+<td title="1i">-<br>3l
+<td title="2i"><code><a href="#NWDbbij8-F">S-8</a></code><br>3t
+<td title="3i">
+<td title="4i">
+<td title="5i"><code><a href="#NWDbbij8-E">S-3</a></code><br>3l
+<td title="6i" class=dummy><code><a href="#NWDbbij8-D">V-4</a></code><br>6(8,7)
+<td title="7i" class=dummy><code><a href="#NWDbbij8-1V">G-5</a></code><br>C.T.
+<td title="8i" class=dummy><code><a href="#NWDbbij8-1P">K-5</a></code><br>cflow
+<td title="9i" class=dummy><code><a href="#NWDbbij8-1H">N-4</a></code><br>N2D
+<td class=dummy><code><a href="#NWDbbij8-f">D-1</a></code><br>N2D
+<td class=dummy><code><a href="#NWDbbij8-f">D-2</a></code><br>N4D
+<td class=dummy><code><a href="#NWDbbij8-I">V-7</a></code><br>N6D
+<tr>
+<td><code><a href="#NWbbij8-1Q1Gl0-4">a4</a></code><br>Quot.
+<td title="1i">-<br>4l
+<td title="2i"><code><a href="#NWDbbij8-F">S-9</a></code><br>4t
+<td title="3i">
+<td title="4i">
+<td title="5i"><code><a href="#NWDbbij8-E">S-4</a></code><br>4l
+<td title="6i"><code><a href="#NWDbbij8-x">Q-1</a></code><br>div
+<td title="7i"><code><a href="#NWDbbij8-10">Q-5</a></code><br>div
+<td title="8i"><code><a href="#NWDbbij8-11">Q-6</a></code><br>div
+<td title="9i">
+<td title="10i">
+<td title="11i" class=dummy><code><a href="#NWDbbij8-1Y">Q-7</a></code><br>18↔20
+<td title="12i" class=dummy><code><a href="#NWDbbij8-1L">K-1</a></code><br>cflow
+<tr>
+<td><code><a href="#NWbbij8-1Q1Gl0-5">a5</a></code><br>Num
+<td title="1i">-<br>5l
+<td title="2i"><code><a href="#NWDbbij8-F">S-10</a></code><br>5t
+<td title="3i">
+<td title="4i">
+<td title="5i"><code><a href="#NWDbbij8-E">S-5</a></code><br>5l
+<td title="6i"><code><a href="#NWDbbij8-u">R-10</a></code><br>divsq
+<td title="7i"><code><a href="#NWDbbij8-G">E-3</a></code><br>div
+<td title="8i"><code><a href="#NWDbbij8-G">B-1</a></code><br>sqrt
+<td title="9i">
+<td title="10i">
+<td title="11i">
+<td title="12i">
+<tr>
+<td><code><a href="#NWbbij8-1Q1Gl0-6">a6</a></code><br>PC
+<td title="1i"><code><a href="#NWDbbij8-8">F-4</a></code><br>fetch
+<td title="2i"><code><a href="#NWDbbij8-1N">K-3</a></code><br>cflow
+<td title="3i"><code><a href="#NWDbbij8-1S">K-8</a></code><br>6R3
+<td title="4i"><code><a href="#NWDbbij8-1T">K-10</a></code><br>6R6
+<td title="5i"><code><a href="#NWDbbij8-e">J-2</a></code><br>fetch
+<td title="6i"><code><a href="#NWDbbij8-6">J-4</a></code><br>fetch
+<td title="7i"><code><a href="#NWDbbij8-o">T-1</a></code><br><span style="font-size:80%">6(11,10,9)</span>
+<td title="8i"><code><a href="#NWDbbij8-p">T-9</a></code><br>6(8,7)
+<td title="9i"><code><a href="#NWDbbij8-1M">K-2</a></code><br>cflow
+<td title="10i">
+<td title="11i">
+<td title="12i">
+<tr>
+<td><code><a href="#NWbbij8-1Q1Gl0-7">a7</a></code><br>Denom.
+<td title="1i">-<br>7l
+<td title="2i"><code><a href="#NWDbbij8-F">S-11</a></code><br>7t
+<td title="3i">
+<td title="4i">
+<td title="5i"><code><a href="#NWDbbij8-E">S-6</a></code><br>7l
+<td title="6i"><code><a href="#NWDbbij8-15">R-1</a></code><br>sqrt
+<td title="7i"><code><a href="#NWDbbij8-18">R-5</a></code><br>sqrt
+<td title="8i"><code><a href="#NWDbbij8-19">R-6</a></code><br>sqrt
+<td title="9i">
+<td title="10i">
+<td title="11i">
+<td title="12i">
+<tr>
+<td><code><a href="#NWbbij8-1Q1Gl0-8">a8</a></code><br>Arg.
+<td title="1i">-<br>8l
+<td title="2i"><code><a href="#NWDbbij8-F">C-2</a></code><br>8t
+<td title="3i"><code><a href="#NWDbbij8-1a">N-6</a></code><br>F.T.
+<td title="4i">
+<td title="5i"><code><a href="#NWDbbij8-E">L-7</a></code><br>8l
+<td title="6i"><code><a href="#NWDbbij8-I">H-11</a></code><br>F.T.
+<td title="7i">
+<td title="8i">
+<td title="9i">
+<td title="10i">
+<td title="11i">
+<td title="12i">
+<tr>
+<td><code><a href="#NWbbij8-1Q1Gl0-9">a9</a></code><br>Shift
+<td title="1i">-<br>9l
+<td title="2i"><code><a href="#NWDbbij8-F">L-1</a></code><br>9t
+<td title="3i"><code><a href="#NWDbbij8-16">R-2</a></code><br>divsq
+<td title="4i">
+<td title="5i"><code><a href="#NWDbbij8-E">L-8</a></code><br>9l
+<td title="6i"><code><a href="#NWDbbij8-z">Q-3</a></code><br>div
+<td title="7i"><code><a href="#NWDbbij8-10">Q-4</a></code><br>div
+<td title="8i"><code><a href="#NWDbbij8-17">R-3</a></code><br>sqrt
+<td title="9i"><code><a href="#NWDbbij8-18">R-4</a></code><br>sqrt
+<td title="10i">
+<td title="11i">
+<td title="12i">
+<tr>
+<td><code><a href="#NWbbij8-1Q1Gl0-A">a10</a></code><br>
+<td title="1i">-<br>10l
+<td title="2i"><code><a href="#NWDbbij8-F">L-2</a></code><br>10t
+<td title="3i"><code><a href="#NWDbbij8-1S">K-7</a></code><br>6R3
+<td title="4i"><code><a href="#NWDbbij8-1T">K-9</a></code><br>6R6
+<td title="5i"><code><a href="#NWDbbij8-E">L-9</a></code><br>10l
+<td title="6i"><code><a href="#NWDbbij8-1L">K-1</a></code><br>cflow
+<td title="7i"><code><a href="#NWDbbij8-1N">K-3</a></code><br>cflow
+<td title="8i"><code><a href="#NWDbbij8-1O">K-4</a></code><br>cflow
+<td title="9i"><code><a href="#NWDbbij8-1P">K-5</a></code><br>cflow
+<td title="10i"><code><a href="#NWDbbij8-1Q">K-6</a></code><br>cflow
+<td title="11i">
+<td title="12i">
+<tr>
+<td><code><a href="#NWbbij8-1Q1Gl0-B">a11</a></code><br>Ier
+<td title="1i">-<br>11ℓ
+<td title="2i"><code><a href="#NWDbbij8-F">L-3</a></code><br>11t
+<td title="3i"><code><a href="#NWbbij8-2I6QWZ-1">T-6</a></code><br>const
+<td title="4i"><code><a href="#NWbbij8-46QPtb-1">M-1</a></code><br>X
+<td title="5i"><code><a href="#NWDbbij8-E">L-10</a></code><br>11ℓ
+<td title="6i"><code><a href="#NWDbbij8-b">J-3</a></code><br>const
+<td title="7i"><code><a href="#NWDbbij8-G">H-10</a></code><br>DS
+<td title="8i"><code><a href="#NWbbij8-2s57Jk-1">R-7</a></code><br>DS
+<td title="9i"><code><a href="#NWbbij8-tJbYq-1">R-8</a></code><br>DS
+<td title="10i"><code>R-9</code><br>DS
+<td title="11i"><code><a href="#NWDbbij8-1a">N-6</a></code><br>F.T.
+<td title="12i"><code><a href="#NWDbbij8-1b">N-10</a></code><br>F.T.
+<tr>
+<td><code><a href="#NWbbij8-1Q1Gl0-C">a12</a></code><br>Icand
+<td title="1i">-<br>12l
+<td title="2i"><code><a href="#NWDbbij8-F">L-4</a></code><br>12t
+<td title="3i"><code><a href="#NWbbij8-46QPtb-1">M-2</a></code><br>X
+<td title="4i">
+<td title="5i"><code><a href="#NWDbbij8-E">L-11</a></code><br>12l
+<td title="6i"><code><a href="#NWDbbij8-G">E-5</a></code><br>X
+<td title="7i">
+<td title="8i">
+<td title="9i">
+<td title="10i">
+<td title="11i">
+<td title="12i">
+<tr>
+<td><code><a href="#NWbbij8-1Q1Gl0-D">a13</a></code><br>LHPP
+<td title="1i">-<br>13l
+<td title="2i"><code><a href="#NWDbbij8-F">L-5</a></code><br>13t
+<td title="3i"><code><a href="#NWDbbij8-i">B-4</a></code><br>*
+<td title="4i"><code><a href="#NWbbij8-46QPtb-1">M-1</a></code><br>X
+<td title="5i"><code><a href="#NWDbbij8-E">C-7</a></code><br>13l
+<td title="6i"><code><a href="#NWDbbij8-i">B-11</a></code><br>*
+<td title="7i"><code><a href="#NWDbbij8-f">C-6</a></code><br>NxD
+<td title="8i"><code><a href="#NWDbbij8-i">B-10</a></code><br>*
+<td title="9i"><code><a href="#NWDbbij8-1L">K-1</a></code><br>cflow
+<td title="10i">
+<td title="11i">
+<td title="12i">
+<tr>
+<td><code><a href="#NWbbij8-1Q1Gl0-E">a14</a></code><br>
+<td title="1i">-<br>14l
+<td title="2i"><code><a href="#NWDbbij8-F">L-6</a></code><br>14t
+<td title="3i">
+<td title="4i">
+<td title="5i"><code><a href="#NWDbbij8-E">H-1</a></code><br>14l
+<td title="6i">
+<td title="7i">
+<td title="8i">
+<td title="9i">
+<td title="10i">
+<td title="11i">
+<td title="12i">
+<tr>
+<td><code><a href="#NWbbij8-1Q1Gl0-F">a15</a></code><br>RHPP
+<td title="1i"><code><a href="#NWDbbij8-i">J-1</a></code><br>*
+<td title="2i"><code><a href="#NWDbbij8-i">B-3</a></code><br>*
+<td title="3i"><code><a href="#NWDbbij8-F">C-2</a></code><br>8t
+<td title="4i"><code><a href="#NWDbbij8-1W">K-11</a></code><br>C.T.
+<td title="5i"><code><a href="#NWbbij8-27m3th-1">T-7</a></code><br>a1tmp
+<td title="6i"><code><a href="#NWDbbij8-18">R-5</a></code><br>sqrt
+<td title="7i"><code><a href="#NWDbbij8-1b">N-10</a></code><br>F.T.
+<td title="8i">
+<td title="9i">
+<td title="10i">
+<td title="11i">
+<td title="12i">
+<tr>
+<td><code><a href="#NWbbij8-1Q1Gl0-G">a16</a></code><br>
+<td title="1i">-<br>16l
+<td title="2i"><code><a href="#NWDbbij8-F">C-9</a></code><br>16t
+<td title="3i">
+<td title="4i">
+<td title="5i"><code><a href="#NWDbbij8-E">H-2</a></code><br>16l
+<td title="6i" class=dummy><code><a href="#NWDbbij8-G">V-3</a></code><br>M
+<td title="7i">
+<td title="8i">
+<td title="9i">
+<td title="10i">
+<td title="11i">
+<td title="12i">
+<tr>
+<td><code><a href="#NWbbij8-1Q1Gl0-H">a17</a></code><br>
+<td title="1i">-<br>17l
+<td title="2i">17t
+<td title="3i">
+<td title="4i">
+<td title="5i"><code><a href="#NWDbbij8-E">H-3</a></code><br>17t
+<td title="6i">
+<td title="7i">
+<td title="8i">
+<td title="9i">
+<td title="10i">
+<td title="11i">
+<td title="12i">
+<tr>
+<td><code><a href="#NWbbij8-1Q1Gl0-I">a18</a></code><br>
+<td title="1i">-<br>18l
+<td title="2i"><code><a href="#NWDbbij8-F">H-7</a></code><br>18t
+<td title="3i"><code><a href="#NWDbbij8-1Y">Q-8</a></code><br>18↔20
+<td title="4i"><code><a href="#NWDbbij8-1I">N-5</a></code><br>N2D
+<td title="5i"><code><a href="#NWDbbij8-E">H-4</a></code><br>18l
+<td title="6i"><code><a href="#NWDbbij8-1D">N-1</a></code><br>N6D
+<td title="7i"><code><a href="#NWDbbij8-1E">N-2</a></code><br>N4D
+<td title="8i"><code><a href="#NWDbbij8-1G">N-3</a></code><br>N2D
+<td title="9i"><code><a href="#NWDbbij8-1H">N-4</a></code><br>N2D
+<td title="10i"><code><a href="#NWDbbij8-1Y">Q-7</a></code><br>18↔20
+<td title="11i">
+<td title="12i">
+<tr>
+<td><code><a href="#NWbbij8-1Q1Gl0-J">a19</a></code><br>
+<td title="1i">-<br>19l
+<td title="2i"><code><a href="#NWDbbij8-F">H-8</a></code><br>19t
+<td title="3i">
+<td title="4i">
+<td title="5i"><code><a href="#NWDbbij8-E">H-5</a></code><br>19l
+<td title="6i">
+<td title="7i">
+<td title="8i">
+<td title="9i">
+<td title="10i">
+<td title="11i">
+<td title="12i" class=dummy>a1tmp
+<tr>
+<td><code><a href="#NWbbij8-1Q1Gl0-K">a20</a></code><br>
+<td title="1i">
+<td title="2i">
+<td title="3i">
+<td title="4i">
+<td title="5i"><code><a href="#NWDbbij8-D">C-3</a></code><br>18↔20
+<td title="6i"><code><a href="#NWDbbij8-1Y">Q-7</a></code><br>18↔20
+<td title="7i">
+<td title="8i">
+<td title="9i">
+<td title="10i">
+<td title="11i">
+<td title="12i" class=dummy>fetch
 </table>
 
 <h2><a name=index><a name="NWDbbij8-1f">Index</a></a></h2>
