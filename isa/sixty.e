@@ -296,8 +296,8 @@ p 10 d.ans
 # Accumulator 1
 p 2 a1.α
 p 1 a1.β
-p ad.permute.4 a1.δ  # 3(11,0s,10,9): 6(11,10,9)
-p ad.permute.6 a1.ε  # 3(0s,8,7): 6(8,7)
+p ad.permute.4 a1.δ  # 3(11-,10,9): 6(11,10,9)
+p ad.permute.6 a1.ε  # 3(0-,8,7): 6(8,7)
 p 1 a1.A
 p 1 a1.S  # Save to a13
 # Accumulator 2
@@ -331,7 +331,7 @@ p ad.permute.8  a6.β  # 1(3-1): 6R3
 p ad.permute.10 a6.γ  # 1(6-1): 6R6, NxD6, C.T.
 p ad.permute.3  a6.δ  # 2(11,2,1,0s): 6(11,10,9)
 # NB ε is also used as a dummy for increment
-p ad.permute.5  a6.ε  # 2(0,0,2,1,0s): 6(8,7)
+p ad.permute.5  a6.ε  # 2(11,4-1,0s): 6(8,7)
 p 3 a6.A
 # Accumulator 7 - denominator
 p 2 a7.α
@@ -432,10 +432,10 @@ s ad.permute.2 11,6,5,4,3,2,1,0,0,0,0
 p 2 ad.permute.3
 s ad.permute.3 11,2,1,0,0,0,0,0,0,0,0
 p 3 ad.permute.4
-s ad.permute.4 11,0,0,0,0,0,0,0,0,10,9
+s ad.permute.4 11,11,11,11,11,11,11,11,11,10,9
 # For 6(8,7).
 p 2 ad.permute.5
-s ad.permute.5 0,0,0,2,1,0,0,0,0,0,0
+s ad.permute.5 11,4,3,2,1,0,0,0,0,0,0
 p 3 ad.permute.6
 s ad.permute.6 0,0,0,0,0,0,0,0,0,8,7
 # For 6R3.
@@ -975,6 +975,7 @@ p T-6 a11.3i
 s a11.op3 δ
 # 6(11,10,9), 6(8,7), and M
 # These instructions use a1 as a temporary and share the same sequence.
+# They all overlap with the next fetch.
 
 # Cycle 7: Save a1 in a13 (using trunk 1)
 # Transmit a1
@@ -1026,7 +1027,7 @@ s a6.cc7 0
 s a6.rp7 1
 p a6.7o T-2
 
-# Cycle 9: Receive 6(11,10,9) in 1(11,2,1)
+# Cycle 9: Receive a6(11,10,9) in a1(11-3,2,1)
 # Fetch J-4 will send a6 this cycle.
 p T-2 a1.7i
 s a1.op7 δ
@@ -1049,14 +1050,14 @@ s a3.cc6 0
 s a3.rp6 1
 p a3.6o T-9
 
-# Cycle 8: Add a15(2,1) to a6(8,7)
+# Cycle 8: Add a15(11,4-1) to a6(11-7)
 p T-9 a6.8i
 s a6.op8 ε
 s a6.cc8 0
 s a6.rp8 1
 p a6.8o T-10
 
-# Cycle 9: Receive 6(8,7) in 1(2,1)
+# Cycle 9: Receive a6(8,7) in a1(2,1)
 # Fetch J-4 will send a6 this cycle.
 p T-10 a1.9i
 s a1.op9 ε

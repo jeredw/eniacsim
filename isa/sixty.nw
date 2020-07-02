@@ -247,7 +247,7 @@ NC
 
 <tr>
 <td>2
-<td><td><td><td><td>J-4   
+<td><td><td><td><td>[[J-4]]
  A01
   [[F-3]]
 <td>|<td>|<td>|<td>|<td></td>
@@ -814,8 +814,8 @@ p 10 d.ans
 # Accumulator 1
 p 2 a1.α
 p 1 a1.β
-p ad.permute.4 a1.δ  # 3(11,0s,10,9): 6(11,10,9)
-p ad.permute.6 a1.ε  # 3(0s,8,7): 6(8,7)
+p ad.permute.4 a1.δ  # 3(11-,10,9): 6(11,10,9)
+p ad.permute.6 a1.ε  # 3(0-,8,7): 6(8,7)
 p 1 a1.A
 p 1 a1.S  # Save to a13
 @ %def a1
@@ -864,7 +864,7 @@ p ad.permute.8  a6.β  # 1(3-1): 6R3
 p ad.permute.10 a6.γ  # 1(6-1): 6R6, NxD6, C.T.
 p ad.permute.3  a6.δ  # 2(11,2,1,0s): 6(11,10,9)
 # NB ε is also used as a dummy for increment
-p ad.permute.5  a6.ε  # 2(0,0,2,1,0s): 6(8,7)
+p ad.permute.5  a6.ε  # 2(11,4-1,0s): 6(8,7)
 p 3 a6.A
 @ %def a6
 
@@ -1019,23 +1019,26 @@ s ad.permute.2 11,6,5,4,3,2,1,0,0,0,0
 
 <p><b><a name="3a">3<sup>a</sup></a>, <a name="2a">2<sup>a</sup></a></b>.
 Shift A<sub>15</sub>(11,2,1) to the top two digits and back for
-<code>6(11,10,9)</code>.
+<code>6(11,10,9)</code>. Note that the sum is sign-extended when writing back to
+A<sub>15</sub>.
 
 <<Digit trunks: adapters>>=
 # For 6(11,10,9).
 p 2 ad.permute.3
 s ad.permute.3 11,2,1,0,0,0,0,0,0,0,0
 p 3 ad.permute.4
-s ad.permute.4 11,0,0,0,0,0,0,0,0,10,9
+s ad.permute.4 11,11,11,11,11,11,11,11,11,10,9
 @ %def ad.permute.3 ad.permute.4
 
 <p><b><a name="3b">3<sup>b</sup></a>, <a name="2b">2<sup>b</sup></a></b>.
 Shift A<sub>15</sub>(2,1) to positions 8,7 and back for <code>6(8,7)</code>.
+DU49 and DEC51 annotations make it clear this really adds A<sub>15</sub>(11,4-1)
+to A<sub>6</sub>(11-7).
 
 <<Digit trunks: adapters>>=
 # For 6(8,7).
 p 2 ad.permute.5
-s ad.permute.5 0,0,0,2,1,0,0,0,0,0,0
+s ad.permute.5 11,4,3,2,1,0,0,0,0,0,0
 p 3 ad.permute.6
 s ad.permute.6 0,0,0,0,0,0,0,0,0,8,7
 @ %def ad.permute.5 ad.permute.6
@@ -1875,6 +1878,7 @@ in parallel due to contention on <tt>a6</tt> and <tt>a1</tt>.
 <<Instructions: a1-based>>=
 # 6(11,10,9), 6(8,7), and M
 # These instructions use a1 as a temporary and share the same sequence.
+# They all overlap with the next fetch.
 
 # Cycle 7: Save a1 in a13 (using trunk 1)
 <<Instructions: a1-based cycle 7>>
@@ -1929,13 +1933,16 @@ s a1.cc3 0
 
 <h4><a name="611109">6(11,10,9)</a></h4>
 
-<p>This instruction does double duty as a "listen" and a "talk" order.
+<p>This instruction does double duty as a "listen" and a "talk" order. DU49 and
+DEC51 clarify that the three digit sum is sign extended into
+A<sub>15</sub>(11-3).
 
 <pre>
   7. (a1:AC1, a13:γ01) # Save a1 [1]
   8. (a15:AC1), a6:δ01 # Add a15(11,2,1) into a6(11,10,9) [2,2*]
-  9. (a6:A01), a1:δ01  # Get a6(11,10,9) in a1(11,2,1) (* a6:A01 from [[J-4]]) [3,3*]
- 10. a1:AC1, (a15:β01) # Get a1(11,2,1) back in a15(11,2,1). [1]
+  9. (a6:A01), a1:δ01  # Get a6(11,10,9) in a1(11-3,2,1) [3,3*]
+                       # a6:A01 is from fetch [[J-4]]
+ 10. a1:AC1, (a15:β01) # Write sum back to a15. [1]
  11. (a13:AC1, a1:β01) # Restore a1. [1]
 </pre>
 
@@ -1956,7 +1963,7 @@ s a6.cc7 0
 s a6.rp7 1
 p a6.7o T-2
 
-# Cycle 9: Receive 6(11,10,9) in 1(11,2,1)
+# Cycle 9: Receive a6(11,10,9) in a1(11-3,2,1)
 # Fetch J-4 will send a6 this cycle.
 p T-2 a1.7i
 s a1.op7 δ
@@ -1974,13 +1981,29 @@ s a1.rp8 1
 
 <h4><a name="687">6(8,7)</a></h4>
 
-<p>This instruction does double duty as a "listen" and a "talk" order.
+<p>DU49 and DEC51 explain that <code>6(8,7)</code> actually operates on
+A<sub>6</sub>(11-7), adding the signed value A<sub>15</sub>(11,<em>4</em>-1) to
+A<sub>6</sub>(11-7), and writing back the zero-extended value A<sub>6</sub>(8,7)
+to A<sub>15</sub>(11-3,2,1).
+
+<blockquote>[A<sub>15</sub>(2,1)] may be made minus before the order is used
+provided we wish to subtract from a quantity already contained in 6(8,7).
+&hellip; It should be added that if a number exists in 15(4,3) it will be added
+to 6(11,10,9). Thus we may control two induction variables&hellip; with this one
+order.</blockquote>
+
+<p>DEC51 also notes that <q>we have carry over between 6<sub>2</sub> and
+6<sub>1</sub></q>, so presumably, even an operation like 99 + 99 would carry a 1
+into A<sub>6</sub>(9). Clobbering A<sub>6</sub>(11,10,9) this way seems of
+dubious merit, and is more likely a misfeature from the choice to operate in
+place on A<sub>6</sub>.
 
 <pre>
   7. (a1:AC1, a13:γ01) # Save a1 [1]
-  8. (a15:AC1), a6:ε01 # Add 15(2,1) into 6(8,7) [2,2*]
-  9. (a6:A01), a1:ε01  # Get 6(8,7) in 1(2,1) (* a6:A01 from [[J-4]]) [3,3*]
- 10. a1:AC1, (a15:β01) # Get 1(2,1) back in 15(2,1). [1]
+  8. (a15:AC1), a6:ε01 # Add a15(11,4-1) to a6(11-7) [2,2*]
+  9. (a6:A01), a1:ε01  # Get a6(8,7) in a1(2,1) [3,3*]
+                       # a6:A01 is from fetch [[J-4]]
+ 10. a1:AC1, (a15:β01) # Write back a1 to a15 [1]
  11. (a13:AC1, a1:β01) # Restore a1. [1]
 </pre>
 
@@ -1994,14 +2017,14 @@ s a3.cc6 0
 s a3.rp6 1
 p a3.6o T-9
 
-# Cycle 8: Add a15(2,1) to a6(8,7)
+# Cycle 8: Add a15(11,4-1) to a6(11-7)
 p T-9 a6.8i
 s a6.op8 ε
 s a6.cc8 0
 s a6.rp8 1
 p a6.8o T-10
 
-# Cycle 9: Receive 6(8,7) in 1(2,1)
+# Cycle 9: Receive a6(8,7) in a1(2,1)
 # Fetch J-4 will send a6 this cycle.
 p T-10 a1.9i
 s a1.op9 ε

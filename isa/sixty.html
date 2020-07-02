@@ -248,7 +248,7 @@ NC
 
 <tr>
 <td>2
-<td><td><td><td><td>J-4   
+<td><td><td><td><td><code><a href="#NWDbbij8-6">J-4</a></code>
  A01
   <code><a href="#NWDbbij8-7">F-3</a></code>
 <td>|<td>|<td>|<td>|<td></td>
@@ -815,8 +815,8 @@ p 10 d.ans
 # Accumulator 1
 p 2 <a href="#NWDbbij8-M">a1</a>.α
 p 1 <a href="#NWDbbij8-M">a1</a>.β
-p <a href="#NWDbbij8-P">ad.permute.4</a> <a href="#NWDbbij8-M">a1</a>.δ  # 3(11,0s,10,9): 6(11,10,9)
-p <a href="#NWDbbij8-Q">ad.permute.6</a> <a href="#NWDbbij8-M">a1</a>.ε  # 3(0s,8,7): 6(8,7)
+p <a href="#NWDbbij8-P">ad.permute.4</a> <a href="#NWDbbij8-M">a1</a>.δ  # 3(11-,10,9): 6(11,10,9)
+p <a href="#NWDbbij8-Q">ad.permute.6</a> <a href="#NWDbbij8-M">a1</a>.ε  # 3(0-,8,7): 6(8,7)
 p 1 <a href="#NWDbbij8-M">a1</a>.A
 p 1 <a href="#NWDbbij8-M">a1</a>.S  # Save to <a href="#NWbbij8-1Q1Gl0-D">a13</a>
 </pre><blockquote>Defines <a href="#NWI-a1"><code>a1</code></a> (links are to index).<p>
@@ -865,7 +865,7 @@ p <a href="#NWDbbij8-R">ad.permute.8</a>  <a href="#NWbbij8-1Q1Gl0-6">a6</a>.β 
 p <a href="#NWDbbij8-S">ad.permute.10</a> <a href="#NWbbij8-1Q1Gl0-6">a6</a>.γ  # 1(6-1): 6R6, NxD6, C.T.
 p <a href="#NWDbbij8-P">ad.permute.3</a>  <a href="#NWbbij8-1Q1Gl0-6">a6</a>.δ  # 2(11,2,1,0s): 6(11,10,9)
 # NB ε is also used as a dummy for increment
-p <a href="#NWDbbij8-Q">ad.permute.5</a>  <a href="#NWbbij8-1Q1Gl0-6">a6</a>.ε  # 2(0,0,2,1,0s): 6(8,7)
+p <a href="#NWDbbij8-Q">ad.permute.5</a>  <a href="#NWbbij8-1Q1Gl0-6">a6</a>.ε  # 2(11,4-1,0s): 6(8,7)
 p 3 <a href="#NWbbij8-1Q1Gl0-6">a6</a>.A
 </pre><blockquote>Defines <a href="#NWI-a6"><code>a6</code></a> (links are to index).<p>
 </blockquote><p>
@@ -1020,23 +1020,26 @@ s <a href="#NWDbbij8-O">ad.permute.2</a> 11,6,5,4,3,2,1,0,0,0,0
 </blockquote><p>
 <p><b><a name="3a"><a name="NWDbbij8-P">3</a><sup>a</sup></a>, <a name="2a">2<sup>a</sup></a></b>.
 Shift A<sub>15</sub>(11,2,1) to the top two digits and back for
-<code>6(11,10,9)</code>.
+<code>6(11,10,9)</code>. Note that the sum is sign-extended when writing back to
+A<sub>15</sub>.
 
 <pre><a name="NWbbij8-3dwPcF-3" href="#NWDbbij8-N"><dfn>&lt;Digit trunks: adapters&gt;+=</dfn></a> <b>(<a href="#NWDbbij8-K">&lt;-U</a>)</b> <b>[<a href="#NWDbbij8-O">&lt;-</a>D<a href="#NWDbbij8-Q">-&gt;</a>]</b>
 # For 6(11,10,9).
 p 2 <a href="#NWDbbij8-P">ad.permute.3</a>
 s <a href="#NWDbbij8-P">ad.permute.3</a> 11,2,1,0,0,0,0,0,0,0,0
 p 3 <a href="#NWDbbij8-P">ad.permute.4</a>
-s <a href="#NWDbbij8-P">ad.permute.4</a> 11,0,0,0,0,0,0,0,0,10,9
+s <a href="#NWDbbij8-P">ad.permute.4</a> 11,11,11,11,11,11,11,11,11,10,9
 </pre><blockquote>Defines <a href="#NWI-ad.permute.3"><code>ad.permute.3</code></a>, <a href="#NWI-ad.permute.4"><code>ad.permute.4</code></a> (links are to index).<p>
 </blockquote><p>
 <p><b><a name="3b"><a name="NWDbbij8-Q">3</a><sup>b</sup></a>, <a name="2b">2<sup>b</sup></a></b>.
 Shift A<sub>15</sub>(2,1) to positions 8,7 and back for <code>6(8,7)</code>.
+DU49 and DEC51 annotations make it clear this really adds A<sub>15</sub>(11,4-1)
+to A<sub>6</sub>(11-7).
 
 <pre><a name="NWbbij8-3dwPcF-4" href="#NWDbbij8-N"><dfn>&lt;Digit trunks: adapters&gt;+=</dfn></a> <b>(<a href="#NWDbbij8-K">&lt;-U</a>)</b> <b>[<a href="#NWDbbij8-P">&lt;-</a>D<a href="#NWDbbij8-R">-&gt;</a>]</b>
 # For 6(8,7).
 p 2 <a href="#NWDbbij8-Q">ad.permute.5</a>
-s <a href="#NWDbbij8-Q">ad.permute.5</a> 0,0,0,2,1,0,0,0,0,0,0
+s <a href="#NWDbbij8-Q">ad.permute.5</a> 11,4,3,2,1,0,0,0,0,0,0
 p 3 <a href="#NWDbbij8-Q">ad.permute.6</a>
 s <a href="#NWDbbij8-Q">ad.permute.6</a> 0,0,0,0,0,0,0,0,0,8,7
 </pre><blockquote>Defines <a href="#NWI-ad.permute.5"><code>ad.permute.5</code></a>, <a href="#NWI-ad.permute.6"><code>ad.permute.6</code></a> (links are to index).<p>
@@ -1876,6 +1879,7 @@ in parallel due to contention on <tt>a6</tt> and <tt>a1</tt>.
 <pre><a name="NWbbij8-lBOwJ-1" href="#NWDbbij8-n"><dfn>&lt;Instructions: a1-based&gt;=</dfn></a> <b>(<a href="#NWDbbij8-h">&lt;-U</a>)</b>
 # 6(11,10,9), 6(8,7), and M
 # These instructions use <a href="#NWDbbij8-M">a1</a> as a temporary and share the same sequence.
+# They all overlap with the next fetch.
 
 # Cycle 7: Save <a href="#NWDbbij8-M">a1</a> in <a href="#NWbbij8-1Q1Gl0-D">a13</a> (using trunk 1)
 <a name="NWbbij8-lBOwJ-1-u1" href="#NWbbij8-27m3th-1"><i>&lt;Instructions: a1-based cycle 7&gt;</i></a>
@@ -1930,13 +1934,16 @@ s <a href="#NWDbbij8-M">a1</a>.cc3 0
 </blockquote><p>
 <h4><a name="611109">6(11,10,9)</a></h4>
 
-<p>This instruction does double duty as a "listen" and a "talk" order.
+<p>This instruction does double duty as a "listen" and a "talk" order. DU49 and
+DEC51 clarify that the three digit sum is sign extended into
+A<sub>15</sub>(11-3).
 
 <pre>
   <a name="NWDbbij8-o">7. (a1:AC1, a13:γ01) # Save a1 [1]</a>
   8. (a15:AC1), a6:δ01 # Add a15(11,2,1) into a6(11,10,9) [2,2*]
-  9. (a6:A01), a1:δ01  # Get a6(11,10,9) in a1(11,2,1) (* a6:A01 from <code><a href="#NWDbbij8-6">J-4</a></code>) [3,3*]
- 10. a1:AC1, (a15:β01) # Get a1(11,2,1) back in a15(11,2,1). [1]
+  9. (a6:A01), a1:δ01  # Get a6(11,10,9) in a1(11-3,2,1) [3,3*]
+                       # a6:A01 is from fetch <code><a href="#NWDbbij8-6">J-4</a></code>
+ 10. a1:AC1, (a15:β01) # Write sum back to a15. [1]
  11. (a13:AC1, a1:β01) # Restore a1. [1]
 </pre>
 
@@ -1957,7 +1964,7 @@ s <a href="#NWbbij8-1Q1Gl0-6">a6</a>.cc7 0
 s <a href="#NWbbij8-1Q1Gl0-6">a6</a>.rp7 1
 p <a href="#NWbbij8-1Q1Gl0-6">a6</a>.7o <a href="#NWDbbij8-o">T-2</a>
 
-# Cycle 9: Receive 6(11,10,9) in 1(11,2,1)
+# Cycle 9: Receive <a href="#NWbbij8-1Q1Gl0-6">a6</a>(11,10,9) in <a href="#NWDbbij8-M">a1</a>(11-3,2,1)
 # Fetch <a href="#NWDbbij8-6">J-4</a> will send <a href="#NWbbij8-1Q1Gl0-6">a6</a> this cycle.
 p <a href="#NWDbbij8-o">T-2</a> <a href="#NWDbbij8-M">a1</a>.7i
 s <a href="#NWDbbij8-M">a1</a>.op7 δ
@@ -1975,13 +1982,29 @@ s <a href="#NWDbbij8-M">a1</a>.rp8 1
 </blockquote><p>
 <h4><a name="687">6(8,7)</a></h4>
 
-<p>This instruction does double duty as a "listen" and a "talk" order.
+<p>DU49 and DEC51 explain that <code>6(8,7)</code> actually operates on
+A<sub>6</sub>(11-7), adding the signed value A<sub>15</sub>(11,<em>4</em>-1) to
+A<sub>6</sub>(11-7), and writing back the zero-extended value A<sub>6</sub>(8,7)
+to A<sub>15</sub>(11-3,2,1).
+
+<blockquote>[A<sub>15</sub>(2,1)] may be made minus before the order is used
+provided we wish to subtract from a quantity already contained in 6(8,7).
+&hellip; It should be added that if a number exists in 15(4,3) it will be added
+to 6(11,10,9). Thus we may control two induction variables&hellip; with this one
+order.</blockquote>
+
+<p>DEC51 also notes that <q>we have carry over between 6<sub>2</sub> and
+6<sub>1</sub></q>, so presumably, even an operation like 99 + 99 would carry a 1
+into A<sub>6</sub>(9). Clobbering A<sub>6</sub>(11,10,9) this way seems of
+dubious merit, and is more likely a misfeature from the choice to operate in
+place on A<sub>6</sub>.
 
 <pre>
   <a name="NWDbbij8-p">7. (a1:AC1, a13:γ01) # Save a1 [1]</a>
-  8. (a15:AC1), a6:ε01 # Add 15(2,1) into 6(8,7) [2,2*]
-  9. (a6:A01), a1:ε01  # Get 6(8,7) in 1(2,1) (* a6:A01 from <code><a href="#NWDbbij8-6">J-4</a></code>) [3,3*]
- 10. a1:AC1, (a15:β01) # Get 1(2,1) back in 15(2,1). [1]
+  8. (a15:AC1), a6:ε01 # Add a15(11,4-1) to a6(11-7) [2,2*]
+  9. (a6:A01), a1:ε01  # Get a6(8,7) in a1(2,1) [3,3*]
+                       # a6:A01 is from fetch <code><a href="#NWDbbij8-6">J-4</a></code>
+ 10. a1:AC1, (a15:β01) # Write back a1 to a15 [1]
  11. (a13:AC1, a1:β01) # Restore a1. [1]
 </pre>
 
@@ -1995,14 +2018,14 @@ s <a href="#NWbbij8-1Q1Gl0-3">a3</a>.cc6 0
 s <a href="#NWbbij8-1Q1Gl0-3">a3</a>.rp6 1
 p <a href="#NWbbij8-1Q1Gl0-3">a3</a>.6o <a href="#NWDbbij8-p">T-9</a>
 
-# Cycle 8: Add <a href="#NWbbij8-1Q1Gl0-F">a15</a>(2,1) to <a href="#NWbbij8-1Q1Gl0-6">a6</a>(8,7)
+# Cycle 8: Add <a href="#NWbbij8-1Q1Gl0-F">a15</a>(11,4-1) to <a href="#NWbbij8-1Q1Gl0-6">a6</a>(11-7)
 p <a href="#NWDbbij8-p">T-9</a> <a href="#NWbbij8-1Q1Gl0-6">a6</a>.8i
 s <a href="#NWbbij8-1Q1Gl0-6">a6</a>.op8 ε
 s <a href="#NWbbij8-1Q1Gl0-6">a6</a>.cc8 0
 s <a href="#NWbbij8-1Q1Gl0-6">a6</a>.rp8 1
 p <a href="#NWbbij8-1Q1Gl0-6">a6</a>.8o <a href="#NWDbbij8-p">T-10</a>
 
-# Cycle 9: Receive 6(8,7) in 1(2,1)
+# Cycle 9: Receive <a href="#NWbbij8-1Q1Gl0-6">a6</a>(8,7) in <a href="#NWDbbij8-M">a1</a>(2,1)
 # Fetch <a href="#NWDbbij8-6">J-4</a> will send <a href="#NWbbij8-1Q1Gl0-6">a6</a> this cycle.
 p <a href="#NWDbbij8-p">T-10</a> <a href="#NWDbbij8-M">a1</a>.9i
 s <a href="#NWDbbij8-M">a1</a>.op9 ε
