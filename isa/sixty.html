@@ -128,9 +128,9 @@ and A<sub>15</sub>.  Two of A<sub>13</sub> and A<sub>15</sub>'s ten inputs are
 tied up for the multiplier, and most of the rest have implied connections to
 support instructions that don't reserve A<sub>13</sub>.
 
-<p>When A<sub>13</sub> is reserved, it's possible to stash A<sub>n</sub> in
+<p>When A<sub>13</sub> is reserved, it's possible to save A<sub>n</sub> in
 A<sub>13</sub>, use one of A<sub>n</sub>'s inputs, and then transfer the answer
-and restore A<sub>n</sub>.  For example, the LCS48 paragraph about
+and restore A<sub>n</sub>. For example, the LCS48 paragraph about
 <tt>C.T.</tt> mentions using a shifter on A<sub>10</sub> to accomplish the
 required PC shift this way.  This is corroborated in DEC51,
 <blockquote>If 13 is not clear, its number will be subtracted from 10
@@ -192,7 +192,7 @@ p <a href="#NWbbij8-1Q1Gl0-2">a2</a>.12o <a href="#NWDbbij8-c">C-5</a>
 
 <p>Here we set up the 7-cycle instruction fetch sequence described in
 LCS48 <em>II: Conversion of digit pulses to programming pulses</em>.
-Parts of the sequence are reused to fetch arguments for <tt>NxD</tt> so are
+Parts of the sequence are reused to fetch instruction arguments so are
 separately controllable, e.g. <tt>N6D</tt> triggers <code><a href="#NWDbbij8-d">D-6</a></code>&rarr;<code><a href="#NWDbbij8-e">J-2</a></code>,
 <code><a href="#NWDbbij8-e">E-1</a></code> but not <code><a href="#NWDbbij8-c">C-5</a></code>, so it will read from the function table but not decode
 a new instruction.
@@ -318,9 +318,9 @@ opens gate 69 so that a CPP passes through at the end of addition time
 t+1.</blockquote>  MP output is at the end of cycle 6, so the input from the
 ten stage stepper must be setup at the end of cycle 5, which in turn means its
 input needs to arrive at the end of cycle 4.
-<li>It is unclear what <code><a href="#NWDbbij8-5">E-9</a></code> is for or what the annotation <tt>i#2</tt>
-means.  The ft selector stepper needs to be cleared somehow, so assume it is
-for that.
+<li>It is unclear what <code><a href="#NWDbbij8-5">E-9</a></code> is for or what the ft selector input <tt>i#2</tt>
+does. The ft selector stepper needs to be cleared somehow, so assume it is for
+that.
 <li>If <code><a href="#NWDbbij8-9">G-8</a></code> is an output enable for the order selector, it is also late.
 It's possible <code><a href="#NWDbbij8-9">G-8</a></code> was meant to step the order selector ring, and <code><a href="#NWDbbij8-8">F-4</a></code>
 <a name="NWDbbij8-4">was meant to trigger when it is on the last stage?  In </a><tt>eniacsim</tt>, the
@@ -551,13 +551,13 @@ s p.d20s1 1
 
 <p>Decode opcodes to program lines following LCS48 Table 2.I.
 
-<p><a name="NWDbbij8-D">LCS48 describes two slightly different instruction sets, a </a><q>regular
-code</q> and an <q>alternate code</q> with seven variant instructions. Alternate
-instructions are annotated below as <em>n</em>a where <em>n</em> is the opcode.
+<p><a name="NWDbbij8-D">LCS48 describes two slightly different instruction sets, a </a><q>first</q> and
+an <q>alternate</q> set with seven variant instructions. Alternate opcodes are
+annotated below as <em>n</em>a where <em>n</em> is the opcode.
 
-<p>The sample programs in LCS48 use the regular code, so that's what is wired
-up here.  In some cases wiring for the alternate code is left present but
-commented out.  DU49 seems to have merged the two instruction sets.
+<p>The sample programs in LCS48 use the first set, so that's what is wired up
+here. In some cases wiring for the alternate set is left present but commented
+out. DU49 seems to have merged the two instruction sets.
 
 <pre><a name="NWbbij8-3b8gCj-1" href="#NWDbbij8-D"><dfn>&lt;Decode&gt;=</dfn></a> <b>(<a href="#NWDbbij8-2">&lt;-U</a>)</b>
 # Decode MP stepper outputs to program lines.
@@ -3426,19 +3426,103 @@ p i.Ro <a href="#NWDbbij8-c">C-5</a>  # fetch+decode
 
 <h4><a name=shifts>Sh and Sh'</a></h4>
 
+<p>The most problematic instructions in LCS48 are the shifts <code>Sh</code> and
+<code>Sh'</code>. A small problem is that <code>Sh'</code> has vague sign
+semantics&mdash;later sources help to clear that up. Fitting the execution in
+the specified 20 cycles is actually very tight. The biggest problem though is
+that it's unclear how the instructions could have been decoded.
+
+<h5>Decoding jk</h5>
+
+<p>Due to limited code space, shift instructions used a parameter <tt>jk</tt> to
+specify the shift direction and amount. LCS48 is silent on the plan to decode
+<tt>jk</tt>, and Section VIII explains that by the time of the report, the
+instructions had already been redesigned to use the new converter unit instead.
+
+<p><code>Sh'</code> triggers <code>Sh</code> via pulse amplifiers, so presumably
+it is just an orthogonal sequence on A<sub>12</sub>.
+
+<p>RIF shows the order selector tens' digit <code><a href="#NWbbij8-3dwPcF-D">F-6</a></code> wired to <tt>di</tt> on
+<q>P.M. discriminator #1</q>. This and the encoding <tt>j=0,9</tt> support that
+the idea was to use a discriminator to decode shift direction.
+
+<p>The real mystery is what to do with the shift amount <tt>k=1-5</tt>. Either
+there was additional, unmentioned hardware to decode it, or something had to be
+reused. If something were reused, we'd have to avoid unwanted side effects. If
+<tt>k</tt> controlled only <q>half</q> of the shift sequence, like unpaired
+transmit or receive programs on some accumulator, it might be ok to decode it
+spuriously, as long as the affected resources were uncontended.
+
+<p>Wacky schemes abound, like using a function table driven decode (implausible
+because it would constrain ft contents), or an accumulator rigged to count up
+from <tt>-k</tt> til its sign flips (implausible because none are available).
+The most reasonable solutions involve using steppers.
+
+<h5>Using steppers</h5>
+
+<p>It's possible another 6-stage stepper was planned for decoding <tt>k</tt> but
+was left out of the exposition because shifts had already been redesigned.
+Section II does say that <q>by the addition of four small units, it became
+possible to &hellip; have 60 orders</q>, and then goes on to describe only three
+extra units (the ten-stage stepper, order selector, and ft selector).
+
+<p>A second input flip flop and deck of output gates on the ft selector would
+have sufficed. The terminal named <tt>i#2</tt> is suspicious in this regard, but
+<code><a href="#NWDbbij8-5">E-9</a></code> in fetch cycle 1 wouldn't make sense. We could just about use the ft
+selector unmodified, if we rewired fetch to decouple PC update from ft read and
+<code>F.T.</code> not to depend on <tt>ft.C</tt>. <code>Sh</code> would
+(awkwardly) route <tt>k</tt> to <code><a href="#NWbbij8-3dwPcF-D">E-8</a></code>, and the ft selector would always
+trigger the k-sequence; it would run spuriously for every fetch for up to 6
+cycles, and would trigger harmless spurious ft reads.
+
+<p>It seems tricky to reuse the ten stage stepper or an MP stepper, because that
+would trigger unwanted instructions and <code><a href="#NWDbbij8-c">C-5</a></code>. The MP A stepper outputs are
+coincidentally connected to <code><a href="#NWDbbij8-E">S-1</a></code>, <code><a href="#NWDbbij8-E">S-2</a></code>, ..., <code><a href="#NWDbbij8-E">S-5</a></code> for
+<code>1-5l</code> (<q>S</q> could mean shift). And, curiously, listen orders do
+clear the listening accumulator using <tt>AC1</tt> not <tt>0C1</tt>, making it
+possible to recover the clobbered value.
+
+<p>But it'd be simpler just to abuse, say, MP D which triggers
+<code>1-5t</code>; it's convenient that the talk orders happen to be wired to
+1-5 there while (say) multiply is on step 0. The <code>Sh</code> sequence would
+roughly look like
+
+<pre>
+    # Sh
+    7. a15:AC1, a13:β01  # Save a15
+    &vellip;
+   12. Decode j
+   13. j.9 triggers MP-D, j.0 triggers MP-E
+   14. Spurious xt order clobbers a15.
+14-20. Shift in parallel with next fetch
+   21. Next instruction executes
+</pre>
+
+<p>And some <code>xt</code> instructions would spuriously invoke some shift
+steps.
+
+<pre>
+    # xt using MP-D or MP-E
+    7. (Execute xt)
+ 7-13. Spurious shift sequence
+   14. Next instruction executes
+</pre>
+
+<p>Because of <code><a href="#NWDbbij8-c">C-5</a></code> we'd get at most 7 cycles from cycle 13, but that works
+out ok with the 20 cycle instruction timing.
+
 <h5>What do they actually do</h5>
 
-<p>The vaguest instructions in LCS48 are the shifts, <code>Sh jk</code> and
-<code>Sh' jk</code>.  DU49 and DEC51 use a different encoding, but we can
-probably assume the same semantics&mdash;they at least clarify that the shifts
-are supposed to be arithmetic.  <code>Sh</code> operates on A<sub>15</sub>
-alone, and <code>Sh'</code> also operates on A<sub>12</sub> to shift
+<p>Despite the encoding difference, we can probably assume DU49 and DEC51 shifts
+have the same semantics&mdash;they at least clarify that the shifts are supposed
+to be arithmetic. <code>Sh</code> operates on A<sub>15</sub> alone, and
+<code>Sh'</code> also operates on A<sub>12</sub> to shift
 A<sub>15</sub>=Sabcdefghij as described in this diagram:
 
 <pre>
   Shift(')    jk     New a12(')   New a15
  Sabcdefghij  01 -> S?????????a  Sbcdefghij0      S = sign digit
-              02 -> S????????ab  Scdefghij00      ? = 0 would make sense, but
+              02 -> S????????ab  Scdefghij00      ? = S would make sense, but
               03 -> S???????abc  Sdefghij000          not specified.
               04 -> S??????abcd  Sefghij0000
               05 -> S?????abcde  Sfghij00000
@@ -3644,31 +3728,6 @@ followed by ±5 which should probably be done last, on A<sub>12</sub>.
 <p>The control is expensive.  Direction and shift amount are not orthogonal,
 and it isn't entirely clear that <code>Sh'</code> can be either.  With the
 crunch for temporaries, it's slower than the clunky
-
-<h4>Decoding jk</h4>
-<p>LCS48 says nothing about decoding jk, and it was gone by DU49. Section II
-says that <q>by the addition of four small units, it became possible to
-speed the process up considerably and have 60 orders</q>, then goes on to
-mention
-<ol>
-<li>Ten-stage stepper
-<li>Order selector
-<li>Function table selector
-</ol>
-<p>So something is certainly missing here.  (P-M discriminators aren't
-mentioned until Section III, and then only in passing, so probably aren't one
-of the <q>four small units</q> added for decode).
-
-<p>The least inventive solution is to throw more hardware at the problem, e.g.
-a P-M discriminator (j) wired to two additional six-stage steppers (k)
-analogous to the FT selector.  Wilder possibilities abound... the complement of
-k=1-5 could drive a counter whose sign says to shift one step, we could somehow
-reuse instruction decode with an additional layer of output gating, etc.
-
-<h4>Implementation</h4>
-<p>Lacking any evidence about plans for decode hardware, this implementation
-uses some additional steppers that control a bunch of shifters.  The control
-for an incremental datapath is too elaborate.
 
 <h2><a name=prog>Program line assignments</a></h2>
 
