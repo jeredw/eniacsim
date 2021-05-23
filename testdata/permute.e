@@ -1,8 +1,13 @@
 set a20 9876543210
+set a15 -9876543210
 
 p 1-1 a20.1i
 s a20.op1 A
 p a20.A 1
+
+p 1-1 a15.1i
+s a15.op1 AS
+p a15.A 3
 
 # reverse digits of a20 preserving sign
 s ad.permute.1 11,1,2,3,4,5,6,7,8,9,10
@@ -27,6 +32,13 @@ p ad.permute.4 2
 p 2 a17.α
 p 1-1 a17.1i
 s a17.op1 α
+
+# duplicate PM digit
+s ad.permute.5 11,11,11,8,7,6,5,4,3,2,1
+p 3 ad.permute.5
+p ad.permute.5 a16.α
+p 1-1 a16.1i
+s a16.op1 α
 
 p i.io 1-1
 b i
