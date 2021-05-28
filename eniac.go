@@ -137,6 +137,7 @@ func main() {
 	printer.Io.MpPrinterDecades = func() string { return mp.PrinterDecades() }
 	for i := 0; i < 20; i++ {
 		printer.Io.Accumulator[i] = accumulator[i]
+		debugger.Io.Accumulator[i] = accumulator[i]
 	}
 
 	go initiate.Run()

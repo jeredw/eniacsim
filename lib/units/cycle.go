@@ -206,12 +206,13 @@ func (u *Cycle) readControls(update chan int) {
 			u.control.mu.Lock()
 			u.control.newMode = parseOp(x, u.control.newMode)
 			u.control.mu.Unlock()
+			update <- 1
 		case <-u.Io.CycleButton.Push:
 			u.control.mu.Lock()
 			u.control.buttonsPending++
 			u.control.mu.Unlock()
+			update <- 1
 		}
-		update <- 1
 	}
 }
 

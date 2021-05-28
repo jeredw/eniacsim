@@ -429,6 +429,9 @@ func findSwitch(name string) (Switch, error) {
 		return nil, fmt.Errorf("missing switch name")
 	}
 	p := strings.SplitN(name, ".", 2)
+	if len(p) != 2 {
+		return nil, fmt.Errorf("invalid switch: %s", name)
+	}
 	sb, err := findSwitchboard(p[0])
 	if err != nil {
 		return nil, fmt.Errorf("invalid switch: %s", err)
@@ -456,6 +459,8 @@ func findSwitchboard(name string) (Switchboard, error) {
 		return cycle, nil
 	case name == "d" || name == "ds":
 		return divsr, nil
+	case name == "debug":
+		return debugger, nil
 	case len(name) > 1 && name[0] == 'f':
 		n, _ := strconv.Atoi(name[1:])
 		if !(n >= 1 && n <= 3) {
