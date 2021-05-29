@@ -6,6 +6,8 @@
 # that increments a20, so a20 is nonzero if decoding works as expected.
 # Incorrect decode outputs are wired to increment a19.
 
+s p.gate63 unplug
+
 p st.i A-1
 p st.cdi A-2
 p st.di 1
@@ -29,7 +31,6 @@ p p.D4o D-5   # 3
 p p.D5o D-5   # 4
 p p.D6o D-5   # 5
 s p.cD 6
-s p.d13s1 1
 
 # For simplicity emit tens digit from a1 and then ones digit from a2.
 p a1.A 1

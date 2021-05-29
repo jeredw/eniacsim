@@ -314,3 +314,9 @@ func mpClearSettings() []IntSwitchSetting {
 		{"6", 5},
 	}
 }
+
+func unplugDecadesSettings() []BoolSwitchSetting {
+	return []BoolSwitchSetting{
+		{"plug", false}, {"unplug", true},
+	}
+}

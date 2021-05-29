@@ -15,6 +15,7 @@ type Mp struct {
 	stepper    [10]mpStepper // Steppers (A-K)
 	decade     [20]mpDecade  // Decade counters (#20 down to #1)
 	associator [8]byte       // Stepper to decade associations
+	unplugDecades bool       // Disassociate all decades from steppers
 
 	mu sync.Mutex
 }
@@ -267,6 +268,9 @@ func (u *Mp) FindSwitch(name string) (Switch, error) {
 	if len(name) == 0 {
 		return nil, fmt.Errorf("invalid switch")
 	}
+	if name == "gate63" {
+		return &BoolSwitch{&u.mu, name, &u.unplugDecades, unplugDecadesSettings()}, nil
+	}
 	var d, s int
 	switch name[0] {
 	case 'a', 'A':
@@ -314,6 +318,9 @@ func (u *Mp) FindSwitch(name string) (Switch, error) {
 
 // Return a bitmask of the decades associated with stepper s.
 func (u *Mp) getAssociatedDecades(s int) uint {
+	if u.unplugDecades {
+		return 0
+	}
 	var ds uint
 	switch s {
 	case 0:
