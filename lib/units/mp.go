@@ -64,7 +64,17 @@ func NewMp() *Mp {
 	decadeIncrement := func(d int) JackHandler {
 		return func(*Jack, int) {
 			u.mu.Lock()
-			u.decade[d].increment()
+			// Increment decade and carry into any associated, more significant decades.
+			ds := u.getAssociatedDecadesForDecade(d)
+			for i := d; i >= 0; i-- {
+				if ds&(1<<i) != 0 {
+					u.decade[i].increment()
+					if !u.decade[i].carry {
+						break
+					}
+					u.decade[i].carry = false
+				}
+			}
 			u.mu.Unlock()
 		}
 	}
@@ -317,7 +327,7 @@ func (u *Mp) FindSwitch(name string) (Switch, error) {
 }
 
 // Return a bitmask of the decades associated with stepper s.
-func (u *Mp) getAssociatedDecades(s int) uint {
+func (u *Mp) getAssociatedDecadesForStepper(s int) uint {
 	if u.unplugDecades {
 		return 0
 	}
@@ -397,9 +407,20 @@ func (u *Mp) getAssociatedDecades(s int) uint {
 	return ds
 }
 
+// Returns a bitmask of associated decades which include decade d.
+func (u *Mp) getAssociatedDecadesForDecade(d int) uint {
+	for s := range u.stepper {
+		ds := u.getAssociatedDecadesForStepper(s)
+		if ds&(1<<d) != 0 {
+			return ds
+		}
+	}
+	return 0
+}
+
 // Returns true if the decades associated with stepper s have saturated.
 func (u *Mp) decadesAtLimit(s int) bool {
-	ds := u.getAssociatedDecades(s)
+	ds := u.getAssociatedDecadesForStepper(s)
 	if ds == 0 {
 		return false
 	}
@@ -414,7 +435,7 @@ func (u *Mp) decadesAtLimit(s int) bool {
 
 // Clears the associated decades for stepper s.
 func (u *Mp) clearDecades(s int) {
-	ds := u.getAssociatedDecades(s)
+	ds := u.getAssociatedDecadesForStepper(s)
 	for i := range u.decade {
 		if ds&(1<<i) != 0 {
 			u.decade[i].val = 0
@@ -425,7 +446,7 @@ func (u *Mp) clearDecades(s int) {
 
 // Increments the associated decades for stepper s.
 func (u *Mp) incrementDecades(s int) {
-	ds := u.getAssociatedDecades(s)
+	ds := u.getAssociatedDecadesForStepper(s)
 	carryIndex := -1
 	for i := 19; i >= 0; i-- {
 		if ds&(1<<i) != 0 {
