@@ -4,6 +4,7 @@ import (
 	"fmt"
 	. "github.com/jeredw/eniacsim/lib"
 	. "github.com/jeredw/eniacsim/lib/units"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -14,6 +15,7 @@ type Debugger struct {
 	assert     [40]*assertion
 	breakpoint [40]*Jack
 	dump       [40]*dump
+	quit       *Jack
 }
 
 type DebuggerConn struct {
@@ -50,6 +52,9 @@ func NewDebugger() *Debugger {
 		})
 		u.assert[i] = assert
 	}
+	u.quit = NewInput("debug.quit", func(*Jack, int) {
+		os.Exit(0)
+	})
 	return u
 }
 
@@ -74,6 +79,9 @@ func (u *Debugger) Stat() string {
 }
 
 func (u *Debugger) FindJack(name string) (*Jack, error) {
+	if name == "quit" {
+		return u.quit, nil
+	}
 	p := strings.Split(name, ".")
 	if len(p) != 2 {
 		return nil, fmt.Errorf("invalid debugger connection %s", name)

@@ -46,6 +46,7 @@ func main() {
 	width := flag.Int("w", 0, "`width` of the simulation window in pixels")
 	testCycles := flag.Int("t", 0, "run for n add cycles and dump state")
 	useWebGui := flag.Bool("W", false, "run web GUI")
+	quiet := flag.Bool("q", false, "don't print a prompt")
 	flag.Parse()
 
 	var ppunch chan string
@@ -158,7 +159,9 @@ func main() {
 
 	sc := bufio.NewScanner(os.Stdin)
 	var prompt = func() {
-		fmt.Printf("%04d> ", cycle.AddCycle()%10000)
+		if !*quiet {
+			fmt.Printf("%04d> ", cycle.AddCycle()%10000)
+		}
 	}
 	prompt()
 	for sc.Scan() {
