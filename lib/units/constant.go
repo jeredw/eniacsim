@@ -16,7 +16,7 @@ import (
 // numbers and their proper signs.  Provision is made to associate certain
 // groups in pairs to form ten digit numbers.  In one addition time the
 // constant transmitter can transmit to some other unit of the ENIAC any group
-// of five or certain groups ot ten digits and the associated sign.
+// of five or certain groups of ten digits and the associated sign.
 //
 // Whenever it is desired to set up new constants on the relays in the constant
 // transmitter, the IBM reader must be programmed to read a new card.  This
