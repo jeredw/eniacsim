@@ -34,6 +34,8 @@ func doCommand(w io.Writer, command string) int {
 		doDumpAll(w)
 	case "f":
 		doFile(w, f)
+	case "g":
+		doSetSwitch(w, "s cy.op co", []string{"s", "cy.op", "co"})
 	case "l":
 		doLoad(w, f)
 	case "n":

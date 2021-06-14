@@ -41,18 +41,19 @@ func main() {
 	}
 	useControl := flag.Bool("c", false, "use a portable control station connected to GPIO pins")
 	demoMode := flag.Bool("D", false, "automatically cycle among perspectives")
-	noGui := flag.Bool("g", false, "run without GUI")
+	_ = flag.Bool("g", false, "deprecated")
 	tkKludge := flag.Bool("K", false, "work around wish memory leaks")
 	width := flag.Int("w", 0, "`width` of the simulation window in pixels")
 	testCycles := flag.Int("t", 0, "run for n add cycles and dump state")
 	useWebGui := flag.Bool("W", false, "run web GUI")
+	useTkGui := flag.Bool("T", false, "run tk GUI")
 	quiet := flag.Bool("q", false, "don't print a prompt")
 	flag.Parse()
 
 	var ppunch chan string
 	if *useWebGui {
 		go webGui()
-	} else if !*noGui {
+	} else if *useTkGui {
 		go gui(*demoMode, *tkKludge, *useControl, *width)
 		ppunch = make(chan string)
 	}
