@@ -8,11 +8,11 @@ import (
 )
 
 type Adapters struct {
-	dp      [40]digitProgram
-	shift   [40]shifter
-	del     [40]deleter
-	sd      [40]specialDigit
-	permute [40]permuter
+	dp      [80]digitProgram
+	shift   [80]shifter
+	del     [80]deleter
+	sd      [80]specialDigit
+	permute [80]permuter
 }
 
 func NewAdapters() *Adapters {
@@ -60,7 +60,7 @@ func NewAdapters() *Adapters {
 }
 
 func (a *Adapters) Reset() {
-	for i := 0; i < 40; i++ {
+	for i := 0; i < 80; i++ {
 		a.dp[i].in.Disconnect()
 		for j := 0; j < 11; j++ {
 			a.dp[i].out[j].Disconnect()
