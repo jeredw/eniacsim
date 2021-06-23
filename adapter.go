@@ -42,7 +42,7 @@ func NewAdapters() *Adapters {
 			a.permute[i].adapt(val)
 		}
 	}
-	for i := 0; i < 40; i++ {
+	for i := 0; i < 80; i++ {
 		a.dp[i].in = NewInput(fmt.Sprintf("ad.dp.i.%d", i+1), dpInput(i))
 		for j := 0; j < 11; j++ {
 			a.dp[i].out[j] = NewOutput(fmt.Sprintf("ad.dp.o.%d.%d", i+1, j+1), nil)
@@ -126,7 +126,7 @@ func (a *Adapters) FindSwitch(name string) (Switch, error) {
 	kind := p[0]
 	id := p[1]
 	i, _ := strconv.Atoi(id)
-	if !(i >= 1 && i <= 40) {
+	if !(i >= 1 && i <= 80) {
 		return nil, fmt.Errorf("invalid id %s", id)
 	}
 	i--
@@ -154,7 +154,7 @@ func (a *Adapters) FindJack(name string) (*Jack, error) {
 	kind := p[1]
 	id := p[2]
 	i, _ := strconv.Atoi(id)
-	if !(i >= 1 && i <= 40) {
+	if !(i >= 1 && i <= 80) {
 		return nil, fmt.Errorf("invalid id %s", id)
 	}
 	i--
