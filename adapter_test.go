@@ -61,9 +61,11 @@ func testDeleter(digits [11]int, digit int) [11]int {
 	return result
 }
 
-func testPermuter(digits [11]int, order [11]int) [11]int {
+func testPermuter(digits [11]int, order string) [11]int {
 	result := [11]int{}
-	p := &permuter{order: order}
+	p := &permuter{}
+	s := &permuteSwitch{ad: p}
+	s.Set(order)
 	p.in = NewInput("i", func(j *Jack, val int) {
 		p.adapt(val)
 	})
@@ -128,8 +130,7 @@ func TestDeleterM1(t *testing.T) {
 }
 
 func TestPermuterIdentity(t *testing.T) {
-	result := testPermuter([11]int{9, 5, 5, 5, 8, 6, 7, 5, 3, 0, 9},
-		[11]int{11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1})
+	result := testPermuter([11]int{9, 5, 5, 5, 8, 6, 7, 5, 3, 0, 9}, "11,10,9,8,7,6,5,4,3,2,1")
 	want := [11]int{9, 5, 5, 5, 8, 6, 7, 5, 3, 0, 9}
 	if result != want {
 		t.Errorf("permute(x,id) = %v; want %v", result, want)
@@ -137,8 +138,7 @@ func TestPermuterIdentity(t *testing.T) {
 }
 
 func TestPermuterReverse(t *testing.T) {
-	result := testPermuter([11]int{9, 5, 5, 5, 8, 6, 7, 5, 3, 0, 9},
-		[11]int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11})
+	result := testPermuter([11]int{9, 5, 5, 5, 8, 6, 7, 5, 3, 0, 9}, "1,2,3,4,5,6,7,8,9,10,11")
 	want := [11]int{9, 0, 3, 5, 7, 6, 8, 5, 5, 5, 9}
 	if result != want {
 		t.Errorf("permute(x,rev) = %v; want %v", result, want)
@@ -146,8 +146,7 @@ func TestPermuterReverse(t *testing.T) {
 }
 
 func TestPermuterDel(t *testing.T) {
-	result := testPermuter([11]int{9, 5, 5, 5, 8, 6, 7, 5, 3, 0, 9},
-		[11]int{0, 10, 0, 8, 0, 6, 0, 4, 0, 2, 0})
+	result := testPermuter([11]int{9, 5, 5, 5, 8, 6, 7, 5, 3, 0, 9}, "0,10,0,8,0,6,0,4,0,2,0")
 	want := [11]int{0, 5, 0, 5, 0, 6, 0, 5, 0, 0, 0}
 	if result != want {
 		t.Errorf("permute(x,rev) = %v; want %v", result, want)
@@ -155,8 +154,7 @@ func TestPermuterDel(t *testing.T) {
 }
 
 func TestPermuterSwap2(t *testing.T) {
-	result := testPermuter([11]int{9, 5, 5, 5, 8, 6, 7, 5, 3, 0, 9},
-		[11]int{11, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9})
+	result := testPermuter([11]int{9, 5, 5, 5, 8, 6, 7, 5, 3, 0, 9}, "11,2,1,4,3,6,5,8,7,10,9")
 	want := [11]int{9, 0, 9, 5, 3, 6, 7, 5, 8, 5, 5}
 	if result != want {
 		t.Errorf("permute(x,swap2s) = %v; want %v", result, want)
@@ -164,8 +162,7 @@ func TestPermuterSwap2(t *testing.T) {
 }
 
 func TestPermuterDup2(t *testing.T) {
-	result := testPermuter([11]int{9, 5, 5, 5, 8, 6, 7, 5, 3, 0, 9},
-		[11]int{11, 10, 10, 9, 9, 8, 8, 7, 7, 6, 6})
+	result := testPermuter([11]int{9, 5, 5, 5, 8, 6, 7, 5, 3, 0, 9}, "11,10,10,9,9,8,8,7,7,6,6")
 	want := [11]int{9, 5, 5, 5, 5, 5, 5, 8, 8, 6, 6}
 	if result != want {
 		t.Errorf("permute(x,dup2) = %v; want %v", result, want)
