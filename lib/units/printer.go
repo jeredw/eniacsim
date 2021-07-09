@@ -54,14 +54,14 @@ func (u *Printer) Print() string {
 	defer u.mu.Unlock()
 
 	mpd := u.Io.MpPrinterDecades()
-	a13 := u.Io.Accumulator[13-1].Value()
-	a14 := u.Io.Accumulator[14-1].Value()
-	a15 := u.Io.Accumulator[15-1].Value()
-	a16 := u.Io.Accumulator[16-1].Value()
-	a17 := u.Io.Accumulator[17-1].Value()
-	a18 := u.Io.Accumulator[18-1].Value()
-	a19 := u.Io.Accumulator[19-1].Value()
-	a20 := u.Io.Accumulator[20-1].Value()
+	a13 := string(u.Io.Accumulator[13-1].Value())
+	a14 := string(u.Io.Accumulator[14-1].Value())
+	a15 := string(u.Io.Accumulator[15-1].Value())
+	a16 := string(u.Io.Accumulator[16-1].Value())
+	a17 := string(u.Io.Accumulator[17-1].Value())
+	a18 := string(u.Io.Accumulator[18-1].Value())
+	a19 := string(u.Io.Accumulator[19-1].Value())
+	a20 := string(u.Io.Accumulator[20-1].Value())
 
 	// digits will contain 80 digits (5 MP decades, a13, a14, a15[lo], a16-a20)
 	// and signs will contain 16 signs for the corresponding 5-digit fields.

@@ -52,6 +52,7 @@ type Accumulator struct {
 
 	unit   int // Unit number 0-19
 	tracer Tracer
+	valueString []byte
 
 	mu sync.Mutex
 }
@@ -62,6 +63,8 @@ func NewAccumulator(unit int) *Accumulator {
 		unit:    unit,
 		figures: 10,
 	}
+	u.valueString = make([]byte, 12)
+	u.updateValueString()
 	u.α = u.newDigitInput("α", opα)
 	u.β = u.newDigitInput("β", opβ)
 	u.γ = u.newDigitInput("γ", opγ)
@@ -500,7 +503,7 @@ func (u *Accumulator) Reset() {
 // Static connections to other non-accumulator units.
 type StaticWiring interface {
 	Sign() string
-	Value() string
+	Value() []byte
 	Clear()
 	SetExternalProgram(int)
 }
@@ -514,19 +517,23 @@ func (u *Accumulator) Sign() string {
 	return "P"
 }
 
-func (u *Accumulator) Value() string {
+func (u *Accumulator) Value() []byte {
 	u.mu.Lock()
 	defer u.mu.Unlock()
-	var s string
+	u.updateValueString()
+	return u.valueString
+}
+
+func (u *Accumulator) updateValueString() {
 	if u.sign {
-		s += "M "
+		u.valueString[0] = 'M'
 	} else {
-		s += "P "
+		u.valueString[0] = 'P'
 	}
-	for i := 9; i >= 0; i-- {
-		s += fmt.Sprintf("%d", u.decade[i])
+	u.valueString[1] = ' '
+	for i := 0; i <= 9; i++ {
+		u.valueString[2+i] = '0' + byte(u.decade[9 - i])
 	}
-	return s
 }
 
 func (u *Accumulator) Clear() {

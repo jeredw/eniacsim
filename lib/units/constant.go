@@ -38,7 +38,7 @@ type Constant struct {
 	k     [10]int
 
 	sign   bool
-	digits []int // Digits for selected constant.  Index 0 is least significant.
+	digits [10]int // Digits for selected constant.  Index 0 is least significant.
 	pos1pp int
 
 	inff1, inff2 [30]bool
@@ -84,7 +84,7 @@ func (u *Constant) AttachTracer(tracer Tracer) {
 	u.tracer = tracer
 	u.tracer.RegisterValueCallback(func() {
 		u.tracer.LogValue("c.sign", 1, BoolToInt64(u.sign))
-		u.tracer.LogValue("c.constant", 40, DigitsToInt64BCD(u.digits))
+		u.tracer.LogValue("c.constant", 40, TenDigitsToInt64BCD(u.digits))
 	})
 }
 
@@ -299,16 +299,17 @@ func (u *Constant) readConstant(i, offset int, field string) {
 }
 
 func (u *Constant) selectConstant(program int) {
+	for i := range u.digits {
+		u.digits[i] = 0
+	}
 	if program >= 24 {
 		u.pos1pp = -1
 		switch u.sel[program] {
 		case selC1 + selLeft:
 			u.sign = u.jSign[0]
-			u.digits = make([]int, 10)
 			copy(u.digits[5:], u.j[5:])
 		case selC1 + selRight:
 			u.sign = u.jSign[1]
-			u.digits = make([]int, 10)
 			if u.sign {
 				for i := 5; i < 10; i++ {
 					u.digits[i] = 9
@@ -316,14 +317,12 @@ func (u *Constant) selectConstant(program int) {
 			}
 			copy(u.digits[:5], u.j[:5])
 		case selC1 + selBoth:
-			u.sign, u.digits = u.jSign[0], u.j[:]
+			u.sign, u.digits = u.jSign[0], u.j
 		case selC2 + selLeft:
 			u.sign = u.kSign[0]
-			u.digits = make([]int, 10)
 			copy(u.digits[5:], u.k[5:])
 		case selC2 + selRight:
 			u.sign = u.kSign[1]
-			u.digits = make([]int, 10)
 			if u.sign {
 				for i := 5; i < 10; i++ {
 					u.digits[i] = 9
@@ -331,19 +330,17 @@ func (u *Constant) selectConstant(program int) {
 			}
 			copy(u.digits[:5], u.k[:5])
 		case selC2 + selBoth:
-			u.sign, u.digits = u.kSign[0], u.k[:]
+			u.sign, u.digits = u.kSign[0], u.k
 		}
 	} else {
 		bank := program / 6
 		switch u.sel[program] {
 		case selC1 + selLeft:
 			u.sign = u.cardSign[2*bank][1]
-			u.digits = make([]int, 10)
 			copy(u.digits[5:], u.cardDigits[2*bank][5:])
 			u.pos1pp = 5
 		case selC1 + selRight:
 			u.sign = u.cardSign[2*bank][0]
-			u.digits = make([]int, 10)
 			if u.sign {
 				for i := 5; i < 10; i++ {
 					u.digits[i] = 9
@@ -352,15 +349,15 @@ func (u *Constant) selectConstant(program int) {
 			copy(u.digits[:5], u.cardDigits[2*bank][:5])
 			u.pos1pp = 0
 		case selC1 + selBoth:
-			u.sign, u.digits, u.pos1pp = u.cardSign[2*bank][0], u.cardDigits[2*bank][:], 0
+			u.sign = u.cardSign[2*bank][0]
+			u.digits = u.cardDigits[2*bank]
+			u.pos1pp = 0
 		case selC2 + selLeft:
 			u.sign = u.cardSign[2*bank+1][1]
-			u.digits = make([]int, 10)
 			copy(u.digits[5:], u.cardDigits[2*bank+1][5:])
 			u.pos1pp = 5
 		case selC2 + selRight:
 			u.sign = u.cardSign[2*bank+1][0]
-			u.digits = make([]int, 10)
 			if u.sign {
 				for i := 5; i < 10; i++ {
 					u.digits[i] = 9
@@ -369,7 +366,9 @@ func (u *Constant) selectConstant(program int) {
 			copy(u.digits[:5], u.cardDigits[2*bank+1][:5])
 			u.pos1pp = 0
 		case selC2 + selBoth:
-			u.sign, u.digits, u.pos1pp = u.cardSign[2*bank+1][0], u.cardDigits[2*bank+1][:], 0
+			u.sign = u.cardSign[2*bank+1][0]
+			u.digits = u.cardDigits[2*bank+1]
+			u.pos1pp = 0
 		}
 	}
 }

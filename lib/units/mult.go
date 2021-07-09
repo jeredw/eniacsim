@@ -404,8 +404,8 @@ func (u *Multiplier) Clock(c Pulse) {
 		}
 	case c&(Onep|Twop|Twopp|Fourp) != 0 && u.stage >= 2 && u.stage < 12:
 		if c&Onep != 0 {
-			u.ier = u.Io.Ier.Value()
-			u.icand = u.Io.Icand.Value()
+			u.ier = string(u.Io.Ier.Value())
+			u.icand = string(u.Io.Icand.Value())
 		}
 		lhpp, rhpp := u.partialProducts(c)
 		u.shiftProducts(lhpp, rhpp)
