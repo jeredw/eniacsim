@@ -5,6 +5,21 @@ import (
 	. "github.com/jeredw/eniacsim/lib"
 )
 
+type ClockedUnits struct {
+	Initiate *Initiate
+	Mp *Mp
+	Divsr *Divsr
+	Multiplier *Multiplier
+	Constant *Constant
+	Ft [3]*Ft
+	Accumulator [20]*Accumulator
+	TenStepper *AuxStepper
+	FtSelector *AuxStepper
+	PmDiscriminator [2]*AuxStepper
+	JkSelector [2]*AuxStepper
+	OrderSelector *OrderSelector
+}
+
 // Cycle simulates ENIAC's clock generation circuits
 type Cycle struct {
 	Io CycleConn // Connections to other units
@@ -18,7 +33,7 @@ type Cycle struct {
 
 // CycleConn defines connections needed for the cycle unit
 type CycleConn struct {
-	Units          []Clocked   // Clocked units
+	Units          *ClockedUnits // Clocked units
 	SelectiveClear func() bool // Clear gate (from initiate unit)
 }
 
@@ -93,6 +108,29 @@ func (u *Cycle) Stat() string {
 	}
 }
 
+func (u *Cycle) sendPulse(pulse Pulse) {
+	u.Io.Units.Initiate.Clock(pulse)
+	u.Io.Units.Mp.Clock(pulse)
+	u.Io.Units.Divsr.Clock(pulse)
+	u.Io.Units.Multiplier.Clock(pulse)
+	u.Io.Units.Constant.Clock(pulse)
+	for i := range u.Io.Units.Ft {
+		u.Io.Units.Ft[i].Clock(pulse)
+	}
+	u.Io.Units.TenStepper.Clock(pulse)
+	for i := range u.Io.Units.Accumulator {
+		u.Io.Units.Accumulator[i].Clock(pulse)
+	}
+	u.Io.Units.FtSelector.Clock(pulse)
+	for i := range u.Io.Units.PmDiscriminator {
+		u.Io.Units.PmDiscriminator[i].Clock(pulse)
+	}
+	for i := range u.Io.Units.JkSelector {
+		u.Io.Units.JkSelector[i].Clock(pulse)
+	}
+	u.Io.Units.OrderSelector.Clock(pulse)
+}
+
 func (u *Cycle) StepOnePulse() {
 	if u.mode == Stopped {
 		return
@@ -102,19 +140,13 @@ func (u *Cycle) StepOnePulse() {
 		//u.tracer.LogValue("cyc.pulse", 6, int64(u.phase/2))
 	}
 	if u.phase == 32 && u.Io.SelectiveClear() {
-		for _, c := range u.Io.Units {
-			c.Clock(Scg)
-		}
+		u.sendPulse(Scg)
 	} else if phases[u.phase] != 0 {
-		for _, c := range u.Io.Units {
-			c.Clock(phases[u.phase])
-		}
+		u.sendPulse(phases[u.phase])
 	}
 	u.phase++
 	if phases[u.phase] != 0 {
-		for _, c := range u.Io.Units {
-			c.Clock(phases[u.phase])
-		}
+		u.sendPulse(phases[u.phase])
 	}
 	u.phase++
 	// Count if add cycle boundary

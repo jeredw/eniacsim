@@ -97,13 +97,13 @@ func doButton(w io.Writer, f []string) {
 	}
 	switch f[1] {
 	case "c":
-		initiate.PushClearButton()
+		u.Initiate.PushClearButton()
 	case "i":
-		initiate.PushInitButton()
+		u.Initiate.PushInitButton()
 	case "p":
 		cycle.Step()
 	case "r":
-		initiate.PushReadButton()
+		u.Initiate.PushReadButton()
 	}
 }
 
@@ -119,46 +119,46 @@ func doDump(w io.Writer, f []string) {
 			fmt.Fprintf(w, "Invalid accumulator %s\n", f[1][1:])
 			return
 		}
-		fmt.Fprintln(w, accumulator[unit-1].Stat())
+		fmt.Fprintln(w, u.Accumulator[unit-1].Stat())
 	case 'b':
 		fmt.Fprintln(w, debugger.Stat())
 	case 'c':
-		fmt.Fprintln(w, constant.Stat())
+		fmt.Fprintln(w, u.Constant.Stat())
 	case 'd':
-		fmt.Fprintln(w, divsr.Stat2())
+		fmt.Fprintln(w, u.Divsr.Stat2())
 	case 'f':
 		unit, _ := strconv.Atoi(f[1][1:])
 		if !(unit >= 1 && unit <= 3) {
 			fmt.Fprintf(w, "Invalid function table %s\n", f[1][1:])
 			return
 		}
-		fmt.Fprintln(w, ft[unit-1].Stat())
+		fmt.Fprintln(w, u.Ft[unit-1].Stat())
 	case 'i':
-		fmt.Fprintln(w, initiate.Stat())
+		fmt.Fprintln(w, u.Initiate.Stat())
 	case 'm':
-		fmt.Fprintln(w, multiplier.Stat())
+		fmt.Fprintln(w, u.Multiplier.Stat())
 	case 'p':
-		fmt.Fprintln(w, mp.Stat())
+		fmt.Fprintln(w, u.Mp.Stat())
 	}
 }
 
 func doDumpAll(w io.Writer) {
 	fmt.Fprintln(w)
-	fmt.Fprintln(w, initiate.Stat())
-	fmt.Fprintln(w, mp.Stat())
+	fmt.Fprintln(w, u.Initiate.Stat())
+	fmt.Fprintln(w, u.Mp.Stat())
 	header := "      9876543210 9876543210 r 123456789012"
 	fmt.Fprintf(w, "%s   %s\n", header, header)
 	for i := 0; i < 20; i += 2 {
-		ai := accumulator[i].Stat()
-		ai1 := accumulator[i+1].Stat()
+		ai := u.Accumulator[i].Stat()
+		ai1 := u.Accumulator[i+1].Stat()
 		fmt.Fprintf(w, "a%-2d %s   a%-2d %s\n", i+1, ai, i+2, ai1)
 	}
-	fmt.Fprintln(w, divsr.Stat2())
-	fmt.Fprintln(w, multiplier.Stat())
+	fmt.Fprintln(w, u.Divsr.Stat2())
+	fmt.Fprintln(w, u.Multiplier.Stat())
 	for i := 0; i < 3; i++ {
-		fmt.Fprintln(w, ft[i].Stat())
+		fmt.Fprintln(w, u.Ft[i].Stat())
 	}
-	fmt.Fprintln(w, constant.Stat())
+	fmt.Fprintln(w, u.Constant.Stat())
 	fmt.Fprintln(w)
 }
 
@@ -174,14 +174,14 @@ func doFile(w io.Writer, f []string) {
 			fmt.Fprintf(w, "Card reader open: %s\n", err)
 			return
 		}
-		initiate.SetCardScanner(bufio.NewScanner(fp))
+		u.Initiate.SetCardScanner(bufio.NewScanner(fp))
 	case "p":
 		fp, err := os.Create(f[2])
 		if err != nil {
 			fmt.Fprintf(w, "Card punch open: %s\n", err)
 			return
 		}
-		initiate.SetPunchWriter(bufio.NewWriter(fp))
+		u.Initiate.SetPunchWriter(bufio.NewWriter(fp))
 	}
 }
 
@@ -298,11 +298,11 @@ func findPlugboard(name string) (Plugboard, error) {
 		if !(n >= 1 && n <= 20) {
 			return nil, fmt.Errorf("invalid accumulator %s", name[1:])
 		}
-		return accumulator[n-1], nil
+		return u.Accumulator[n-1], nil
 	case name == "c":
-		return constant, nil
+		return u.Constant, nil
 	case name == "d":
-		return divsr, nil
+		return u.Divsr, nil
 	case name == "debug":
 		return debugger, nil
 	case len(name) > 1 && name[0] == 'f':
@@ -310,29 +310,29 @@ func findPlugboard(name string) (Plugboard, error) {
 		if !(n >= 1 && n <= 3) {
 			return nil, fmt.Errorf("invalid function table %s", name[1:])
 		}
-		return ft[n-1], nil
+		return u.Ft[n-1], nil
 	case name == "i":
-		return initiate, nil
+		return u.Initiate, nil
 	case name == "m":
-		return multiplier, nil
+		return u.Multiplier, nil
 	case name == "os":
-		return orderSelector, nil
+		return u.OrderSelector, nil
 	case name == "p":
-		return mp, nil
+		return u.Mp, nil
 	case name == "pa":
 		return pulseAmps, nil
 	case name == "sft":
-		return ftSelector, nil
+		return u.FtSelector, nil
 	case name == "sjk1":
-		return jkSelector[0], nil
+		return u.JkSelector[0], nil
 	case name == "sjk2":
-		return jkSelector[1], nil
+		return u.JkSelector[1], nil
 	case name == "st":
-		return tenStepper, nil
+		return u.TenStepper, nil
 	case name == "pm1":
-		return pmDiscriminator[0], nil
+		return u.PmDiscriminator[0], nil
 	case name == "pm2":
-		return pmDiscriminator[1], nil
+		return u.PmDiscriminator[1], nil
 	case isTrayName(name):
 		return trays, nil
 	}
@@ -379,13 +379,13 @@ func doReset(w io.Writer, f []string) {
 			fmt.Fprintf(w, "Invalid accumulator %s", p[1])
 			return
 		}
-		accumulator[unit-1].Reset()
+		u.Accumulator[unit-1].Reset()
 	case "b":
 		debugger.Reset()
 	case "c":
-		constant.Reset()
+		u.Constant.Reset()
 	case "d":
-		divsr.Reset()
+		u.Divsr.Reset()
 	case "f":
 		if len(p) != 2 {
 			fmt.Fprintln(w, "Function table reset syntax: r f.unit")
@@ -396,48 +396,48 @@ func doReset(w io.Writer, f []string) {
 			fmt.Fprintln(w, "Invalid function table")
 			return
 		}
-		ft[unit-1].Reset()
+		u.Ft[unit-1].Reset()
 	case "i":
-		initiate.Reset()
+		u.Initiate.Reset()
 	case "m":
-		multiplier.Reset()
+		u.Multiplier.Reset()
 	case "os":
-		orderSelector.Reset()
+		u.OrderSelector.Reset()
 	case "p":
-		mp.Reset()
+		u.Mp.Reset()
 	case "pm1":
-		pmDiscriminator[0].Reset()
+		u.PmDiscriminator[0].Reset()
 	case "pm2":
-		pmDiscriminator[1].Reset()
+		u.PmDiscriminator[1].Reset()
 	case "st":
-		tenStepper.Reset()
+		u.TenStepper.Reset()
 	case "sft":
-		ftSelector.Reset()
+		u.FtSelector.Reset()
 	case "sjk1":
-		jkSelector[0].Reset()
+		u.JkSelector[0].Reset()
 	case "sjk2":
-		jkSelector[1].Reset()
+		u.JkSelector[1].Reset()
 	}
 }
 
 func doResetAll(w io.Writer) {
-	initiate.Reset()
+	u.Initiate.Reset()
 	debugger.Reset()
-	mp.Reset()
-	ft[0].Reset()
-	ft[1].Reset()
-	ft[2].Reset()
+	u.Mp.Reset()
+	u.Ft[0].Reset()
+	u.Ft[1].Reset()
+	u.Ft[2].Reset()
 	for i := 0; i < 20; i++ {
-		accumulator[i].Reset()
+		u.Accumulator[i].Reset()
 	}
-	divsr.Reset()
-	multiplier.Reset()
-	constant.Reset()
+	u.Divsr.Reset()
+	u.Multiplier.Reset()
+	u.Constant.Reset()
 	printer.Reset()
 	adapters.Reset()
 	trays.Reset()
-	tenStepper.Reset()
-	orderSelector.Reset()
+	u.TenStepper.Reset()
+	u.OrderSelector.Reset()
 }
 
 func findSwitch(name string) (Switch, error) {
@@ -468,13 +468,13 @@ func findSwitchboard(name string) (Switchboard, error) {
 		if !(n >= 1 && n <= 20) {
 			return nil, fmt.Errorf("invalid accumulator %s", name[1:])
 		}
-		return accumulator[n-1], nil
+		return u.Accumulator[n-1], nil
 	case name == "c":
-		return constant, nil
+		return u.Constant, nil
 	case name == "cy":
 		return cycle, nil
 	case name == "d" || name == "ds":
-		return divsr, nil
+		return u.Divsr, nil
 	case name == "debug":
 		return debugger, nil
 	case len(name) > 1 && name[0] == 'f':
@@ -482,11 +482,11 @@ func findSwitchboard(name string) (Switchboard, error) {
 		if !(n >= 1 && n <= 3) {
 			return nil, fmt.Errorf("invalid function table %s", name[1:])
 		}
-		return ft[n-1], nil
+		return u.Ft[n-1], nil
 	case name == "m":
-		return multiplier, nil
+		return u.Multiplier, nil
 	case name == "p":
-		return mp, nil
+		return u.Mp, nil
 	case name == "pr":
 		return printer, nil
 	}
@@ -538,7 +538,7 @@ func doSet(w io.Writer, f []string) {
 		fmt.Fprintf(w, "Invalid accumulator value %s\n", err)
 		return
 	}
-	accumulator[unit-1].Set(value)
+	u.Accumulator[unit-1].Set(value)
 }
 
 func doTraceStart(w io.Writer, f []string) {
@@ -553,12 +553,12 @@ func doTraceStart(w io.Writer, f []string) {
 		return
 	}
 	waves = NewWavedump(pulses, regs)
-	for i := range accumulator {
-		accumulator[i].AttachTracer(waves)
+	for i := range u.Accumulator {
+		u.Accumulator[i].AttachTracer(waves)
 	}
-	multiplier.AttachTracer(waves)
-	constant.AttachTracer(waves)
-	divsr.AttachTracer(waves)
+	u.Multiplier.AttachTracer(waves)
+	u.Constant.AttachTracer(waves)
+	u.Divsr.AttachTracer(waves)
 	cycle.AttachTracer(waves)
 }
 
@@ -587,7 +587,7 @@ func doInterconnect(f1 string, f2 string, p1 []string, p2 []string) (bool, error
 		len(p2) == 2 && p2[0][0] == 'a' && len(p2[1]) >= 2 &&
 		(p1[1][:2] == "il" || p1[1][:2] == "ir") &&
 		(p2[1][:2] == "il" || p2[1][:2] == "ir") {
-		return true, units.Interconnect(accumulator, p1, p2)
+		return true, units.Interconnect(u.Accumulator, p1, p2)
 	}
 	if handled, err := doMultiplierInterconnect(f1, f2); handled {
 		return true, err
@@ -606,13 +606,13 @@ func doMultiplierInterconnect(f1 string, f2 string) (bool, error) {
 	var conn *units.StaticWiring
 	switch f1 {
 	case "m.l", "m.L":
-		conn = &multiplier.Io.Lhpp
+		conn = &u.Multiplier.Io.Lhpp
 	case "m.r", "m.R":
-		conn = &multiplier.Io.Rhpp
+		conn = &u.Multiplier.Io.Rhpp
 	case "m.ier":
-		conn = &multiplier.Io.Ier
+		conn = &u.Multiplier.Io.Ier
 	case "m.icand":
-		conn = &multiplier.Io.Icand
+		conn = &u.Multiplier.Io.Icand
 	}
 	if conn != nil {
 		if len(f2) < 2 || !strings.HasPrefix(f2, "a") {
@@ -622,7 +622,7 @@ func doMultiplierInterconnect(f1 string, f2 string) (bool, error) {
 		if !(unit >= 1 && unit <= 20) {
 			return true, fmt.Errorf("invalid accumulator")
 		}
-		*conn = accumulator[unit-1]
+		*conn = u.Accumulator[unit-1]
 		return true, nil
 	}
 	return false, nil
@@ -636,13 +636,13 @@ func doDivsrInterconnect(f1 string, f2 string) (bool, error) {
 	var conn *units.StaticWiring
 	switch f1 {
 	case "d.quotient":
-		conn = &divsr.Io.Quotient
+		conn = &u.Divsr.Io.Quotient
 	case "d.numerator":
-		conn = &divsr.Io.Numerator
+		conn = &u.Divsr.Io.Numerator
 	case "d.denominator":
-		conn = &divsr.Io.Denominator
+		conn = &u.Divsr.Io.Denominator
 	case "d.shift":
-		conn = &divsr.Io.Shift
+		conn = &u.Divsr.Io.Shift
 	}
 	if conn != nil {
 		if len(f2) < 2 || !strings.HasPrefix(f2, "a") {
@@ -652,7 +652,7 @@ func doDivsrInterconnect(f1 string, f2 string) (bool, error) {
 		if !(unit >= 1 && unit <= 20) {
 			return true, fmt.Errorf("invalid accumulator")
 		}
-		*conn = accumulator[unit-1]
+		*conn = u.Accumulator[unit-1]
 		return true, nil
 	}
 	return false, nil

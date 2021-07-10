@@ -622,7 +622,7 @@ func innergui(demoMode, tkKludge, useControl bool) {
 		}
 		needupdate = false
 		// Initiating unit
-		s := initiate.Stat()
+		s := u.Initiate.Stat()
 		if s != guistate.lastinit {
 			for i, f := range s[:6] {
 				nname = fmt.Sprintf(".initc%d", i+1)
@@ -664,7 +664,7 @@ func innergui(demoMode, tkKludge, useControl bool) {
 		}
 		// Accumulators
 		for i := 1; i <= 20; i++ {
-			s = accumulator[i-1].Stat()
+			s = u.Accumulator[i-1].Stat()
 			if s != guistate.lastacc[i-1] {
 				p := strings.Split(s, " ")
 				if p[0][0] == 'P' {
@@ -699,7 +699,7 @@ func innergui(demoMode, tkKludge, useControl bool) {
 			}
 		}
 		// Divider/Square Rooter
-		s = divsr.Stat()
+		s = u.Divsr.Stat()
 		if s != guistate.lastdiv {
 			p := strings.Split(s, " ")
 			plring, _ := strconv.Atoi(p[0])
@@ -748,7 +748,7 @@ func innergui(demoMode, tkKludge, useControl bool) {
 			needupdate = true
 		}
 		// Multiplier
-		s = multiplier.Stat()
+		s = u.Multiplier.Stat()
 		if s != guistate.lastmult {
 			p := strings.Split(s, " ")
 			stage, _ := strconv.Atoi(p[0])
@@ -769,7 +769,7 @@ func innergui(demoMode, tkKludge, useControl bool) {
 			needupdate = true
 		}
 		// Master programmer
-		s = mp.Stat()
+		s = u.Mp.Stat()
 		if s != guistate.lastmp {
 			for i := 0; i < 10; i++ {
 				d := int(s[i]) - int('0')
@@ -800,7 +800,7 @@ func innergui(demoMode, tkKludge, useControl bool) {
 		}
 		// Function tables
 		for i := 0; i < 3; i++ {
-			s = ft[i].Stat()
+			s = u.Ft[i].Stat()
 			if s != guistate.lastft[i] {
 				p := strings.Split(s, " ")
 				for j, f := range p[0] {
@@ -826,7 +826,7 @@ func innergui(demoMode, tkKludge, useControl bool) {
 			}
 		}
 		// Constant Transmitter
-		s = constant.Stat()
+		s = u.Constant.Stat()
 		if s != guistate.lastcons {
 			for i, f := range s {
 				row := i / 10
@@ -846,7 +846,7 @@ func innergui(demoMode, tkKludge, useControl bool) {
 			needupdate = true
 		}
 	}
-	initiate.Io.Ppunch <- "exit"
+	u.Initiate.Io.Ppunch <- "exit"
 	fmt.Fprintln(gpipe, "exit")
 	gpipe.Close()
 	cpipe.Close()
@@ -971,7 +971,7 @@ func prngui(gpipe io.Writer) {
 		fmt.Fprintf(gpipe, "place .outdeck -x %d -y %d\n", width-570, height-30)
 	}
 	for l := 0; ; l++ {
-		s := <-initiate.Io.Ppunch
+		s := <-u.Initiate.Io.Ppunch
 		if s == "exit" {
 			return
 		}

@@ -3,11 +3,6 @@ package lib
 // Pulse is a signal sent on the synchronizing trunk.
 type Pulse int
 
-// Clocked units receive and respond to pulses on the synchronizing trunk.
-type Clocked interface {
-	Clock(Pulse)
-}
-
 // Kinds of pulses (most descriptions from Technical Manual Part 2, Table 3-1.)
 const (
 	// A program pulse used to control tbe activity of the various units of the

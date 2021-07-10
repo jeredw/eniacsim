@@ -14,19 +14,8 @@ import (
 )
 
 var cycle *units.Cycle
-var initiate *units.Initiate
-var mp *units.Mp
-var divsr *units.Divsr
-var multiplier *units.Multiplier
-var constant *units.Constant
+var u *units.ClockedUnits
 var printer *units.Printer
-var ft [3]*units.Ft
-var accumulator [20]*units.Accumulator
-var tenStepper *units.AuxStepper
-var ftSelector *units.AuxStepper
-var pmDiscriminator [2]*units.AuxStepper
-var jkSelector [2]*units.AuxStepper
-var orderSelector *units.OrderSelector
 var debugger *Debugger
 var trays *Trays
 var adapters *Adapters
@@ -70,69 +59,55 @@ func main() {
 	pulseAmps = NewPulseAmps()
 	debugger = NewDebugger()
 	cycle = units.NewCycle(units.CycleConn{})
-	initiate = units.NewInitiate(units.InitiateConn{
+	u = &units.ClockedUnits{}
+	u.Initiate = units.NewInitiate(units.InitiateConn{
 		Ppunch: ppunch,
 	})
-	mp = units.NewMp()
-	divsr = units.NewDivsr()
-	multiplier = units.NewMultiplier()
-	constant = units.NewConstant()
+	u.Mp = units.NewMp()
+	u.Divsr = units.NewDivsr()
+	u.Multiplier = units.NewMultiplier()
+	u.Constant = units.NewConstant()
 	printer = units.NewPrinter()
 	for i := 0; i < 3; i++ {
-		ft[i] = units.NewFt(i)
+		u.Ft[i] = units.NewFt(i)
 	}
 	for i := 0; i < 20; i++ {
-		accumulator[i] = units.NewAccumulator(i)
+		u.Accumulator[i] = units.NewAccumulator(i)
 	}
-	tenStepper = units.NewAuxStepper("st", 10)
-	ftSelector = units.NewAuxStepper("sft", 6)
-	orderSelector = units.NewOrderSelector()
+	u.TenStepper = units.NewAuxStepper("st", 10)
+	u.FtSelector = units.NewAuxStepper("sft", 6)
+	u.OrderSelector = units.NewOrderSelector()
 	for i := 0; i < 2; i++ {
-		pmDiscriminator[i] = units.NewAuxStepper(fmt.Sprintf("pm%d", i+1), 2)
+		u.PmDiscriminator[i] = units.NewAuxStepper(fmt.Sprintf("pm%d", i+1), 2)
 	}
 	for i := 0; i < 2; i++ {
-		jkSelector[i] = units.NewAuxStepper(fmt.Sprintf("sjk%d", i+1), 6)
+		u.JkSelector[i] = units.NewAuxStepper(fmt.Sprintf("sjk%d", i+1), 6)
 	}
 
-	clockedUnits := []Clocked{
-		initiate, mp, divsr, multiplier, constant,
-		// Extra units for 60-order code in early 1948
-		tenStepper, ftSelector, orderSelector,
-	}
-	clearedUnits := []Cleared{mp, divsr}
+	clearedUnits := []Cleared{u.Mp, u.Divsr}
 	for i := 0; i < 20; i++ {
-		clockedUnits = append(clockedUnits, accumulator[i])
-		clearedUnits = append(clearedUnits, accumulator[i])
-	}
-	for i := 0; i < 3; i++ {
-		clockedUnits = append(clockedUnits, ft[i])
-	}
-	for i := 0; i < 2; i++ {
-		clockedUnits = append(clockedUnits, pmDiscriminator[i])
-	}
-	for i := 0; i < 2; i++ {
-		clockedUnits = append(clockedUnits, jkSelector[i])
+		clearedUnits = append(clearedUnits, u.Accumulator[i])
 	}
 
-	cycle.Io.Units = clockedUnits
-	cycle.Io.SelectiveClear = func() bool { return initiate.SelectiveClear() }
-	initiate.Io.Units = clearedUnits
-	initiate.Io.AddCycle = func() int { return cycle.AddCycle }
-	initiate.Io.Stepping = func() bool { return cycle.Stepping() }
-	initiate.Io.ReadCard = func(s string) { constant.ReadCard(s) }
-	initiate.Io.Print = func() string { return printer.Print() }
-	divsr.Io.Quotient = accumulator[2-1]
-	divsr.Io.Numerator = accumulator[3-1]
-	divsr.Io.Denominator = accumulator[5-1]
-	divsr.Io.Shift = accumulator[7-1]
-	multiplier.Io.Ier = accumulator[9-1]
-	multiplier.Io.Icand = accumulator[10-1]
-	multiplier.Io.Lhpp = accumulator[11-1]
-	multiplier.Io.Rhpp = accumulator[13-1]
-	printer.Io.MpPrinterDecades = func() string { return mp.PrinterDecades() }
+	cycle.Io.Units = u
+	cycle.Io.SelectiveClear = func() bool { return u.Initiate.SelectiveClear() }
+	u.Initiate.Io.Units = clearedUnits
+	u.Initiate.Io.AddCycle = func() int { return cycle.AddCycle }
+	u.Initiate.Io.Stepping = func() bool { return cycle.Stepping() }
+	u.Initiate.Io.ReadCard = func(s string) { u.Constant.ReadCard(s) }
+	u.Initiate.Io.Print = func() string { return printer.Print() }
+	u.Divsr.Io.Quotient = u.Accumulator[2-1]
+	u.Divsr.Io.Numerator = u.Accumulator[3-1]
+	u.Divsr.Io.Denominator = u.Accumulator[5-1]
+	u.Divsr.Io.Shift = u.Accumulator[7-1]
+	u.Multiplier.Io.Ier = u.Accumulator[9-1]
+	u.Multiplier.Io.Icand = u.Accumulator[10-1]
+	u.Multiplier.Io.Lhpp = u.Accumulator[11-1]
+	u.Multiplier.Io.Rhpp = u.Accumulator[13-1]
+	printer.Io.MpPrinterDecades = func() string { return u.Mp.PrinterDecades() }
 	for i := 0; i < 20; i++ {
-		printer.Io.Accumulator[i] = accumulator[i]
-		debugger.Io.Accumulator[i] = accumulator[i]
+		printer.Io.Accumulator[i] = u.Accumulator[i]
+		debugger.Io.Accumulator[i] = u.Accumulator[i]
 	}
 
 	if flag.NArg() >= 1 {

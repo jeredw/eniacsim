@@ -46,19 +46,19 @@ func streamEvents(w http.ResponseWriter, req *http.Request) {
 
 	status := make(map[string]json.RawMessage)
 	for {
-		status["initiate"], _ = json.Marshal(initiate.Stat())
+		status["initiate"], _ = json.Marshal(u.Initiate.Stat())
 		status["cycling"], _ = json.Marshal(cycle.Stat())
-		status["mp"] = mp.State()
-		ftState := []json.RawMessage{ft[0].State(), ft[1].State(), ft[2].State()}
+		status["mp"] = u.Mp.State()
+		ftState := []json.RawMessage{u.Ft[0].State(), u.Ft[1].State(), u.Ft[2].State()}
 		status["ft"], _ = json.Marshal(ftState)
 		accState := [20]json.RawMessage{}
-		for i := range accumulator {
-			accState[i] = accumulator[i].State()
+		for i := range u.Accumulator {
+			accState[i] = u.Accumulator[i].State()
 		}
 		status["acc"], _ = json.Marshal(accState)
-		status["div"] = divsr.State()
-		status["mult"] = multiplier.State()
-		status["constant"], _ = json.Marshal(constant.Stat())
+		status["div"] = u.Divsr.State()
+		status["mult"] = u.Multiplier.State()
+		status["constant"], _ = json.Marshal(u.Constant.Stat())
 		message, _ := json.Marshal(status)
 		fmt.Fprintf(w, "data: %s\n\n", message)
 		time.Sleep(100 * time.Millisecond)
