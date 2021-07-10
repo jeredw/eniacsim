@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"os"
 
-	"net/http"
-	_ "net/http/pprof"
+	//"net/http"
+	//_ "net/http/pprof"
 
 	. "github.com/jeredw/eniacsim/lib"
 	"github.com/jeredw/eniacsim/lib/units"
@@ -50,9 +50,9 @@ func main() {
 		go ctlstation()
 	}
 
-	go func() {
-		fmt.Println(http.ListenAndServe("localhost:6060", nil))
-	}()
+	//go func() {
+	//	fmt.Println(http.ListenAndServe("localhost:6060", nil))
+	//}()
 
 	trays = NewTrays()
 	adapters = NewAdapters()
@@ -92,7 +92,7 @@ func main() {
 	cycle.Io.Units = u
 	cycle.Io.SelectiveClear = func() bool { return u.Initiate.SelectiveClear() }
 	u.Initiate.Io.Units = clearedUnits
-	u.Initiate.Io.AddCycle = func() int { return cycle.AddCycle }
+	u.Initiate.Io.AddCycle = func() int64 { return cycle.AddCycle }
 	u.Initiate.Io.Stepping = func() bool { return cycle.Stepping() }
 	u.Initiate.Io.ReadCard = func(s string) { u.Constant.ReadCard(s) }
 	u.Initiate.Io.Print = func() string { return printer.Print() }

@@ -13,9 +13,9 @@ type Initiate struct {
 
 	gate66, gate69                  int
 	prff, printPhase1, printPhase2  bool
-	lastPrint                       int
+	lastPrint                       int64
 	rdff, rdilock, rdsync, rdfinish bool
-	lastCardRead                    int
+	lastCardRead                    int64
 	jack                            [18]*Jack
 	clrff                           [6]bool
 
@@ -31,7 +31,7 @@ type InitiateConn struct {
 	ReadCard   func(string)
 	Print      func() string
 
-	AddCycle func() int  // Return the current add cycle
+	AddCycle func() int64  // Return the current add cycle
 	Stepping func() bool // Return true iff single stepping
 }
 

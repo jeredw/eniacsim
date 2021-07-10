@@ -1,6 +1,6 @@
 package lib
 
-func MsToAddCycles(ms int) int {
+func MsToAddCycles(ms int64) int64 {
 	return ms * 5000 / 1000
 }
 

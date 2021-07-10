@@ -26,7 +26,7 @@ type Cycle struct {
 
 	mode       int
 
-	AddCycle   int
+	AddCycle   int64
 	phase      int
 	tracer     Tracer
 }
@@ -161,7 +161,7 @@ func (u *Cycle) StepOnePulse() {
 
 func (u *Cycle) StepNAddCycles(n int) {
 	start := u.AddCycle;
-	for u.AddCycle < start + n && u.mode != Stopped {
+	for u.AddCycle < start + int64(n) && u.mode != Stopped {
 		u.StepOnePulse()
 	}
 }

@@ -15,6 +15,9 @@ import (
 	"github.com/jeredw/eniacsim/lib/units"
 )
 
+var perfCycles int64
+var perfTime time.Duration
+
 func doCommand(w io.Writer, command string) int {
 	f := strings.Fields(command)
 	for i, s := range f {
@@ -36,31 +39,16 @@ func doCommand(w io.Writer, command string) int {
 	case "f":
 		doFile(w, f)
 	case "g":
-		doSetSwitch(w, "s cy.op co", []string{"s", "cy.op", "co"})
-		interrupt := make(chan os.Signal, 1)
-		done := make(chan int)
-		signal.Notify(interrupt, os.Interrupt)
-		go func() {
-			for {
-				select {
-				case <-interrupt:
-					done <- 1
-					return
-				default:
-					cycle.StepNAddCycles(10000)
-					if cycle.Stopped() {
-						done <- 1
-						return
-					}
-				}
-			}
-		}()
-		<-done
+		doRun(w, f)
 	case "l":
 		doLoad(w, f)
 	case "n":
 		cycle.Step()
 		doDumpAll(w)
+	case "perf":
+		rate := float64(perfCycles) / perfTime.Seconds()
+		speedup := rate / 5000.0
+		fmt.Printf("%.2f MHz (%.2fx realtime; %d cycles, %v)\n", rate/1e6, speedup, perfCycles, perfTime)
 	case "p":
 		doPlug(w, command, f)
 	case "p?":
@@ -183,6 +171,37 @@ func doFile(w io.Writer, f []string) {
 		}
 		u.Initiate.SetPunchWriter(bufio.NewWriter(fp))
 	}
+}
+
+func doRun(w io.Writer, f []string) {
+	doSetSwitch(w, "s cy.op co", []string{"s", "cy.op", "co"})
+	interrupt := make(chan os.Signal, 1)
+	done := make(chan int)
+	signal.Notify(interrupt, os.Interrupt)
+	var elapsedTime time.Duration
+	var elapsedCycles int64
+	go func() {
+		startTime := time.Now()
+		startCycle := cycle.AddCycle
+	loop:
+		for {
+			select {
+			case <-interrupt:
+				break loop
+			default:
+				cycle.StepNAddCycles(10000)
+				if cycle.Stopped() {
+					break loop
+				}
+			}
+		}
+		elapsedTime = time.Since(startTime)
+		elapsedCycles = cycle.AddCycle - startCycle
+		done <- 1
+	}()
+	<-done
+	perfCycles += elapsedCycles
+	perfTime += elapsedTime
 }
 
 func doLoad(w io.Writer, f []string) {
