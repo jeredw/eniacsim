@@ -18,29 +18,40 @@ type Adapters struct {
 func NewAdapters() *Adapters {
 	a := &Adapters{}
 	dpInput := func(i int) JackHandler {
+		adapter := &a.dp[i]
 		return func(j *Jack, val int) {
-			a.dp[i].adapt(val)
+			adapter.adapt(val)
 		}
 	}
 	shiftInput := func(i int) JackHandler {
+		adapter := &a.shift[i]
 		return func(j *Jack, val int) {
-			a.shift[i].adapt(val)
+			if !adapter.out.Disabled {
+				adapter.adapt(val)
+			}
 		}
 	}
 	delInput := func(i int) JackHandler {
+		adapter := &a.del[i]
 		return func(j *Jack, val int) {
-			a.del[i].adapt(val)
+			if !adapter.out.Disabled {
+				adapter.adapt(val)
+			}
 		}
 	}
 	sdInput := func(i int) JackHandler {
+		adapter := &a.sd[i]
 		return func(j *Jack, val int) {
-			a.sd[i].adapt(val)
+			if !adapter.out.Disabled {
+				adapter.adapt(val)
+			}
 		}
 	}
 	permuteInput := func(i int) JackHandler {
+		adapter := &a.permute[i]
 		return func(j *Jack, val int) {
-			if !a.permute[i].out.Disabled {
-				a.permute[i].adapt(val)
+			if !adapter.out.Disabled {
+				adapter.adapt(adapter, val)
 			}
 		}
 	}
@@ -126,7 +137,10 @@ func (s *permuteSwitch) Set(value string) error {
 		}
 	}
 	if nonSwappedLines == 11 {
+		s.ad.adapt = (*permuter).adaptWithMask
 		s.ad.mask = mask
+	} else {
+		s.ad.adapt = (*permuter).adaptWithShifts
 	}
 	return nil
 }
@@ -295,30 +309,37 @@ type permuter struct {
 	order [11]int
 	shift [11]uint // used to compute permuted value w/o branches
 	mask  int      // optimization for permuters that just delete digits
+
+	adapt func(*permuter, int)
 }
 
-func (a *permuter) adapt(val int) {
-	if a.mask == 0 {
-		s := val << 11
-		// Unrolling this loop makes this function about 2x faster when running
-		// chessvm.  The go compiler doesn't do this so do it manually.
-		//for i := 0; i < 11; i++ {
-		//	permuted |= (val >> a.shift[i]) & (1 << i)
-		//}
-		val = ((s >> a.shift[0]) & (1 << 0)) |
-			((s >> a.shift[1]) & (1 << 1)) |
-			((s >> a.shift[2]) & (1 << 2)) |
-			((s >> a.shift[3]) & (1 << 3)) |
-			((s >> a.shift[4]) & (1 << 4)) |
-			((s >> a.shift[5]) & (1 << 5)) |
-			((s >> a.shift[6]) & (1 << 6)) |
-			((s >> a.shift[7]) & (1 << 7)) |
-			((s >> a.shift[8]) & (1 << 8)) |
-			((s >> a.shift[9]) & (1 << 9)) |
-			((s >> a.shift[10]) & (1 << 10))
-	} else {
-		val = val & a.mask
+func (a *permuter) adaptWithShifts(val int) {
+	s := val << 11
+	// Unrolling this loop makes this function about 2x faster when running
+	// chessvm.  The go compiler doesn't do this so do it manually.
+	//for i := 0; i < 11; i++ {
+	//	permuted |= (val >> a.shift[i]) & (1 << i)
+	//}
+	// The & 63 here is to avoid terrible generated code on arm64; the compiler
+	// otherwise applies max(shift[i], 63) to each shift amount.
+	val = ((s >> (a.shift[0] & 63)) & (1 << 0)) |
+		((s >> (a.shift[1] & 63)) & (1 << 1)) |
+		((s >> (a.shift[2] & 63)) & (1 << 2)) |
+		((s >> (a.shift[3] & 63)) & (1 << 3)) |
+		((s >> (a.shift[4] & 63)) & (1 << 4)) |
+		((s >> (a.shift[5] & 63)) & (1 << 5)) |
+		((s >> (a.shift[6] & 63)) & (1 << 6)) |
+		((s >> (a.shift[7] & 63)) & (1 << 7)) |
+		((s >> (a.shift[8] & 63)) & (1 << 8)) |
+		((s >> (a.shift[9] & 63)) & (1 << 9)) |
+		((s >> (a.shift[10] & 63)) & (1 << 10))
+	if val != 0 {
+		a.out.Transmit(val)
 	}
+}
+
+func (a *permuter) adaptWithMask(val int) {
+	val = val & a.mask
 	if val != 0 {
 		a.out.Transmit(val)
 	}

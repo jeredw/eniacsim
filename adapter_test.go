@@ -67,7 +67,7 @@ func testPermuter(digits [11]int, order string) [11]int {
 	s := &permuteSwitch{ad: p}
 	s.Set(order)
 	p.in = NewInput("i", func(j *Jack, val int) {
-		p.adapt(val)
+		p.adapt(p, val)
 	})
 	p.out = NewOutput("o", nil)
 	testSource := NewOutput("to", nil)
@@ -167,4 +167,56 @@ func TestPermuterDup2(t *testing.T) {
 	if result != want {
 		t.Errorf("permute(x,dup2) = %v; want %v", result, want)
 	}
+}
+
+var testShift = [...]uint{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}
+var benchResult int
+
+func BenchmarkShift0(b *testing.B) {
+	var r int
+	for i := 0; i < b.N; i++ {
+		s := i << 11
+		for i := 0; i < 11; i++ {
+			r |= (s >> testShift[i]) & (1 << i)
+		}
+	}
+	benchResult = r
+}
+
+func BenchmarkShift1(b *testing.B) {
+	var r int
+	for i := 0; i < b.N; i++ {
+		s := i << 11
+		r = ((s >> testShift[0]) & (1 << 0)) |
+			((s >> testShift[1]) & (1 << 1)) |
+			((s >> testShift[2]) & (1 << 2)) |
+			((s >> testShift[3]) & (1 << 3)) |
+			((s >> testShift[4]) & (1 << 4)) |
+			((s >> testShift[5]) & (1 << 5)) |
+			((s >> testShift[6]) & (1 << 6)) |
+			((s >> testShift[7]) & (1 << 7)) |
+			((s >> testShift[8]) & (1 << 8)) |
+			((s >> testShift[9]) & (1 << 9)) |
+			((s >> testShift[10]) & (1 << 10))
+	}
+	benchResult = r
+}
+
+func BenchmarkShift2(b *testing.B) {
+	var r int
+	for i := 0; i < b.N; i++ {
+		s := i << 11
+		r = ((s >> (testShift[0] & 63)) & (1 << 0)) |
+			((s >> (testShift[1] & 63)) & (1 << 1)) |
+			((s >> (testShift[2] & 63)) & (1 << 2)) |
+			((s >> (testShift[3] & 63)) & (1 << 3)) |
+			((s >> (testShift[4] & 63)) & (1 << 4)) |
+			((s >> (testShift[5] & 63)) & (1 << 5)) |
+			((s >> (testShift[6] & 63)) & (1 << 6)) |
+			((s >> (testShift[7] & 63)) & (1 << 7)) |
+			((s >> (testShift[8] & 63)) & (1 << 8)) |
+			((s >> (testShift[9] & 63)) & (1 << 9)) |
+			((s >> (testShift[10] & 63)) & (1 << 10))
+	}
+	benchResult = r
 }
