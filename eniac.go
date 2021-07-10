@@ -69,13 +69,7 @@ func main() {
 	adapters = NewAdapters()
 	pulseAmps = NewPulseAmps()
 	debugger = NewDebugger()
-	cycle = units.NewCycle(units.CycleConn{
-		CycleButton: NewButton(),
-		Reset:       make(chan int),
-		Stop:        make(chan int),
-		TestButton:  NewButton(),
-		TestCycles:  *testCycles,
-	})
+	cycle = units.NewCycle(units.CycleConn{})
 	initiate = units.NewInitiate(units.InitiateConn{
 		InitButton: NewButton(),
 		Ppunch:     ppunch,
@@ -124,7 +118,7 @@ func main() {
 	cycle.Io.Units = clockedUnits
 	cycle.Io.SelectiveClear = func() bool { return initiate.SelectiveClear() }
 	initiate.Io.Units = clearedUnits
-	initiate.Io.AddCycle = func() int { return cycle.AddCycle() }
+	initiate.Io.AddCycle = func() int { return cycle.AddCycle }
 	initiate.Io.Stepping = func() bool { return cycle.Stepping() }
 	initiate.Io.ReadCard = func(s string) { constant.ReadCard(s) }
 	initiate.Io.Print = func() string { return printer.Print() }
@@ -143,7 +137,6 @@ func main() {
 	}
 
 	go initiate.Run()
-	go cycle.Run()
 
 	if flag.NArg() >= 1 {
 		doCommand(os.Stdout, "l "+flag.Arg(0))
@@ -151,8 +144,8 @@ func main() {
 
 	if *testCycles > 0 {
 		doTraceStart(os.Stdout, []string{"ts", "pf"})
-		cycle.Io.TestButton.Push <- 1
-		<-cycle.Io.TestButton.Done
+		cycle.SetTestMode()
+		cycle.StepNAddCycles(*testCycles)
 		doDumpAll(os.Stdout)
 		doTraceEnd(os.Stdout, []string{"te", "/tmp/test.vcd"})
 		return
@@ -161,7 +154,7 @@ func main() {
 	sc := bufio.NewScanner(os.Stdin)
 	var prompt = func() {
 		if !*quiet {
-			fmt.Printf("%04d> ", cycle.AddCycle()%10000)
+			fmt.Printf("%04d> ", cycle.AddCycle%10000)
 		}
 	}
 	prompt()

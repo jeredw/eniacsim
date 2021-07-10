@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
 	"strconv"
 	"strings"
 	"time"
@@ -36,11 +37,25 @@ func doCommand(w io.Writer, command string) int {
 		doFile(w, f)
 	case "g":
 		doSetSwitch(w, "s cy.op co", []string{"s", "cy.op", "co"})
+		interrupt := make(chan os.Signal, 1)
+		done := make(chan int)
+		signal.Notify(interrupt, os.Interrupt)
+		go func() {
+			for {
+				select {
+				case <-interrupt:
+					done <- 1
+					return
+				default:
+					cycle.StepNAddCycles(10000)
+				}
+			}
+		}()
+		<-done
 	case "l":
 		doLoad(w, f)
 	case "n":
-		cycle.Io.CycleButton.Push <- 1
-		<-cycle.Io.CycleButton.Done
+		cycle.Step()
 		doDumpAll(w)
 	case "p":
 		doPlug(w, command, f)
@@ -84,8 +99,7 @@ func doButton(w io.Writer, f []string) {
 		initiate.Io.InitButton.Push <- 4
 		<-initiate.Io.InitButton.Done
 	case "p":
-		cycle.Io.CycleButton.Push <- 1
-		<-cycle.Io.CycleButton.Done
+		cycle.Step()
 	case "r":
 		initiate.Io.InitButton.Push <- 3
 		<-initiate.Io.InitButton.Done
@@ -407,7 +421,6 @@ func doReset(w io.Writer, f []string) {
 
 func doResetAll(w io.Writer) {
 	initiate.Reset()
-	cycle.Io.Reset <- 1
 	debugger.Reset()
 	mp.Reset()
 	ft[0].Reset()

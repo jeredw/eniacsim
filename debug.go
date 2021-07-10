@@ -28,7 +28,7 @@ func NewDebugger() *Debugger {
 		num := i + 1
 		u.breakpoint[i] = NewInput(fmt.Sprintf("debug.bp.%d", num), func(j *Jack, val int) {
 			fmt.Printf("[debug.bp.%d] break on %s", num, j.ConnectionsString())
-			cycle.Io.Stop <- 1
+			cycle.Stop()
 		})
 	}
 	for i := range u.dump {
@@ -47,7 +47,7 @@ func NewDebugger() *Debugger {
 			if !u.testAssertion(assert) {
 				value := u.Io.Accumulator[assert.accum-1].Value()
 				fmt.Printf("[debug.assert.%d] a%d = %s !~ %s\n", num, assert.accum, value, assert.expectedDigits)
-				cycle.Io.Stop <- 1
+				cycle.Stop()
 			}
 		})
 		u.assert[i] = assert
