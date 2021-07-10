@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
-	"sync"
 
 	. "github.com/jeredw/eniacsim/lib"
 )
@@ -34,15 +33,12 @@ type Ft struct {
 	whichrp          bool
 	px4119           bool
 	prog             int
-
-	mu sync.Mutex
 }
 
 func NewFt(unit int) *Ft {
 	u := &Ft{unit: unit}
 	unitDot := fmt.Sprintf("f%d.", unit+1)
 	u.jack[0] = NewInput(unitDot+"arg", func(j *Jack, val int) {
-		u.mu.Lock()
 		if u.gateh42 {
 			if val&0x01 != 0 {
 				u.arg++
@@ -51,7 +47,6 @@ func NewFt(unit int) *Ft {
 				u.arg += 10
 			}
 		}
-		u.mu.Unlock()
 	})
 	u.jack[1] = NewOutput(unitDot+"A", nil)
 	u.jack[2] = NewOutput(unitDot+"B", nil)
@@ -70,8 +65,6 @@ func NewFt(unit int) *Ft {
 }
 
 func (u *Ft) Stat() string {
-	u.mu.Lock()
-	defer u.mu.Unlock()
 	s := ""
 	for i := range u.inff2 {
 		if u.inff2[i] {
@@ -110,8 +103,6 @@ type ftJson struct {
 }
 
 func (u *Ft) State() json.RawMessage {
-	u.mu.Lock()
-	defer u.mu.Unlock()
 	s := ftJson{
 		Inff:     u.inff2,
 		ArgUnits: u.arg % 10,
@@ -126,8 +117,6 @@ func (u *Ft) State() json.RawMessage {
 }
 
 func (u *Ft) Reset() {
-	u.mu.Lock()
-	defer u.mu.Unlock()
 	for i := range u.jack {
 		u.jack[i].Disconnect()
 	}
@@ -196,23 +185,23 @@ func (u *Ft) FindSwitch(name string) (Switch, error) {
 		if !(sw >= 1 && sw <= 11) {
 			return nil, fmt.Errorf("invalid switch %s", name)
 		}
-		return &IntSwitch{&u.mu, name, &u.opsw[sw-1], ftOpSettings()}, nil
+		return &IntSwitch{name, &u.opsw[sw-1], ftOpSettings()}, nil
 	case len(name) > 2 && name[:2] == "cl":
 		sw, _ := strconv.Atoi(name[2:])
 		if !(sw >= 1 && sw <= 11) {
 			return nil, fmt.Errorf("invalid switch %s", name)
 		}
-		return &IntSwitch{&u.mu, name, &u.argsw[sw-1], ftArgSettings()}, nil
+		return &IntSwitch{name, &u.argsw[sw-1], ftArgSettings()}, nil
 	case len(name) > 2 && name[:2] == "rp":
 		sw, _ := strconv.Atoi(name[2:])
 		if !(sw >= 1 && sw <= 11) {
 			return nil, fmt.Errorf("invalid switch %s", name)
 		}
-		return &IntSwitch{&u.mu, name, &u.rptsw[sw-1], rpSettings()}, nil
+		return &IntSwitch{name, &u.rptsw[sw-1], rpSettings()}, nil
 	case name == "mpm1":
-		return &IntSwitch{&u.mu, name, &u.pm1, signSettings()}, nil
+		return &IntSwitch{name, &u.pm1, signSettings()}, nil
 	case name == "mpm2":
-		return &IntSwitch{&u.mu, name, &u.pm2, signSettings()}, nil
+		return &IntSwitch{name, &u.pm2, signSettings()}, nil
 	case len(name) > 1 && name[0] == 'A', len(name) > 1 && name[0] == 'B':
 		var bank, digit, ilk int
 		fmt.Sscanf(name, "%c%d%c", &bank, &digit, &ilk)
@@ -230,17 +219,17 @@ func (u *Ft) FindSwitch(name string) (Switch, error) {
 			if !(digit >= 1 && digit <= 4) {
 				return nil, fmt.Errorf("invalid switch %s", name)
 			}
-			return &IntSwitch{&u.mu, name, &u.del[4*offset+digit-1], delSettings()}, nil
+			return &IntSwitch{name, &u.del[4*offset+digit-1], delSettings()}, nil
 		case 'c', 'C':
 			if !(digit >= 1 && digit <= 4) {
 				return nil, fmt.Errorf("invalid switch %s", name)
 			}
-			return &IntSwitch{&u.mu, name, &u.cons[4*offset+digit-1], consSettings()}, nil
+			return &IntSwitch{name, &u.cons[4*offset+digit-1], consSettings()}, nil
 		case 's', 'S':
 			if !(digit >= 4 && digit <= 10) {
 				return nil, fmt.Errorf("invalid switch %s", name)
 			}
-			return &IntSwitch{&u.mu, name, &u.sub[6*offset+digit-5], subSettings()}, nil
+			return &IntSwitch{name, &u.sub[6*offset+digit-5], subSettings()}, nil
 		default:
 			return nil, fmt.Errorf("invalid switch %s", name)
 		}
@@ -256,9 +245,9 @@ func (u *Ft) FindSwitch(name string) (Switch, error) {
 			}
 			switch bank {
 			case 'A':
-				return &IntSwitch{&u.mu, name, &u.tab[row+2][7-digit], valSettings()}, nil
+				return &IntSwitch{name, &u.tab[row+2][7-digit], valSettings()}, nil
 			case 'B':
-				return &IntSwitch{&u.mu, name, &u.tab[row+2][13-digit], valSettings()}, nil
+				return &IntSwitch{name, &u.tab[row+2][13-digit], valSettings()}, nil
 			default:
 				return nil, fmt.Errorf("invalid switch %s", name)
 			}
@@ -269,15 +258,15 @@ func (u *Ft) FindSwitch(name string) (Switch, error) {
 			}
 			switch bank {
 			case 'A':
-				return &IntSwitch{&u.mu, name, &u.tab[row+2][0], pmSettings()}, nil
+				return &IntSwitch{name, &u.tab[row+2][0], pmSettings()}, nil
 			case 'B':
-				return &IntSwitch{&u.mu, name, &u.tab[row+2][13], pmSettings()}, nil
+				return &IntSwitch{name, &u.tab[row+2][13], pmSettings()}, nil
 			default:
 				return nil, fmt.Errorf("invalid switch %s", name)
 			}
 		}
 	case name == "ninep" || name == "Ninep":
-		return &BoolSwitch{&u.mu, name, &u.px4119, ninepSettings()}, nil
+		return &BoolSwitch{name, &u.px4119, ninepSettings()}, nil
 	}
 	return nil, fmt.Errorf("invalid switch %s", name)
 }
@@ -636,7 +625,5 @@ func (u *Ft) Clock(p Pulse) {
 }
 
 func (u *Ft) trigger(input int) {
-	u.mu.Lock()
 	u.inff1[input] = true
-	u.mu.Unlock()
 }

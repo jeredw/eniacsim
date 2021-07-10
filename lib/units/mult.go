@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
-	"sync"
 
 	. "github.com/jeredw/eniacsim/lib"
 )
@@ -27,7 +26,6 @@ type Multiplier struct {
 	multl, multr                                          bool
 
 	tracer Tracer
-	mu     sync.Mutex
 }
 
 // Connections to other units.
@@ -83,8 +81,6 @@ func (u *Multiplier) newOutput(name string, width int) *Jack {
 }
 
 func (u *Multiplier) AttachTracer(tracer Tracer) {
-	u.mu.Lock()
-	defer u.mu.Unlock()
 	u.tracer = tracer
 	u.tracer.RegisterValueCallback(func() {
 		ierSign, ier := StringToSignAndDigits(u.ier)
@@ -98,8 +94,6 @@ func (u *Multiplier) AttachTracer(tracer Tracer) {
 }
 
 func (u *Multiplier) Stat() string {
-	u.mu.Lock()
-	defer u.mu.Unlock()
 	s := fmt.Sprintf("%d ", u.stage)
 	for i, _ := range u.multff {
 		if u.multff[i] {
@@ -129,8 +123,6 @@ type multJson struct {
 }
 
 func (u *Multiplier) State() json.RawMessage {
-	u.mu.Lock()
-	defer u.mu.Unlock()
 	s := multJson{
 		Reset1:  u.reset1ff,
 		Reset3:  u.reset3ff,
@@ -142,8 +134,6 @@ func (u *Multiplier) State() json.RawMessage {
 }
 
 func (u *Multiplier) Reset() {
-	u.mu.Lock()
-	defer u.mu.Unlock()
 	for i := 0; i < 24; i++ {
 		u.multin[i].Disconnect()
 		u.multout[i].Disconnect()
@@ -257,43 +247,43 @@ func (u *Multiplier) FindSwitch(name string) (Switch, error) {
 		if !(prog >= 1 && prog <= 24) {
 			return nil, fmt.Errorf("invalid switch %s", name)
 		}
-		return &IntSwitch{&u.mu, name, &u.iersw[prog-1], recvSettings()}, nil
+		return &IntSwitch{name, &u.iersw[prog-1], recvSettings()}, nil
 	case len(name) > 5 && name[:5] == "iercl":
 		prog, _ := strconv.Atoi(name[5:])
 		if !(prog >= 1 && prog <= 24) {
 			return nil, fmt.Errorf("invalid switch %s", name)
 		}
-		return &IntSwitch{&u.mu, name, &u.iercl[prog-1], mclSettings()}, nil
+		return &IntSwitch{name, &u.iercl[prog-1], mclSettings()}, nil
 	case len(name) > 8 && name[:8] == "icandacc":
 		prog, _ := strconv.Atoi(name[8:])
 		if !(prog >= 1 && prog <= 24) {
 			return nil, fmt.Errorf("invalid switch %s", name)
 		}
-		return &IntSwitch{&u.mu, name, &u.icandsw[prog-1], recvSettings()}, nil
+		return &IntSwitch{name, &u.icandsw[prog-1], recvSettings()}, nil
 	case len(name) > 7 && name[:7] == "icandcl":
 		prog, _ := strconv.Atoi(name[7:])
 		if !(prog >= 1 && prog <= 24) {
 			return nil, fmt.Errorf("invalid switch %s", name)
 		}
-		return &IntSwitch{&u.mu, name, &u.icandcl[prog-1], mclSettings()}, nil
+		return &IntSwitch{name, &u.icandcl[prog-1], mclSettings()}, nil
 	case len(name) > 2 && name[:2] == "sf":
 		prog, _ := strconv.Atoi(name[2:])
 		if !(prog >= 1 && prog <= 24) {
 			return nil, fmt.Errorf("invalid switch %s", name)
 		}
-		return &IntSwitch{&u.mu, name, &u.sigsw[prog-1], msfSettings()}, nil
+		return &IntSwitch{name, &u.sigsw[prog-1], msfSettings()}, nil
 	case len(name) > 5 && name[:5] == "place":
 		prog, _ := strconv.Atoi(name[5:])
 		if !(prog >= 1 && prog <= 24) {
 			return nil, fmt.Errorf("invalid switch %s", name)
 		}
-		return &IntSwitch{&u.mu, name, &u.placsw[prog-1], mplSettings()}, nil
+		return &IntSwitch{name, &u.placsw[prog-1], mplSettings()}, nil
 	case len(name) > 4 && name[:4] == "prod":
 		prog, _ := strconv.Atoi(name[4:])
 		if !(prog >= 1 && prog <= 24) {
 			return nil, fmt.Errorf("invalid switch %s", name)
 		}
-		return &IntSwitch{&u.mu, name, &u.prodsw[prog-1], prodSettings()}, nil
+		return &IntSwitch{name, &u.prodsw[prog-1], prodSettings()}, nil
 	}
 	return nil, fmt.Errorf("invalid switch %s", name)
 }
@@ -470,8 +460,6 @@ func (u *Multiplier) doCpp() {
 }
 
 func (u *Multiplier) multargs(prog int) {
-	u.mu.Lock()
-	defer u.mu.Unlock()
 	ier := u.iersw[prog]
 	icand := u.icandsw[prog]
 	if ier < 5 {

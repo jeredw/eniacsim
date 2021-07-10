@@ -6,7 +6,6 @@ import (
 	"math"
 	"sort"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -42,8 +41,6 @@ type wavedump struct {
 	pulses       bool
 	regs         bool
 	regCallbacks []func()
-
-	mu sync.Mutex
 }
 
 // NewWavedump returns a new empty wavedump.
@@ -89,8 +86,6 @@ func (t *wavedump) LogPulse(name string, bits int, value int64) {
 	if !t.pulses {
 		return
 	}
-	t.mu.Lock()
-	defer t.mu.Unlock()
 	if len(name) == 0 {
 		panic("empty name")
 	}
@@ -116,8 +111,6 @@ func (t *wavedump) LogValue(name string, bits int, value int64) {
 	if !t.regs {
 		return
 	}
-	t.mu.Lock()
-	defer t.mu.Unlock()
 	s, ok := t.signals[name]
 	if !ok {
 		s = newWaveform("reg", name, bits)

@@ -5,7 +5,6 @@ import (
 	. "github.com/jeredw/eniacsim/lib"
 	"strconv"
 	"strings"
-	"sync"
 )
 
 // Simulates the ENIAC printer.
@@ -14,8 +13,6 @@ type Printer struct {
 
 	printing [16]bool // Should the field print
 	coupling [16]bool // Treat the field as part of the next one
-
-	mu sync.Mutex
 }
 
 // Connections to printer.
@@ -50,9 +47,6 @@ func (u *Printer) Reset() {
 //
 // Groups are converted from signed tens' complement to signed magnitude.
 func (u *Printer) Print() string {
-	u.mu.Lock()
-	defer u.mu.Unlock()
-
 	mpd := u.Io.MpPrinterDecades()
 	a13 := string(u.Io.Accumulator[13-1].Value())
 	a14 := string(u.Io.Accumulator[14-1].Value())
@@ -102,7 +96,7 @@ func (u *Printer) FindSwitch(name string) (Switch, error) {
 		if !(field >= 1 && field <= 16) {
 			return nil, fmt.Errorf("invalid switch %s", name)
 		}
-		return &BoolSwitch{&u.mu, name, &u.printing[field-1], printSettings()}, nil
+		return &BoolSwitch{name, &u.printing[field-1], printSettings()}, nil
 	}
 
 	f := strings.Split(name, "-")
@@ -120,5 +114,5 @@ func (u *Printer) FindSwitch(name string) (Switch, error) {
 	if field2 != field1+1 {
 		return nil, fmt.Errorf("invalid switch %s", name)
 	}
-	return &BoolSwitch{&u.mu, name, &u.coupling[field1-1], couplingSettings()}, nil
+	return &BoolSwitch{name, &u.coupling[field1-1], couplingSettings()}, nil
 }

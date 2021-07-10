@@ -3,7 +3,6 @@ package lib
 import (
 	"fmt"
 	"strings"
-	"sync"
 )
 
 // Plugboard owns one or more jacks and provides a way to find them by name.
@@ -21,7 +20,6 @@ type Jack struct {
 	Disabled bool  // to skip work for inactive accum inputs
 
 	visited bool
-	mu      sync.Mutex
 }
 
 func NewJack(name string, onReceive JackHandler, onTransmit JackHandler) *Jack {
@@ -44,8 +42,6 @@ func NewOutput(name string, onTransmit JackHandler) *Jack {
 // Transmit sends val on jack j, invoking receiver callbacks for each connected
 // receiver and afterwards invoking j's transmit callback.
 func (j *Jack) Transmit(val int) {
-	j.mu.Lock()
-	defer j.mu.Unlock()
 	if j.visited {
 		// A previous call to Transmit() on this jack triggered this call.  Break
 		// the cycle and return early here.
@@ -75,8 +71,6 @@ func (j *Jack) String() string {
 }
 
 func (j *Jack) ConnectionsString() string {
-	j.mu.Lock()
-	defer j.mu.Unlock()
 	if len(j.Connections) == 0 {
 		return "unconnected\n"
 	}
@@ -92,16 +86,12 @@ func (j *Jack) Connected() bool {
 }
 
 func (j *Jack) Disconnect() {
-	j.mu.Lock()
-	defer j.mu.Unlock()
 	for i := range j.Connections {
 		j.Connections[i].removeConnection(j)
 	}
 }
 
 func (j *Jack) removeConnection(other *Jack) {
-	j.mu.Lock()
-	defer j.mu.Unlock()
 	for i := range j.Connections {
 		if j.Connections[i] == other {
 			j.Connections[i] = j.Connections[len(j.Connections)-1]
@@ -116,10 +106,6 @@ func Connect(j1, j2 *Jack) error {
 	if j1 == j2 {
 		return fmt.Errorf("%s cannot be connected to itself", j1)
 	}
-	j1.mu.Lock()
-	defer j1.mu.Unlock()
-	j2.mu.Lock()
-	defer j2.mu.Unlock()
 	for i := range j1.Connections {
 		if j1.Connections[i] == j2 {
 			return fmt.Errorf("%s is already connected to %s", j1, j2)

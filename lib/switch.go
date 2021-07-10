@@ -2,7 +2,6 @@ package lib
 
 import (
 	"fmt"
-	"sync"
 )
 
 type Switchboard interface {
@@ -20,17 +19,12 @@ type BoolSwitchSetting struct {
 }
 
 type BoolSwitch struct {
-	Owner    sync.Locker
 	Name     string
 	Data     *bool
 	Settings []BoolSwitchSetting
 }
 
 func (s *BoolSwitch) Get() string {
-	if s.Owner != nil {
-		s.Owner.Lock()
-		defer s.Owner.Unlock()
-	}
 	for i := range s.Settings {
 		if *s.Data == s.Settings[i].Value {
 			return s.Settings[i].Key
@@ -40,10 +34,6 @@ func (s *BoolSwitch) Get() string {
 }
 
 func (s *BoolSwitch) Set(value string) error {
-	if s.Owner != nil {
-		s.Owner.Lock()
-		defer s.Owner.Unlock()
-	}
 	for i := range s.Settings {
 		if value == s.Settings[i].Key {
 			*s.Data = s.Settings[i].Value
@@ -59,17 +49,12 @@ type IntSwitchSetting struct {
 }
 
 type IntSwitch struct {
-	Owner    sync.Locker
 	Name     string
 	Data     *int
 	Settings []IntSwitchSetting
 }
 
 func (s *IntSwitch) Get() string {
-	if s.Owner != nil {
-		s.Owner.Lock()
-		defer s.Owner.Unlock()
-	}
 	for i := range s.Settings {
 		if *s.Data == s.Settings[i].Value {
 			return s.Settings[i].Key
@@ -79,10 +64,6 @@ func (s *IntSwitch) Get() string {
 }
 
 func (s *IntSwitch) Set(value string) error {
-	if s.Owner != nil {
-		s.Owner.Lock()
-		defer s.Owner.Unlock()
-	}
 	for i := range s.Settings {
 		if value == s.Settings[i].Key {
 			*s.Data = s.Settings[i].Value
@@ -98,17 +79,12 @@ type ByteSwitchSetting struct {
 }
 
 type ByteSwitch struct {
-	Owner    sync.Locker
 	Name     string
 	Data     *byte
 	Settings []ByteSwitchSetting
 }
 
 func (s *ByteSwitch) Get() string {
-	if s.Owner != nil {
-		s.Owner.Lock()
-		defer s.Owner.Unlock()
-	}
 	for i := range s.Settings {
 		if *s.Data == s.Settings[i].Value {
 			return s.Settings[i].Key
@@ -118,10 +94,6 @@ func (s *ByteSwitch) Get() string {
 }
 
 func (s *ByteSwitch) Set(value string) error {
-	if s.Owner != nil {
-		s.Owner.Lock()
-		defer s.Owner.Unlock()
-	}
 	for i := range s.Settings {
 		if value == s.Settings[i].Key {
 			*s.Data = s.Settings[i].Value

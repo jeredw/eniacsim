@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
-	"sync"
 
 	. "github.com/jeredw/eniacsim/lib"
 )
@@ -26,7 +25,6 @@ type Divsr struct {
 	sv, su2q, su2s, su3                                                        int
 
 	tracer Tracer
-	mu     sync.Mutex
 }
 
 // Connections to dedicated accumulators.
@@ -83,8 +81,6 @@ type divsrJson struct {
 }
 
 func (u *Divsr) State() json.RawMessage {
-	u.mu.Lock()
-	defer u.mu.Unlock()
 	s := divsrJson{
 		PlaceRing: u.placering,
 		ProgRing:  u.progring,
@@ -96,8 +92,6 @@ func (u *Divsr) State() json.RawMessage {
 }
 
 func (u *Divsr) Stat() string {
-	u.mu.Lock()
-	defer u.mu.Unlock()
 	s := fmt.Sprintf("%d %d ", u.placering, u.progring)
 	for i := range u.progff {
 		if u.progff[i] {
@@ -121,8 +115,6 @@ func (u *Divsr) ffs() string {
 }
 
 func (u *Divsr) Stat2() string {
-	u.mu.Lock()
-	defer u.mu.Unlock()
 	s := fmt.Sprintf("%d %d ", u.placering, u.progring)
 	for i := range u.progff {
 		if u.progff[i] {
@@ -222,8 +214,6 @@ func (u *Divsr) Stat2() string {
 }
 
 func (u *Divsr) AttachTracer(tracer Tracer) {
-	u.mu.Lock()
-	defer u.mu.Unlock()
 	u.tracer = tracer
 	u.tracer.RegisterValueCallback(func() {
 		tracer.LogValue("d.place", 5, int64(u.placering))
@@ -232,7 +222,6 @@ func (u *Divsr) AttachTracer(tracer Tracer) {
 }
 
 func (u *Divsr) Reset() {
-	u.mu.Lock()
 	for i := 0; i < 8; i++ {
 		u.progin[i].Disconnect()
 		u.progout[i].Disconnect()
@@ -257,14 +246,11 @@ func (u *Divsr) Reset() {
 	u.ans4 = false
 	u.divadap = 0
 	u.sradap = 0
-	u.mu.Unlock()
 	u.Clear()
 }
 
 func (u *Divsr) Clear() {
 	u.intclear()
-	u.mu.Lock()
-	defer u.mu.Unlock()
 	u.sv = 0
 	u.su2s = 0
 	u.su2q = 0
@@ -272,8 +258,6 @@ func (u *Divsr) Clear() {
 }
 
 func (u *Divsr) intclear() {
-	u.mu.Lock()
-	defer u.mu.Unlock()
 	u.progring = 0
 	u.placering = 0
 	u.numrplus = true
@@ -327,10 +311,10 @@ func (u *Divsr) FindJack(jack string) (*Jack, error) {
 
 func (u *Divsr) FindSwitch(name string) (Switch, error) {
 	if name == "da" {
-		return &IntSwitch{&u.mu, name, &u.divadap, adSettings()}, nil
+		return &IntSwitch{name, &u.divadap, adSettings()}, nil
 	}
 	if name == "ra" {
-		return &IntSwitch{&u.mu, name, &u.sradap, adSettings()}, nil
+		return &IntSwitch{name, &u.sradap, adSettings()}, nil
 	}
 	if len(name) < 3 {
 		return nil, fmt.Errorf("invalid switch %s", name)
@@ -341,28 +325,26 @@ func (u *Divsr) FindSwitch(name string) (Switch, error) {
 	}
 	switch name[:2] {
 	case "nr":
-		return &IntSwitch{&u.mu, name, &u.numarg[sw-1], argSettings()}, nil
+		return &IntSwitch{name, &u.numarg[sw-1], argSettings()}, nil
 	case "nc":
-		return &BoolSwitch{&u.mu, name, &u.numcl[sw-1], clearSettings()}, nil
+		return &BoolSwitch{name, &u.numcl[sw-1], clearSettings()}, nil
 	case "dr":
-		return &IntSwitch{&u.mu, name, &u.denarg[sw-1], argSettings()}, nil
+		return &IntSwitch{name, &u.denarg[sw-1], argSettings()}, nil
 	case "dc":
-		return &BoolSwitch{&u.mu, name, &u.dencl[sw-1], clearSettings()}, nil
+		return &BoolSwitch{name, &u.dencl[sw-1], clearSettings()}, nil
 	case "pl":
-		return &IntSwitch{&u.mu, name, &u.places[sw-1], placeSettings()}, nil
+		return &IntSwitch{name, &u.places[sw-1], placeSettings()}, nil
 	case "ro":
-		return &IntSwitch{&u.mu, name, &u.roundoff[sw-1], roSettings()}, nil
+		return &IntSwitch{name, &u.roundoff[sw-1], roSettings()}, nil
 	case "an":
-		return &IntSwitch{&u.mu, name, &u.anssw[sw-1], anSettings()}, nil
+		return &IntSwitch{name, &u.anssw[sw-1], anSettings()}, nil
 	case "il":
-		return &IntSwitch{&u.mu, name, &u.ilocksw[sw-1], ilSettings()}, nil
+		return &IntSwitch{name, &u.ilocksw[sw-1], ilSettings()}, nil
 	}
 	return nil, fmt.Errorf("invalid switch %s", name)
 }
 
 func (u *Divsr) divargs(prog int) {
-	u.mu.Lock()
-	defer u.mu.Unlock()
 	u.preff[prog] = true
 	if u.places[prog] < 5 {
 		u.divff = true
@@ -435,9 +417,7 @@ func (u *Divsr) overflow() bool {
 }
 
 func (u *Divsr) interlock() {
-	u.mu.Lock()
 	u.ilockff = true
-	u.mu.Unlock()
 }
 
 func (u *Divsr) doGP() {
@@ -496,9 +476,7 @@ func (u *Divsr) doGP() {
 		if u.dencl[u.curprog] {
 			u.Io.Denominator.Clear()
 		}
-		u.mu.Unlock()
 		u.intclear()
-		u.mu.Lock()
 		return
 	}
 	if u.qα {
@@ -688,8 +666,6 @@ func (u *Divsr) doIIIP() {
 }
 
 func (u *Divsr) Clock(p Pulse) {
-	u.mu.Lock()
-	defer u.mu.Unlock()
 	switch {
 	case p&Cpp != 0:
 		if u.progring == 0 {

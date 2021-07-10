@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
-	"sync"
 
 	. "github.com/jeredw/eniacsim/lib"
 )
@@ -53,8 +52,6 @@ type Accumulator struct {
 	unit   int // Unit number 0-19
 	tracer Tracer
 	valueString []byte
-
-	mu sync.Mutex
 }
 
 // NewAccumulator returns an Accumulator with I/O jacks configured.
@@ -355,8 +352,6 @@ func (u *Accumulator) terminal(name string) string {
 
 func (u *Accumulator) newDigitInput(name string, programMask int) *Jack {
 	return NewInput(u.terminal(name), func(j *Jack, val int) {
-		u.mu.Lock()
-		defer u.mu.Unlock()
 		if u.activeProgram()&programMask == 0 || j.Disabled {
 			panic("inactive acc input should be skipped")
 		}
@@ -395,7 +390,6 @@ func (u *Accumulator) newProgramInput(name string, which int) *Jack {
 }
 
 func (u *Accumulator) trigger(input int) {
-	u.mu.Lock()
 	if u.afterFirstRp {
 		// So that simulator clocking order doesn't matter, programs are registered
 		// in inff1 and applied on the Rp pulse following Cpp.  (Pulse order is Rp,
@@ -415,7 +409,6 @@ func (u *Accumulator) trigger(input int) {
 			panic("attempt to trigger non-dummy acc program from non-cpp")
 		}
 	}
-	u.mu.Unlock()
 }
 
 func (u *Accumulator) newOutput(name string, width int) *Jack {
@@ -427,8 +420,6 @@ func (u *Accumulator) newOutput(name string, width int) *Jack {
 }
 
 func (u *Accumulator) Stat() string {
-	u.mu.Lock()
-	defer u.mu.Unlock()
 	var s string
 	if u.sign {
 		s += "M "
@@ -458,8 +449,6 @@ type accJson struct {
 }
 
 func (u *Accumulator) State() json.RawMessage {
-	u.mu.Lock()
-	defer u.mu.Unlock()
 	s := accJson{
 		Sign:    u.sign,
 		Decade:  u.decade,
@@ -472,8 +461,6 @@ func (u *Accumulator) State() json.RawMessage {
 }
 
 func (u *Accumulator) AttachTracer(tracer Tracer) {
-	u.mu.Lock()
-	defer u.mu.Unlock()
 	u.tracer = tracer
 	sign := u.terminal("sign")
 	decade := u.terminal("decade")
@@ -484,8 +471,6 @@ func (u *Accumulator) AttachTracer(tracer Tracer) {
 }
 
 func (u *Accumulator) Reset() {
-	u.mu.Lock()
-	defer u.mu.Unlock()
 	u.α.Disconnect()
 	u.β.Disconnect()
 	u.γ.Disconnect()
@@ -520,8 +505,6 @@ type StaticWiring interface {
 }
 
 func (u *Accumulator) Sign() string {
-	u.mu.Lock()
-	defer u.mu.Unlock()
 	if u.sign {
 		return "M"
 	}
@@ -529,8 +512,6 @@ func (u *Accumulator) Sign() string {
 }
 
 func (u *Accumulator) Value() []byte {
-	u.mu.Lock()
-	defer u.mu.Unlock()
 	u.updateValueString()
 	return u.valueString
 }
@@ -548,8 +529,6 @@ func (u *Accumulator) updateValueString() {
 }
 
 func (u *Accumulator) Clear() {
-	u.mu.Lock()
-	defer u.mu.Unlock()
 	u.clearInternal()
 }
 
@@ -559,8 +538,6 @@ func (u *Accumulator) SetExternalProgram(program int) {
 }
 
 func (u *Accumulator) Set(value int64) {
-	u.mu.Lock()
-	defer u.mu.Unlock()
 	u.sign = value < 0
 	if value < 0 {
 		value = -value
@@ -593,10 +570,6 @@ func Interconnect(accumulator [20]*Accumulator, p1 []string, p2 []string) error 
 	}
 	a1 := accumulator[unit1-1]
 	a2 := accumulator[unit2-1]
-	a1.mu.Lock()
-	defer a1.mu.Unlock()
-	a2.mu.Lock()
-	defer a2.mu.Unlock()
 	switch {
 	case port1 == "il1" && port2 == "ir1", port1 == "il2" && port2 == "ir2":
 		a1.left = a2
@@ -669,10 +642,10 @@ func accOpSettings() []IntSwitchSetting {
 
 func (u *Accumulator) FindSwitch(name string) (Switch, error) {
 	if name == "sf" {
-		return &IntSwitch{&u.mu, name, &u.figures, sfSettings()}, nil
+		return &IntSwitch{name, &u.figures, sfSettings()}, nil
 	}
 	if name == "sc" {
-		return &BoolSwitch{&u.mu, name, &u.selectiveClear, scSettings()}, nil
+		return &BoolSwitch{name, &u.selectiveClear, scSettings()}, nil
 	}
 	if len(name) < 3 {
 		return nil, fmt.Errorf("invalid switch %s", name)
@@ -684,14 +657,14 @@ func (u *Accumulator) FindSwitch(name string) (Switch, error) {
 	prog--
 	switch name[:2] {
 	case "op":
-		return &IntSwitch{&u.mu, name, &u.operation[prog], accOpSettings()}, nil
+		return &IntSwitch{name, &u.operation[prog], accOpSettings()}, nil
 	case "cc":
-		return &BoolSwitch{&u.mu, name, &u.clear[prog], clearSettings()}, nil
+		return &BoolSwitch{name, &u.clear[prog], clearSettings()}, nil
 	case "rp":
 		if !(prog >= 4 && prog <= 11) {
 			return nil, fmt.Errorf("invalid switch %s", name)
 		}
-		return &IntSwitch{&u.mu, name, &u.repeat[prog-4], rpSettings()}, nil
+		return &IntSwitch{name, &u.repeat[prog-4], rpSettings()}, nil
 	}
 	return nil, fmt.Errorf("invalid switch %s", name)
 }

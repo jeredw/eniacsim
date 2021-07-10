@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	"sync"
 	"unicode"
 
 	. "github.com/jeredw/eniacsim/lib"
@@ -16,8 +15,6 @@ type Mp struct {
 	decade     [20]mpDecade  // Decade counters (#20 down to #1)
 	associator [8]byte       // Stepper to decade associations
 	unplugDecades bool       // Disassociate all decades from steppers
-
-	mu sync.Mutex
 }
 
 type mpStepper struct {
@@ -63,7 +60,6 @@ func NewMp() *Mp {
 	u := &Mp{associator: associatorResets}
 	decadeIncrement := func(d int) JackHandler {
 		return func(*Jack, int) {
-			u.mu.Lock()
 			// Increment decade and carry into any associated, more significant decades.
 			ds := u.getAssociatedDecadesForDecade(d)
 			for i := d; i >= 0; i-- {
@@ -75,7 +71,6 @@ func NewMp() *Mp {
 					u.decade[i].carry = false
 				}
 			}
-			u.mu.Unlock()
 		}
 	}
 	for i := 0; i < 20; i++ {
@@ -83,23 +78,17 @@ func NewMp() *Mp {
 	}
 	stepperIncrement := func(s int) JackHandler {
 		return func(*Jack, int) {
-			u.mu.Lock()
 			u.stepper[s].increment()
-			u.mu.Unlock()
 		}
 	}
 	stepperInput := func(s int) JackHandler {
 		return func(*Jack, int) {
-			u.mu.Lock()
 			u.stepper[s].inff = 1
-			u.mu.Unlock()
 		}
 	}
 	stepperClear := func(s int) JackHandler {
 		return func(*Jack, int) {
-			u.mu.Lock()
 			u.stepper[s].stage = 0
-			u.mu.Unlock()
 		}
 	}
 	for i := 0; i < 10; i++ {
@@ -124,8 +113,6 @@ func (u *Mp) PrinterDecades() string {
 }
 
 func (u *Mp) Stat() string {
-	u.mu.Lock()
-	defer u.mu.Unlock()
 	var s string
 	for i := range u.stepper {
 		s += fmt.Sprintf("%d", u.stepper[i].stage)
@@ -152,8 +139,6 @@ type mpJson struct {
 }
 
 func (u *Mp) State() json.RawMessage {
-	u.mu.Lock()
-	defer u.mu.Unlock()
 	s := mpJson{}
 	for i := range u.stepper {
 		s.Stage[i] = u.stepper[i].stage
@@ -169,7 +154,6 @@ func (u *Mp) State() json.RawMessage {
 }
 
 func (u *Mp) Reset() {
-	u.mu.Lock()
 	for i := range u.decade {
 		u.decade[i].di.Disconnect()
 		for j := range u.decade[i].limit {
@@ -189,14 +173,11 @@ func (u *Mp) Reset() {
 	for i := range u.associator {
 		u.associator[i] = associatorResets[i]
 	}
-	u.mu.Unlock()
 	u.Clear()
 }
 
 // Clear resets decades and stepper stage counters.
 func (u *Mp) Clear() {
-	u.mu.Lock()
-	defer u.mu.Unlock()
 	for i := range u.decade {
 		u.decade[i].val = 0
 		u.decade[i].carry = false
@@ -246,21 +227,16 @@ func (u *Mp) FindJack(jack string) (*Jack, error) {
 }
 
 type associatorSwitch struct {
-	owner       sync.Locker
 	name        string
 	left, right string
 	data        *byte
 }
 
 func (s *associatorSwitch) Get() string {
-	s.owner.Lock()
-	defer s.owner.Unlock()
 	return string(*s.data)
 }
 
 func (s *associatorSwitch) Set(value string) error {
-	s.owner.Lock()
-	defer s.owner.Unlock()
 	ucLeft := strings.ToUpper(s.left)
 	ucRight := strings.ToUpper(s.right)
 	switch value {
@@ -279,28 +255,28 @@ func (u *Mp) FindSwitch(name string) (Switch, error) {
 		return nil, fmt.Errorf("invalid switch")
 	}
 	if name == "gate63" {
-		return &BoolSwitch{&u.mu, name, &u.unplugDecades, unplugDecadesSettings()}, nil
+		return &BoolSwitch{name, &u.unplugDecades, unplugDecadesSettings()}, nil
 	}
 	var d, s int
 	switch name[0] {
 	case 'a', 'A':
 		switch name {
 		case "a20", "A20":
-			return &associatorSwitch{&u.mu, name, "a", "b", &u.associator[0]}, nil
+			return &associatorSwitch{name, "a", "b", &u.associator[0]}, nil
 		case "a18", "A18":
-			return &associatorSwitch{&u.mu, name, "b", "c", &u.associator[1]}, nil
+			return &associatorSwitch{name, "b", "c", &u.associator[1]}, nil
 		case "a14", "A14":
-			return &associatorSwitch{&u.mu, name, "c", "d", &u.associator[2]}, nil
+			return &associatorSwitch{name, "c", "d", &u.associator[2]}, nil
 		case "a12", "A12":
-			return &associatorSwitch{&u.mu, name, "d", "e", &u.associator[3]}, nil
+			return &associatorSwitch{name, "d", "e", &u.associator[3]}, nil
 		case "a10", "A10":
-			return &associatorSwitch{&u.mu, name, "f", "g", &u.associator[4]}, nil
+			return &associatorSwitch{name, "f", "g", &u.associator[4]}, nil
 		case "a8", "A8":
-			return &associatorSwitch{&u.mu, name, "g", "h", &u.associator[5]}, nil
+			return &associatorSwitch{name, "g", "h", &u.associator[5]}, nil
 		case "a4", "A4":
-			return &associatorSwitch{&u.mu, name, "h", "j", &u.associator[6]}, nil
+			return &associatorSwitch{name, "h", "j", &u.associator[6]}, nil
 		case "a2", "A2":
-			return &associatorSwitch{&u.mu, name, "j", "k", &u.associator[7]}, nil
+			return &associatorSwitch{name, "j", "k", &u.associator[7]}, nil
 		default:
 			return nil, fmt.Errorf("invalid associator switch %s", name)
 		}
@@ -312,7 +288,7 @@ func (u *Mp) FindSwitch(name string) (Switch, error) {
 		if !(s >= 1 && s <= 6) {
 			return nil, fmt.Errorf("invalid decade stage %s", name)
 		}
-		return &IntSwitch{&u.mu, name, &u.decade[20-d].limit[s-1], mpDecadeSettings()}, nil
+		return &IntSwitch{name, &u.decade[20-d].limit[s-1], mpDecadeSettings()}, nil
 	case 'c', 'C':
 		if len(name) < 2 {
 			return nil, fmt.Errorf("invalid stepper %s\n", name)
@@ -321,7 +297,7 @@ func (u *Mp) FindSwitch(name string) (Switch, error) {
 		if s == -1 {
 			return nil, fmt.Errorf("invalid stepper %s\n", name)
 		}
-		return &IntSwitch{&u.mu, name, &u.stepper[s].csw, mpClearSettings()}, nil
+		return &IntSwitch{name, &u.stepper[s].csw, mpClearSettings()}, nil
 	}
 	return nil, fmt.Errorf("invalid switch %s", name)
 }
@@ -463,8 +439,6 @@ func (u *Mp) incrementDecades(s int) {
 }
 
 func (u *Mp) Clock(cyc Pulse) {
-	u.mu.Lock()
-	defer u.mu.Unlock()
 	if cyc&Cpp != 0 {
 		for i := range u.stepper {
 			stageBeforeIncrementing := u.stepper[i].stage
@@ -476,11 +450,7 @@ func (u *Mp) Clock(cyc Pulse) {
 			if u.stepper[i].inff >= 6 {
 				u.incrementDecades(i)
 				u.stepper[i].inff = 0
-				// This stage output could trigger another mp input, so have to release mu.
-				// Live with a potential data race from rewiring stepper here.
-				u.mu.Unlock()
 				u.stepper[i].o[stageBeforeIncrementing].Transmit(1)
-				u.mu.Lock()
 			}
 		}
 	} else if cyc&Tenp != 0 {

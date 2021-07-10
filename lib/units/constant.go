@@ -3,7 +3,6 @@ package units
 import (
 	"fmt"
 	"strconv"
-	"sync"
 
 	. "github.com/jeredw/eniacsim/lib"
 )
@@ -45,8 +44,6 @@ type Constant struct {
 	whichrp      bool
 
 	tracer Tracer
-
-	mu sync.Mutex
 }
 
 func NewConstant() *Constant {
@@ -79,8 +76,6 @@ func (u *Constant) newOutput(name string, width int) *Jack {
 }
 
 func (u *Constant) AttachTracer(tracer Tracer) {
-	u.mu.Lock()
-	defer u.mu.Unlock()
 	u.tracer = tracer
 	u.tracer.RegisterValueCallback(func() {
 		u.tracer.LogValue("c.sign", 1, BoolToInt64(u.sign))
@@ -97,8 +92,6 @@ func (u *Constant) Stat() string {
 }
 
 func (u *Constant) Reset() {
-	u.mu.Lock()
-	defer u.mu.Unlock()
 	for i := 0; i < 30; i++ {
 		u.sel[i] = 0
 		u.programInput[i].Disconnect()
@@ -152,15 +145,12 @@ const (
 )
 
 type selSwitch struct {
-	owner sync.Locker
 	name  string
 	prog  int
 	data  *int
 }
 
 func (s *selSwitch) Get() string {
-	s.owner.Lock()
-	defer s.owner.Unlock()
 	constants := "abcdefghjk"
 	i := 2 * ((s.prog - 1) / 6)
 	switch *s.data {
@@ -181,8 +171,6 @@ func (s *selSwitch) Get() string {
 }
 
 func (s *selSwitch) Set(value string) error {
-	s.owner.Lock()
-	defer s.owner.Unlock()
 	if len(value) < 2 {
 		return fmt.Errorf("invalid switch %s setting %s", s.name, value)
 	}
@@ -218,38 +206,36 @@ func (u *Constant) FindSwitch(name string) (Switch, error) {
 		if !(prog >= 1 && prog <= 30) {
 			return nil, fmt.Errorf("invalid switch %s", name)
 		}
-		return &selSwitch{&u.mu, name, prog, &u.sel[prog-1]}, nil
+		return &selSwitch{name, prog, &u.sel[prog-1]}, nil
 	case 'j', 'J':
 		if name[1] == 'l' {
-			return &BoolSwitch{&u.mu, name, &u.jSign[0], constantSignSettings()}, nil
+			return &BoolSwitch{name, &u.jSign[0], constantSignSettings()}, nil
 		}
 		if name[1] == 'r' {
-			return &BoolSwitch{&u.mu, name, &u.jSign[1], constantSignSettings()}, nil
+			return &BoolSwitch{name, &u.jSign[1], constantSignSettings()}, nil
 		}
 		digit, _ := strconv.Atoi(name[1:])
 		if !(digit >= 1 && digit <= 10) {
 			return nil, fmt.Errorf("invalid switch %s", name)
 		}
-		return &IntSwitch{&u.mu, name, &u.j[digit-1], constantDigitSettings()}, nil
+		return &IntSwitch{name, &u.j[digit-1], constantDigitSettings()}, nil
 	case 'k', 'K':
 		if name[1] == 'l' {
-			return &BoolSwitch{&u.mu, name, &u.kSign[0], constantSignSettings()}, nil
+			return &BoolSwitch{name, &u.kSign[0], constantSignSettings()}, nil
 		}
 		if name[1] == 'r' {
-			return &BoolSwitch{&u.mu, name, &u.kSign[1], constantSignSettings()}, nil
+			return &BoolSwitch{name, &u.kSign[1], constantSignSettings()}, nil
 		}
 		digit, _ := strconv.Atoi(name[1:])
 		if !(digit >= 1 && digit <= 10) {
 			return nil, fmt.Errorf("invalid switch %s", name)
 		}
-		return &IntSwitch{&u.mu, name, &u.k[digit-1], constantDigitSettings()}, nil
+		return &IntSwitch{name, &u.k[digit-1], constantDigitSettings()}, nil
 	}
 	return nil, fmt.Errorf("invalid switch %s", name)
 }
 
 func (u *Constant) ReadCard(card string) {
-	u.mu.Lock()
-	defer u.mu.Unlock()
 	n := len(card)
 	if n > 80 {
 		n = 80
@@ -425,7 +411,5 @@ func (u *Constant) Clock(cyc Pulse) {
 }
 
 func (u *Constant) trigger(input int) {
-	u.mu.Lock()
 	u.inff1[input] = true
-	u.mu.Unlock()
 }

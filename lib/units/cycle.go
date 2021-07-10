@@ -3,8 +3,6 @@ package units
 import (
 	"fmt"
 	. "github.com/jeredw/eniacsim/lib"
-
-	"sync"
 )
 
 // Cycle simulates ENIAC's clock generation circuits
@@ -16,8 +14,6 @@ type Cycle struct {
 	AddCycle   int
 	phase      int
 	tracer     Tracer
-
-	mu sync.Mutex
 }
 
 // CycleConn defines connections needed for the cycle unit
@@ -165,7 +161,7 @@ func modeSettings() []IntSwitchSetting {
 
 func (u *Cycle) FindSwitch(name string) (Switch, error) {
 	if name == "op" {
-		return &IntSwitch{&u.mu, name, &u.mode, modeSettings()}, nil
+		return &IntSwitch{name, &u.mode, modeSettings()}, nil
 	}
 	return nil, fmt.Errorf("unknown switch %s", name)
 }
