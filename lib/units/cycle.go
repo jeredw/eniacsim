@@ -117,18 +117,18 @@ func (u *Cycle) sendPulse(pulse Pulse) {
 	for i := range u.Io.Units.Ft {
 		u.Io.Units.Ft[i].Clock(pulse)
 	}
-	u.Io.Units.TenStepper.Clock(pulse)
+	//u.Io.Units.TenStepper.Clock(pulse)
 	for i := range u.Io.Units.Accumulator {
 		u.Io.Units.Accumulator[i].Clock(pulse)
 	}
-	u.Io.Units.FtSelector.Clock(pulse)
-	for i := range u.Io.Units.PmDiscriminator {
-		u.Io.Units.PmDiscriminator[i].Clock(pulse)
-	}
-	for i := range u.Io.Units.JkSelector {
-		u.Io.Units.JkSelector[i].Clock(pulse)
-	}
-	u.Io.Units.OrderSelector.Clock(pulse)
+	//u.Io.Units.FtSelector.Clock(pulse)
+	//for i := range u.Io.Units.PmDiscriminator {
+	//	u.Io.Units.PmDiscriminator[i].Clock(pulse)
+	//}
+	//for i := range u.Io.Units.JkSelector {
+	//	u.Io.Units.JkSelector[i].Clock(pulse)
+	//}
+	//u.Io.Units.OrderSelector.Clock(pulse)
 }
 
 func (u *Cycle) StepOnePulse() {
