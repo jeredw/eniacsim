@@ -48,6 +48,10 @@ func doCommand(w io.Writer, command string) int {
 					return
 				default:
 					cycle.StepNAddCycles(10000)
+					if cycle.Stopped() {
+						done <- 1
+						return
+					}
 				}
 			}
 		}()

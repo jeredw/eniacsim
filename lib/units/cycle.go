@@ -69,6 +69,11 @@ func (u *Cycle) Stepping() bool {
 	return u.mode == OneAdd || u.mode == OnePulse
 }
 
+// Stopped returns whether the clock is stopped (debugger)
+func (u *Cycle) Stopped() bool {
+  return u.mode == Stopped
+}
+
 // Mode exposes the clock mode enum for the tk gui
 func (u *Cycle) Mode() int {
 	return u.mode

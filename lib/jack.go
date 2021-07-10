@@ -16,8 +16,8 @@ type Jack struct {
 	Name        string
 	OnReceive   JackHandler
 	OnTransmit  JackHandler
-	Connections []*Jack
-	Disabled bool  // to skip work for inactive accum inputs
+	Receivers   []*Jack
+	Disabled    bool  // to skip work for inactive accum inputs
 
 	visited bool
 }
@@ -27,7 +27,7 @@ func NewJack(name string, onReceive JackHandler, onTransmit JackHandler) *Jack {
 		Name:        name,
 		OnReceive:   onReceive,
 		OnTransmit:  onTransmit,
-		Connections: make([]*Jack, 0, 1),
+		Receivers:   make([]*Jack, 0, 1),
 	}
 }
 
@@ -53,9 +53,8 @@ func (j *Jack) Transmit(val int) {
 	}
 	j.visited = true
 	transmitted := false
-	for i := range j.Connections {
-		r := j.Connections[i]
-		if !r.Disabled && !r.visited && r.OnReceive != nil {
+	for _, r := range j.Receivers {
+		if !r.Disabled && !r.visited {
 			transmitted = true
 			r.OnReceive(r, val)
 		}
@@ -71,31 +70,31 @@ func (j *Jack) String() string {
 }
 
 func (j *Jack) ConnectionsString() string {
-	if len(j.Connections) == 0 {
+	if len(j.Receivers) == 0 {
 		return "unconnected\n"
 	}
 	var b strings.Builder
-	for i := range j.Connections {
-		fmt.Fprintf(&b, "%s %s\n", j.String(), j.Connections[i].String())
+	for _, r := range j.Receivers {
+		fmt.Fprintf(&b, "%s %s\n", j.String(), r.String())
 	}
 	return b.String()
 }
 
 func (j *Jack) Connected() bool {
-	return len(j.Connections) > 0
+	return len(j.Receivers) > 0
 }
 
 func (j *Jack) Disconnect() {
-	for i := range j.Connections {
-		j.Connections[i].removeConnection(j)
+	for i := range j.Receivers {
+		j.Receivers[i].removeConnection(j)
 	}
 }
 
 func (j *Jack) removeConnection(other *Jack) {
-	for i := range j.Connections {
-		if j.Connections[i] == other {
-			j.Connections[i] = j.Connections[len(j.Connections)-1]
-			j.Connections = j.Connections[:len(j.Connections)-1]
+	for i := range j.Receivers {
+		if j.Receivers[i] == other {
+			j.Receivers[i] = j.Receivers[len(j.Receivers)-1]
+			j.Receivers = j.Receivers[:len(j.Receivers)-1]
 			return
 		}
 	}
@@ -106,17 +105,21 @@ func Connect(j1, j2 *Jack) error {
 	if j1 == j2 {
 		return fmt.Errorf("%s cannot be connected to itself", j1)
 	}
-	for i := range j1.Connections {
-		if j1.Connections[i] == j2 {
+	for i := range j1.Receivers {
+		if j1.Receivers[i] == j2 {
 			return fmt.Errorf("%s is already connected to %s", j1, j2)
 		}
 	}
-	for i := range j2.Connections {
-		if j2.Connections[i] == j1 {
+	for i := range j2.Receivers {
+		if j2.Receivers[i] == j1 {
 			return fmt.Errorf("%s is already connected to %s", j1, j2)
 		}
 	}
-	j1.Connections = append(j1.Connections, j2)
-	j2.Connections = append(j2.Connections, j1)
+	if j1.OnReceive != nil {
+	  j2.Receivers = append(j2.Receivers, j1)
+	}
+	if j2.OnReceive != nil {
+	  j1.Receivers = append(j1.Receivers, j2)
+	}
 	return nil
 }

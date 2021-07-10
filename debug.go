@@ -61,17 +61,17 @@ func NewDebugger() *Debugger {
 func (u *Debugger) Stat() string {
 	var s string
 	for i := range u.breakpoint {
-		if len(u.breakpoint[i].Connections) != 0 {
+		if len(u.breakpoint[i].Receivers) != 0 {
 			s += fmt.Sprintf("bp.%d: %s", i+1, u.breakpoint[i].ConnectionsString())
 		}
 	}
 	for i := range u.assert {
-		if len(u.assert[i].trigger.Connections) != 0 {
+		if len(u.assert[i].trigger.Receivers) != 0 {
 			s += fmt.Sprintf("assert.%d: %s", i+1, u.assert[i].trigger.ConnectionsString())
 		}
 	}
 	for i := range u.dump {
-		if len(u.dump[i].trigger.Connections) != 0 {
+		if len(u.dump[i].trigger.Receivers) != 0 {
 			s += fmt.Sprintf("dump.%d: %s", i+1, u.dump[i].trigger.ConnectionsString())
 		}
 	}
