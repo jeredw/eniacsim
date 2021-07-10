@@ -71,8 +71,7 @@ func main() {
 	debugger = NewDebugger()
 	cycle = units.NewCycle(units.CycleConn{})
 	initiate = units.NewInitiate(units.InitiateConn{
-		InitButton: NewButton(),
-		Ppunch:     ppunch,
+		Ppunch: ppunch,
 	})
 	mp = units.NewMp()
 	divsr = units.NewDivsr()
@@ -135,8 +134,6 @@ func main() {
 		printer.Io.Accumulator[i] = accumulator[i]
 		debugger.Io.Accumulator[i] = accumulator[i]
 	}
-
-	go initiate.Run()
 
 	if flag.NArg() >= 1 {
 		doCommand(os.Stdout, "l "+flag.Arg(0))

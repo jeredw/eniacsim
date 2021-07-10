@@ -93,16 +93,13 @@ func doButton(w io.Writer, f []string) {
 	}
 	switch f[1] {
 	case "c":
-		initiate.Io.InitButton.Push <- 5
-		<-initiate.Io.InitButton.Done
+		initiate.PushClearButton()
 	case "i":
-		initiate.Io.InitButton.Push <- 4
-		<-initiate.Io.InitButton.Done
+		initiate.PushInitButton()
 	case "p":
 		cycle.Step()
 	case "r":
-		initiate.Io.InitButton.Push <- 3
-		<-initiate.Io.InitButton.Done
+		initiate.PushReadButton()
 	}
 }
 
