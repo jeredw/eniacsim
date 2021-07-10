@@ -324,6 +324,16 @@ func (u *Accumulator) updateActiveProgram() {
 		}
 	}
 	u.programCache = x
+	u.enableInputs()
+}
+
+func (u *Accumulator) enableInputs() {
+	prog := u.activeProgram()
+	u.α.Disabled = (prog & opα) == 0
+	u.β.Disabled = (prog & opβ) == 0
+	u.γ.Disabled = (prog & opγ) == 0
+	u.δ.Disabled = (prog & opδ) == 0
+	u.ε.Disabled = (prog & opε) == 0
 }
 
 func (u *Accumulator) activeProgram() int {
@@ -347,11 +357,12 @@ func (u *Accumulator) newDigitInput(name string, programMask int) *Jack {
 	return NewInput(u.terminal(name), func(j *Jack, val int) {
 		u.mu.Lock()
 		defer u.mu.Unlock()
-		if u.activeProgram()&programMask != 0 {
-			u.receive(val)
-			if u.tracer != nil {
-				u.tracer.LogPulse(j.Name, 11, int64(val))
-			}
+		if u.activeProgram()&programMask == 0 || j.Disabled {
+			panic("inactive acc input should be skipped")
+		}
+		u.receive(val)
+		if u.tracer != nil {
+			u.tracer.LogPulse(j.Name, 11, int64(val))
 		}
 	})
 }
@@ -544,6 +555,7 @@ func (u *Accumulator) Clear() {
 
 func (u *Accumulator) SetExternalProgram(program int) {
 	u.externalProgram = program
+	u.enableInputs()
 }
 
 func (u *Accumulator) Set(value int64) {

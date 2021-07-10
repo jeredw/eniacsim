@@ -18,6 +18,7 @@ type Jack struct {
 	OnReceive   JackHandler
 	OnTransmit  JackHandler
 	Connections []*Jack
+	Disabled bool  // to skip work for inactive accum inputs
 
 	visited bool
 	mu      sync.Mutex
@@ -58,7 +59,7 @@ func (j *Jack) Transmit(val int) {
 	transmitted := false
 	for i := range j.Connections {
 		r := j.Connections[i]
-		if !r.visited && r.OnReceive != nil {
+		if !r.Disabled && !r.visited && r.OnReceive != nil {
 			transmitted = true
 			r.OnReceive(r, val)
 		}

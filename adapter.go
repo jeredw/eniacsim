@@ -39,7 +39,9 @@ func NewAdapters() *Adapters {
 	}
 	permuteInput := func(i int) JackHandler {
 		return func(j *Jack, val int) {
-			a.permute[i].adapt(val)
+			if !a.permute[i].out.Disabled {
+				a.permute[i].adapt(val)
+			}
 		}
 	}
 	for i := 0; i < 80; i++ {
@@ -104,6 +106,8 @@ func (s *permuteSwitch) Set(value string) error {
 	if len(order) != 11 {
 		return fmt.Errorf("ad.permute usage: ad.permute.1.11,10,9,8,7,6,5,4,3,2,1")
 	}
+	nonSwappedLines := 0
+	mask := 0
 	for j := range order {
 		pos, _ := strconv.Atoi(order[10-j])
 		if !(pos >= 0 && pos <= 11) {
@@ -114,6 +118,15 @@ func (s *permuteSwitch) Set(value string) error {
 		// right shifts.  Then to fill bit j of output, shift back an additional
 		// pos-1 bits (pos=0 will select bit 10 which is 0).
 		s.ad.shift[j] = (uint)(11 + (pos - 1) - j)
+		if pos == 1+j || pos == 0 {
+			nonSwappedLines += 1
+			if pos != 0 {
+				mask |= (1 << j)
+			}
+		}
+	}
+	if nonSwappedLines == 11 {
+		s.ad.mask = mask
 	}
 	return nil
 }
@@ -281,26 +294,31 @@ type permuter struct {
 	out   *Jack
 	order [11]int
 	shift [11]uint // used to compute permuted value w/o branches
+	mask  int      // optimization for permuters that just delete digits
 }
 
 func (a *permuter) adapt(val int) {
-	s := val << 11
-	// Unrolling this loop makes this function about 2x faster when running
-	// chessvm.  The go compiler doesn't do this so do it manually.
-	//for i := 0; i < 11; i++ {
-	//	permuted |= (val >> a.shift[i]) & (1 << i)
-	//}
-	val = ((s >> a.shift[0]) & (1 << 0)) |
-		((s >> a.shift[1]) & (1 << 1)) |
-		((s >> a.shift[2]) & (1 << 2)) |
-		((s >> a.shift[3]) & (1 << 3)) |
-		((s >> a.shift[4]) & (1 << 4)) |
-		((s >> a.shift[5]) & (1 << 5)) |
-		((s >> a.shift[6]) & (1 << 6)) |
-		((s >> a.shift[7]) & (1 << 7)) |
-		((s >> a.shift[8]) & (1 << 8)) |
-		((s >> a.shift[9]) & (1 << 9)) |
-		((s >> a.shift[10]) & (1 << 10))
+	if a.mask == 0 {
+		s := val << 11
+		// Unrolling this loop makes this function about 2x faster when running
+		// chessvm.  The go compiler doesn't do this so do it manually.
+		//for i := 0; i < 11; i++ {
+		//	permuted |= (val >> a.shift[i]) & (1 << i)
+		//}
+		val = ((s >> a.shift[0]) & (1 << 0)) |
+			((s >> a.shift[1]) & (1 << 1)) |
+			((s >> a.shift[2]) & (1 << 2)) |
+			((s >> a.shift[3]) & (1 << 3)) |
+			((s >> a.shift[4]) & (1 << 4)) |
+			((s >> a.shift[5]) & (1 << 5)) |
+			((s >> a.shift[6]) & (1 << 6)) |
+			((s >> a.shift[7]) & (1 << 7)) |
+			((s >> a.shift[8]) & (1 << 8)) |
+			((s >> a.shift[9]) & (1 << 9)) |
+			((s >> a.shift[10]) & (1 << 10))
+	} else {
+		val = val & a.mask
+	}
 	if val != 0 {
 		a.out.Transmit(val)
 	}
