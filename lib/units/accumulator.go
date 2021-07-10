@@ -43,7 +43,7 @@ type Accumulator struct {
 	repeating       bool
 	repeatCount     int
 	afterFirstRp    bool
-	programCache    int
+	activeProgram   int
 	externalProgram int
 
 	left  *Accumulator
@@ -120,8 +120,7 @@ func (u *Accumulator) Clock(cyc Pulse) {
 }
 
 func (u *Accumulator) doTenp() {
-	program := u.activeProgram()
-	if program&(opA|opAS|opS) != 0 {
+	if u.activeProgram&(opA|opAS|opS) != 0 {
 		for i := 0; i < 10; i++ {
 			u.decade[i]++
 			if u.decade[i] == 10 {
@@ -133,8 +132,7 @@ func (u *Accumulator) doTenp() {
 }
 
 func (u *Accumulator) doNinep() {
-	program := u.activeProgram()
-	if program&(opA|opAS) != 0 && u.A.Connected() {
+	if u.activeProgram&(opA|opAS) != 0 && u.A.Connected() {
 		n := 0
 		for i := 0; i < 10; i++ {
 			if u.carry[i] {
@@ -148,7 +146,7 @@ func (u *Accumulator) doNinep() {
 			u.A.Transmit(n)
 		}
 	}
-	if program&(opAS|opS) != 0 && u.S.Connected() {
+	if u.activeProgram&(opAS|opS) != 0 && u.S.Connected() {
 		n := 0
 		for i := 0; i < 10; i++ {
 			if !u.carry[i] {
@@ -165,8 +163,7 @@ func (u *Accumulator) doNinep() {
 }
 
 func (u *Accumulator) doOnepp() {
-	program := u.activeProgram()
-	if program&opCorrect != 0 {
+	if u.activeProgram&opCorrect != 0 {
 		// Apply tens' complement correction to the lowest order decade.
 		if u.right == nil {
 			u.decade[0]++
@@ -176,7 +173,7 @@ func (u *Accumulator) doOnepp() {
 			}
 		}
 	}
-	if program&(opAS|opS) != 0 && u.S.Connected() {
+	if u.activeProgram&(opAS|opS) != 0 && u.S.Connected() {
 		// Transmit a final +1 in the least significant decade on S.
 		//
 		// Behavior of figures switches for interconnected accumulators is
@@ -195,8 +192,7 @@ func (u *Accumulator) doOnepp() {
 }
 
 func (u *Accumulator) doCcg() {
-	program := u.activeProgram()
-	if program&opClear != 0 {
+	if u.activeProgram&opClear != 0 {
 		u.clearInternal()
 	}
 	// (Carry is actually initated on Rp-1.)
@@ -217,8 +213,7 @@ func (u *Accumulator) clearInternal() {
 func (u *Accumulator) doRp1() {
 	// The first Rp initiates carry-over and clears any carries set during
 	// digit reception.
-	program := u.activeProgram()
-	if program&(opα|opβ|opγ|opδ|opε) != 0 {
+	if u.activeProgram&(opα|opβ|opγ|opδ|opε) != 0 {
 		// Carry-over starts from the right accumulator of a pair.
 		if u.right == nil {
 			u.ripple()
@@ -305,6 +300,23 @@ func (u *Accumulator) doRp2() {
 }
 
 func (u *Accumulator) updateActiveProgram() {
+	if u.externalProgram != 0 {
+		u.activeProgram = u.externalProgram
+	} else {
+		u.updateOwnActiveProgram()
+		if u.left != nil {
+			u.left.updateOwnActiveProgram()
+			u.activeProgram |= u.left.activeProgram
+		}
+		if u.right != nil {
+			u.right.updateOwnActiveProgram()
+			u.activeProgram |= u.right.activeProgram
+		}
+	}
+	u.enableInputs()
+}
+
+func (u *Accumulator) updateOwnActiveProgram() {
 	x := 0
 	for i := range u.inff2 {
 		if u.inff2[i] {
@@ -320,30 +332,15 @@ func (u *Accumulator) updateActiveProgram() {
 			}
 		}
 	}
-	u.programCache = x
-	u.enableInputs()
+	u.activeProgram = x
 }
 
 func (u *Accumulator) enableInputs() {
-	prog := u.activeProgram()
-	u.α.Disabled = (prog & opα) == 0
-	u.β.Disabled = (prog & opβ) == 0
-	u.γ.Disabled = (prog & opγ) == 0
-	u.δ.Disabled = (prog & opδ) == 0
-	u.ε.Disabled = (prog & opε) == 0
-}
-
-func (u *Accumulator) activeProgram() int {
-	if u.externalProgram != 0 {
-		return u.externalProgram
-	}
-	if u.left != nil {
-		return u.programCache | u.left.programCache
-	}
-	if u.right != nil {
-		return u.programCache | u.right.programCache
-	}
-	return u.programCache
+	u.α.Disabled = (u.activeProgram & opα) == 0
+	u.β.Disabled = (u.activeProgram & opβ) == 0
+	u.γ.Disabled = (u.activeProgram & opγ) == 0
+	u.δ.Disabled = (u.activeProgram & opδ) == 0
+	u.ε.Disabled = (u.activeProgram & opε) == 0
 }
 
 func (u *Accumulator) terminal(name string) string {
@@ -352,7 +349,7 @@ func (u *Accumulator) terminal(name string) string {
 
 func (u *Accumulator) newDigitInput(name string, programMask int) *Jack {
 	return NewInput(u.terminal(name), func(j *Jack, val int) {
-		if u.activeProgram()&programMask == 0 || j.Disabled {
+		if u.activeProgram&programMask == 0 || j.Disabled {
 			panic("inactive acc input should be skipped")
 		}
 		u.receive(val)
@@ -534,7 +531,7 @@ func (u *Accumulator) Clear() {
 
 func (u *Accumulator) SetExternalProgram(program int) {
 	u.externalProgram = program
-	u.enableInputs()
+	u.updateActiveProgram()
 }
 
 func (u *Accumulator) Set(value int64) {
