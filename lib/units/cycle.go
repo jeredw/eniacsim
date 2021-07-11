@@ -108,19 +108,44 @@ func (u *Cycle) Stat() string {
 	}
 }
 
+//go:nosplit
 func (u *Cycle) sendPulse(pulse Pulse) {
-	u.Io.Units.Initiate.Clock(pulse)
-	u.Io.Units.Mp.Clock(pulse)
-	u.Io.Units.Divsr.Clock(pulse)
-	u.Io.Units.Multiplier.Clock(pulse)
-	u.Io.Units.Constant.Clock(pulse)
-	for i := range u.Io.Units.Ft {
-		u.Io.Units.Ft[i].Clock(pulse)
-	}
+	uu := u.Io.Units
+	uu.Initiate.Clock(pulse)
+	uu.Mp.Clock(pulse)
+	uu.Divsr.Clock(pulse)
+	uu.Multiplier.Clock(pulse)
+	uu.Constant.Clock(pulse)
+	//for i := range uu.Ft {
+	//	uu.Ft[i].Clock(pulse)
+	//}
+	uu.Ft[0].Clock(pulse)
+	uu.Ft[1].Clock(pulse)
+	uu.Ft[2].Clock(pulse)
 	//u.Io.Units.TenStepper.Clock(pulse)
-	for i := range u.Io.Units.Accumulator {
-		u.Io.Units.Accumulator[i].Clock(pulse)
-	}
+	//for i := range uu.Accumulator {
+	//	uu.Accumulator[i].Clock(pulse)
+	//}
+	uu.Accumulator[0].Clock(pulse)
+	uu.Accumulator[1].Clock(pulse)
+	uu.Accumulator[2].Clock(pulse)
+	uu.Accumulator[3].Clock(pulse)
+	uu.Accumulator[4].Clock(pulse)
+	uu.Accumulator[5].Clock(pulse)
+	uu.Accumulator[6].Clock(pulse)
+	uu.Accumulator[7].Clock(pulse)
+	uu.Accumulator[8].Clock(pulse)
+	uu.Accumulator[9].Clock(pulse)
+	uu.Accumulator[10].Clock(pulse)
+	uu.Accumulator[11].Clock(pulse)
+	uu.Accumulator[12].Clock(pulse)
+	uu.Accumulator[13].Clock(pulse)
+	uu.Accumulator[14].Clock(pulse)
+	uu.Accumulator[15].Clock(pulse)
+	uu.Accumulator[16].Clock(pulse)
+	uu.Accumulator[17].Clock(pulse)
+	uu.Accumulator[18].Clock(pulse)
+	uu.Accumulator[19].Clock(pulse)
 	//u.Io.Units.FtSelector.Clock(pulse)
 	//for i := range u.Io.Units.PmDiscriminator {
 	//	u.Io.Units.PmDiscriminator[i].Clock(pulse)
