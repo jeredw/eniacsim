@@ -28,6 +28,7 @@ type Cycle struct {
 
 	AddCycle   int64
 	phase      int
+	stop       bool
 	tracer     Tracer
 }
 
@@ -43,7 +44,6 @@ const (
 	OneAdd            // Run for one add cycle, then wait for CycleButton
 	Continuous        // Run continuously
 	Test              // Running in test mode (debugger doesn't actually stop)
-	Stopped           // Stopped by debugger
 )
 
 // Basic sequence of pulses to generate
@@ -82,11 +82,6 @@ func NewCycle(io CycleConn) *Cycle {
 // Stepping returns whether the clock is being single stepped
 func (u *Cycle) Stepping() bool {
 	return u.mode == OneAdd || u.mode == OnePulse
-}
-
-// Stopped returns whether the clock is stopped (debugger)
-func (u *Cycle) Stopped() bool {
-  return u.mode == Stopped
 }
 
 // Mode exposes the clock mode enum for the tk gui
@@ -157,9 +152,6 @@ func (u *Cycle) sendPulse(pulse Pulse) {
 }
 
 func (u *Cycle) StepOnePulse() {
-	if u.mode == Stopped {
-		return
-	}
 	if u.tracer != nil {
 		u.tracer.AdvanceTimestep()
 		//u.tracer.LogValue("cyc.pulse", 6, int64(u.phase/2))
@@ -184,11 +176,22 @@ func (u *Cycle) StepOnePulse() {
 	}
 }
 
-func (u *Cycle) StepNAddCycles(n int) {
+// Returns true if stopped by debugger
+func (u *Cycle) StepNAddCycles(n int) bool {
 	start := u.AddCycle;
-	for u.AddCycle < start + int64(n) && u.mode != Stopped {
+	maxAddCycle := start + int64(n)
+	for u.AddCycle < maxAddCycle {
 		u.StepOnePulse()
+		if u.stop {
+			// If debugger requested a stop, step to start of next add cycle
+			for u.phase != 0 {
+				u.StepOnePulse()
+			}
+			u.stop = false
+			return true
+		}
 	}
+	return false
 }
 
 func (u *Cycle) StepOneAddCycle() {
@@ -203,13 +206,13 @@ func (u *Cycle) Step() {
 	}
 }
 
-func (u* Cycle) SetTestMode() {
+func (u *Cycle) SetTestMode() {
 	u.mode = Test
 }
 
 func (u *Cycle) Stop() {
 	if u.mode != Test {
-		u.mode = Stopped
+		u.stop = true
 	}
 }
 

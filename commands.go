@@ -189,8 +189,8 @@ func doRun(w io.Writer, f []string) {
 			case <-interrupt:
 				break loop
 			default:
-				cycle.StepNAddCycles(10000)
-				if cycle.Stopped() {
+				if cycle.StepNAddCycles(10000) {
+					// Stopped by debugger
 					break loop
 				}
 			}
