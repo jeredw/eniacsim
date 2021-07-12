@@ -180,6 +180,7 @@ func doRun(w io.Writer, f []string) {
 	signal.Notify(interrupt, os.Interrupt)
 	var elapsedTime time.Duration
 	var elapsedCycles int64
+	var stoppedByDebugger bool
 	go func() {
 		startTime := time.Now()
 		startCycle := cycle.AddCycle
@@ -190,7 +191,7 @@ func doRun(w io.Writer, f []string) {
 				break loop
 			default:
 				if cycle.StepNAddCycles(10000) {
-					// Stopped by debugger
+					stoppedByDebugger = true
 					break loop
 				}
 			}
@@ -202,6 +203,9 @@ func doRun(w io.Writer, f []string) {
 	<-done
 	perfCycles += elapsedCycles
 	perfTime += elapsedTime
+	if stoppedByDebugger {
+		doDumpAll(w)
+	}
 }
 
 func doLoad(w io.Writer, f []string) {

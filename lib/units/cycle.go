@@ -187,6 +187,8 @@ func (u *Cycle) StepNAddCycles(n int) bool {
 			for u.phase != 0 {
 				u.StepOnePulse()
 			}
+			// Probably we'll want to single-step add cycles after a breakpoint
+			u.mode = OneAdd
 			u.stop = false
 			return true
 		}
