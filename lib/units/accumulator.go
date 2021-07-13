@@ -318,8 +318,10 @@ func (u *Accumulator) updateActiveProgram() {
 
 func (u *Accumulator) updateOwnActiveProgram() {
 	x := 0
+	numActivePrograms := 0
 	for i := range u.inff2 {
 		if u.inff2[i] {
+			numActivePrograms++
 			x |= u.operation[i]
 			if u.clear[i] {
 				if u.operation[i] == 0 || u.operation[i] >= opA {
@@ -328,6 +330,40 @@ func (u *Accumulator) updateOwnActiveProgram() {
 					}
 				} else {
 					x |= opCorrect
+				}
+			}
+		}
+	}
+	if numActivePrograms > 1 {
+		repeatCount := 0
+		operation := 0
+		haveClear := false
+		clear := false
+		activePrograms := make([]int, 0, len(u.inff2))
+		for i := range u.inff2 {
+			if u.inff2[i] {
+				activePrograms = append(activePrograms, i+1)
+			}
+		}
+		for i := range u.inff2 {
+			if u.inff2[i] {
+				if operation != 0 && u.operation[i] != 0 {
+					panic(fmt.Sprintf("multiple active programs with conflicting op on a%d: %v\n", u.unit+1, activePrograms))
+				}
+				if !haveClear {
+					clear = u.clear[i]
+					haveClear = true
+				} else if clear != u.clear[i] {
+					panic(fmt.Sprintf("multiple active programs with conflicting clear on a%d: %v\n", u.unit+1, activePrograms))
+				}
+				if i < 4 {
+					repeatCount = 1
+				} else {
+					if repeatCount == 0 {
+						repeatCount = u.repeat[i-4]
+					} else if repeatCount != u.repeat[i-4] {
+						panic(fmt.Sprintf("multiple active programs with conflicting rp on a%d: %v\n", u.unit+1, activePrograms))
+					}
 				}
 			}
 		}
