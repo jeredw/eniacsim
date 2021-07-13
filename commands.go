@@ -48,7 +48,7 @@ func doCommand(w io.Writer, command string) int {
 	case "perf":
 		rate := float64(perfCycles) / perfTime.Seconds()
 		speedup := rate / 5000.0
-		fmt.Printf("%.2f MHz (%.2fx realtime; %d cycles, %v)\n", rate/1e6, speedup, perfCycles, perfTime)
+		fmt.Printf("%.2f MHz (%d cycles, %v simulated, %v realtime [%.2fx])\n", rate/1e6, perfCycles, perfTime, time.Duration(speedup) * perfTime, speedup)
 	case "p":
 		doPlug(w, command, f)
 	case "p?":
