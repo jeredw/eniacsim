@@ -91,7 +91,7 @@ func StringToSignAndDigits(s string) (sign bool, digits []int) {
 
 // TensComplementToIBMCard converts a sign and ten's complement digits to a
 // signed magnitude number in IBM card code.
-func TensComplementToIBMCard(sign byte, digits string) string {
+func TensComplementToIBMCard(sign byte, digits string, omitSign bool) string {
 	if sign == 'P' {
 		return digits
 	}
@@ -103,17 +103,25 @@ func TensComplementToIBMCard(sign byte, digits string) string {
 		// negative 0 is still 0
 		return digits
 	}
+	baseChar := byte('J')
+	if omitSign {
+		baseChar = byte('0')
+	}
 	if nz == 0 {
 		// special case for 10's comp and 11-punch
 		// -[123456789]000000... -> [RQPONMLKJ]000000...
-		return string('J'+'9'-digits[0]) + digits[1:]
+		return string(baseChar + '9' - digits[0]) + digits[1:]
 	}
 	// nz > 0
-	sc := string('J' + '9' - digits[0] - 1)
+	sc := string(baseChar + '9' - digits[0] - 1)
 	if sc == "I" {
 		// 0 + 11-punch is an illegal encoding, so just use "-" which is 11-punch
 		// on its own.
 		sc = "-"
+	}
+	if sc == "/" {
+		// Same as above when omitting sign
+		sc = "0"
 	}
 	// 10^k - n = ((10^k-1) - n) + 1
 	for i := 1; i < nz; i++ {

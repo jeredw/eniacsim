@@ -13,6 +13,17 @@ type Printer struct {
 
 	printing [16]bool // Should the field print
 	coupling [16]bool // Treat the field as part of the next one
+	magnets [80]punchWiring // Plugboard wiring for punch magnets
+	usingPlugboard bool // True if any plugboard switch set
+}
+
+type punchWiring struct {
+	wasSet bool    // if true, switch was set
+	nc bool		     // if true, not connected
+	fixed int      // 0: don't punch, 1-13 mean punch row 0-12
+	signGroup int  // 0: no sign, 1-16 indicate sign group
+	digitGroup int // 0: no digit, 1-16 indicate digit group
+	digitIndex int // 0: no digit, 1-5 which digit of group
 }
 
 // Connections to printer.
@@ -29,9 +40,13 @@ var couplingDefaults = [16]bool{
 }
 
 func NewPrinter() *Printer {
-	return &Printer{
+	u := &Printer{
 		coupling: couplingDefaults,
 	}
+	for i := 0; i < 80; i++ {
+		u.magnets[i] = punchWiring{nc: true}
+	}
+	return u
 }
 
 func (u *Printer) Reset() {
@@ -40,6 +55,9 @@ func (u *Printer) Reset() {
 	}
 	for i := range u.coupling {
 		u.coupling[i] = couplingDefaults[i]
+	}
+	for i := 0; i < 80; i++ {
+		u.magnets[i] = punchWiring{nc: true}
 	}
 }
 
@@ -68,6 +86,16 @@ func (u *Printer) Print() string {
 		a17[0], a17[0], a18[0], a18[0], a19[0], a19[0], a20[0], a20[0],
 	}
 
+	// Using plugboard if any magnet switch is set
+	if !u.usingPlugboard {
+		for _, p := range u.magnets {
+			if p.wasSet {
+				u.usingPlugboard = true
+				break
+			}
+		}
+	}
+
 	// Group digit fields and convert to IBM card format.
 	ibmDigits := ""
 	groupStart := 0
@@ -75,22 +103,119 @@ func (u *Printer) Print() string {
 	for i := 0; i < 16; i++ {
 		if !u.coupling[i] || i == 15 {
 			groupEnd = (i + 1) * 5
-			ibmDigits += TensComplementToIBMCard(signs[i], digits[groupStart:groupEnd])
+			ibmDigits += TensComplementToIBMCard(signs[i], digits[groupStart:groupEnd], u.usingPlugboard)
 			groupStart = groupEnd
 		}
 	}
 	card := ""
-	for i := 0; i < 16; i++ {
-		if !u.printing[i] {
-			card += "     "
-		} else {
-			card += ibmDigits[5*i : 5*(i+1)]
+	if !u.usingPlugboard {
+		for i := 0; i < 16; i++ {
+			if !u.printing[i] {
+				card += "     "
+			} else {
+				card += ibmDigits[5*i : 5*(i+1)]
+			}
+		}
+	} else {
+		for _, p := range u.magnets {
+			if p.nc {
+				card += " "
+			} else if p.fixed > 0 {
+				card += string("0123456789-&"[p.fixed - 1])
+			} else {
+				digit := ibmDigits[5*(p.digitGroup-1) + (p.digitIndex-1)]
+				if p.signGroup > 0 && signs[p.signGroup-1] == 'M' {
+					if digit == '0' {
+						digit = '-'
+					} else {
+						digit = 'I' + (digit - '0')
+					}
+				}
+				card += string(digit)
+			}
 		}
 	}
 	return card
 }
 
+type punchMagnetSwitch struct {
+	Name string
+	Data *punchWiring
+}
+
+func (s *punchMagnetSwitch) Get() string {
+	if s.Data.nc {
+		return "nc"
+	}
+	if s.Data.fixed > 0 {
+		return fmt.Sprintf("%d", s.Data.fixed - 1)
+	}
+	f := make([]string, 0, 3)
+	f = append(f, fmt.Sprintf("%d", s.Data.digitGroup))
+	f = append(f, fmt.Sprintf("%d", s.Data.digitIndex))
+	if s.Data.signGroup > 0 {
+		f = append(f, fmt.Sprintf("m%d", s.Data.signGroup))
+	}
+	return strings.Join(f, ",")
+}
+
+func (s *punchMagnetSwitch) Set(value string) error {
+	if value == "nc" {
+		*s.Data = punchWiring{wasSet: true, nc: true}
+		return nil
+	}
+
+	if !strings.ContainsRune(value, ',') {
+		if fixed, err := strconv.Atoi(value); err == nil {
+			if !(fixed >= 0 && fixed <= 12) {
+				return fmt.Errorf("invalid switch %s setting %s", s.Name, value)
+			}
+			*s.Data = punchWiring{wasSet: true, fixed: fixed + 1}
+			return nil
+		}
+		return fmt.Errorf("invalid switch %s setting %s", s.Name, value)
+	}
+
+	f := strings.Split(value, ",")
+	if len(f) < 2 || len(f) > 3 {
+		return fmt.Errorf("invalid switch %s setting %s", s.Name, value)
+	}
+	wiring := punchWiring{wasSet: true}
+
+	group, err := strconv.Atoi(f[0])
+	if err != nil || !(group >= 1 && group <= 16) {
+		return fmt.Errorf("invalid switch %s setting %s", s.Name, value)
+	}
+	index, err := strconv.Atoi(f[1])
+	if err != nil || !(index >= 1 && index <= 5) {
+		return fmt.Errorf("invalid switch %s setting %s", s.Name, value)
+	}
+	wiring.digitGroup = group
+	wiring.digitIndex = index
+
+	if len(f) == 3 {
+		if len(f[2]) < 2 || f[2][0] != 'm' {
+			return fmt.Errorf("invalid switch %s setting %s", s.Name, value)
+		}
+		signGroup, err := strconv.Atoi(f[2][1:])
+		if err != nil || !(signGroup >= 1 && signGroup <= 16) {
+			return fmt.Errorf("invalid switch %s setting %s", s.Name, value)
+		}
+		wiring.signGroup = signGroup
+	}
+
+	*s.Data = wiring
+	return nil
+}
+
 func (u *Printer) FindSwitch(name string) (Switch, error) {
+	if len(name) > 2 && name[:2] == "pm" {
+		col, _ := strconv.Atoi(name[2:])
+		if !(col >= 1 && col <= 80) {
+			return nil, fmt.Errorf("invalid switch %s", name)
+		}
+		return &punchMagnetSwitch{name, &u.magnets[col-1]}, nil
+	}
 	if !strings.ContainsRune(name, '-') {
 		field, _ := strconv.Atoi(name)
 		if !(field >= 1 && field <= 16) {
