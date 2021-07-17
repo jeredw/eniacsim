@@ -25,6 +25,9 @@ type Multiplier struct {
 	sigfig                                                int
 	multl, multr                                          bool
 
+	// If true, treat partial product program controls as unconnected
+	unplugPps bool
+
 	tracer Tracer
 }
 
@@ -242,6 +245,8 @@ func (u *Multiplier) FindJack(jack string) (*Jack, error) {
 
 func (u *Multiplier) FindSwitch(name string) (Switch, error) {
 	switch {
+	case name == "pp":
+		return &BoolSwitch{name, &u.unplugPps, unplugDecadesSettings()}, nil
 	case len(name) > 6 && name[:6] == "ieracc":
 		prog, _ := strconv.Atoi(name[6:])
 		if !(prog >= 1 && prog <= 24) {
@@ -379,8 +384,10 @@ func (u *Multiplier) Clock(c Pulse) {
 		if c&Onep != 0 {
 			u.multl = true
 			u.multr = true
-			u.Io.Lhpp.SetExternalProgram(opα)
-			u.Io.Rhpp.SetExternalProgram(opα)
+			if !u.unplugPps {
+				u.Io.Lhpp.SetExternalProgram(opα)
+				u.Io.Rhpp.SetExternalProgram(opα)
+			}
 			u.sigfig = -1
 			if i := u.activeProgram(); i != -1 {
 				u.sigfig = u.sigsw[i]
@@ -450,8 +457,10 @@ func (u *Multiplier) doCpp() {
 			}
 			u.multl = false
 			u.multr = false
-			u.Io.Lhpp.SetExternalProgram(0)
-			u.Io.Rhpp.SetExternalProgram(0)
+			if !u.unplugPps {
+				u.Io.Lhpp.SetExternalProgram(0)
+				u.Io.Rhpp.SetExternalProgram(0)
+			}
 			u.stage = 12
 		} else {
 			u.stage++
