@@ -49,12 +49,6 @@ func NewAuxStepper(name string, steps int) *AuxStepper {
 }
 
 func (u *AuxStepper) Reset() {
-	u.i.Disconnect()
-	u.di.Disconnect()
-	u.cdi.Disconnect()
-	for i := range u.o {
-		u.o[i].Disconnect()
-	}
 	u.inff1 = false
 	u.inff2 = false
 	u.waitForNextTenp = false

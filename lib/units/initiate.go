@@ -102,9 +102,6 @@ func (u *Initiate) Reset() {
 	u.rdilock = false
 	u.rdsync = false
 	u.rdfinish = false
-	for i := 0; i < 18; i++ {
-		u.jack[i].Disconnect()
-	}
 	for i := 0; i < 6; i++ {
 		u.clrff[i] = false
 	}

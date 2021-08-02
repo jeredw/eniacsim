@@ -504,13 +504,7 @@ func (u *Accumulator) AttachTracer(tracer Tracer) {
 }
 
 func (u *Accumulator) Reset() {
-	u.α.Disconnect()
-	u.β.Disconnect()
-	u.γ.Disconnect()
-	u.δ.Disconnect()
-	u.ε.Disconnect()
 	for i := 0; i < 12; i++ {
-		u.program[i].Disconnect()
 		u.inff1[i] = false
 		u.inff2[i] = false
 		u.operation[i] = opα

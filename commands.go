@@ -403,8 +403,6 @@ func doReset(w io.Writer, f []string) {
 			return
 		}
 		u.Accumulator[unit-1].Reset()
-	case "b":
-		debugger.Reset()
 	case "c":
 		u.Constant.Reset()
 	case "d":
@@ -445,7 +443,6 @@ func doReset(w io.Writer, f []string) {
 
 func doResetAll(w io.Writer) {
 	u.Initiate.Reset()
-	debugger.Reset()
 	u.Mp.Reset()
 	u.Ft[0].Reset()
 	u.Ft[1].Reset()
@@ -457,8 +454,6 @@ func doResetAll(w io.Writer) {
 	u.Multiplier.Reset()
 	u.Constant.Reset()
 	printer.Reset()
-	adapters.Reset()
-	trays.Reset()
 	u.TenStepper.Reset()
 	u.OrderSelector.Reset()
 }

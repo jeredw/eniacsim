@@ -117,9 +117,6 @@ func (u *Ft) State() json.RawMessage {
 }
 
 func (u *Ft) Reset() {
-	for i := range u.jack {
-		u.jack[i].Disconnect()
-	}
 	for i := range u.inff1 {
 		u.inff1[i] = false
 		u.inff2[i] = false

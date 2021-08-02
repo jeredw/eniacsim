@@ -138,8 +138,6 @@ func (u *Multiplier) State() json.RawMessage {
 
 func (u *Multiplier) Reset() {
 	for i := 0; i < 24; i++ {
-		u.multin[i].Disconnect()
-		u.multout[i].Disconnect()
 		u.multff[i] = false
 		u.iersw[i] = 0
 		u.iercl[i] = 0
@@ -149,23 +147,6 @@ func (u *Multiplier) Reset() {
 		u.placsw[i] = 0
 		u.prodsw[i] = 0
 	}
-	for i := 0; i < 5; i++ {
-		u.R[i].Disconnect()
-		u.D[i].Disconnect()
-	}
-	u.A.Disconnect()
-	u.S.Disconnect()
-	u.AS.Disconnect()
-	u.AC.Disconnect()
-	u.SC.Disconnect()
-	u.ASC.Disconnect()
-	u.RS.Disconnect()
-	u.DS.Disconnect()
-	u.F.Disconnect()
-	u.lhppI.Disconnect()
-	u.lhppII.Disconnect()
-	u.rhppI.Disconnect()
-	u.rhppII.Disconnect()
 	u.stage = 0
 	u.reset1ff = false
 	u.reset3ff = false

@@ -155,18 +155,11 @@ func (u *Mp) State() json.RawMessage {
 
 func (u *Mp) Reset() {
 	for i := range u.decade {
-		u.decade[i].di.Disconnect()
 		for j := range u.decade[i].limit {
 			u.decade[i].limit[j] = 0
 		}
 	}
 	for i := range u.stepper {
-		u.stepper[i].di.Disconnect()
-		u.stepper[i].i.Disconnect()
-		u.stepper[i].cdi.Disconnect()
-		for j := range u.stepper[i].o {
-			u.stepper[i].o[j].Disconnect()
-		}
 		u.stepper[i].csw = 0
 		u.stepper[i].waitForNextTenp = false
 	}

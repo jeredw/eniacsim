@@ -30,17 +30,6 @@ func NewTrays() *Trays {
 	return t
 }
 
-func (t *Trays) Reset() {
-	for i := range t.data {
-		t.data[i].Disconnect()
-	}
-	for i := range t.program {
-		for j := range t.program[0] {
-			t.program[i][j].Disconnect()
-		}
-	}
-}
-
 func (t *Trays) FindJack(name string) (*Jack, error) {
 	dash := strings.IndexByte(name, '-')
 	if dash == -1 {

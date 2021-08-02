@@ -223,9 +223,6 @@ func (u *Divsr) AttachTracer(tracer Tracer) {
 
 func (u *Divsr) Reset() {
 	for i := 0; i < 8; i++ {
-		u.progin[i].Disconnect()
-		u.progout[i].Disconnect()
-		u.ilock[i].Disconnect()
 		u.numarg[i] = 0
 		u.numcl[i] = false
 		u.denarg[i] = 0
@@ -237,7 +234,6 @@ func (u *Divsr) Reset() {
 		u.preff[i] = false
 		u.progff[i] = false
 	}
-	u.answer.Disconnect()
 	u.divff = false
 	u.ilockff = false
 	u.ans1 = false

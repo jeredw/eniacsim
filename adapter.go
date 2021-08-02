@@ -72,23 +72,6 @@ func NewAdapters() *Adapters {
 	return a
 }
 
-func (a *Adapters) Reset() {
-	for i := 0; i < 80; i++ {
-		a.dp[i].in.Disconnect()
-		for j := 0; j < 11; j++ {
-			a.dp[i].out[j].Disconnect()
-		}
-		a.shift[i].in.Disconnect()
-		a.shift[i].out.Disconnect()
-		a.del[i].in.Disconnect()
-		a.del[i].out.Disconnect()
-		a.sd[i].in.Disconnect()
-		a.sd[i].out.Disconnect()
-		a.permute[i].in.Disconnect()
-		a.permute[i].out.Disconnect()
-	}
-}
-
 type adParamSwitch struct {
 	minValue int
 	maxValue int

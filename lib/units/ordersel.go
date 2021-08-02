@@ -80,13 +80,6 @@ func NewOrderSelector() *OrderSelector {
 }
 
 func (u *OrderSelector) Reset() {
-	u.a.Disconnect()
-	u.b.Disconnect()
-	u.en.Disconnect()
-	u.out.Disconnect()
-	u.ringIn.Disconnect()
-	u.ringOut.Disconnect()
-	u.ringClear.Disconnect()
 	u.ring = 0
 	u.enff1 = false
 	u.enff2 = false

@@ -84,22 +84,6 @@ func (j *Jack) Connected() bool {
 	return len(j.Receivers) > 0
 }
 
-func (j *Jack) Disconnect() {
-	for i := range j.Receivers {
-		j.Receivers[i].removeConnection(j)
-	}
-}
-
-func (j *Jack) removeConnection(other *Jack) {
-	for i := range j.Receivers {
-		if j.Receivers[i] == other {
-			j.Receivers[i] = j.Receivers[len(j.Receivers)-1]
-			j.Receivers = j.Receivers[:len(j.Receivers)-1]
-			return
-		}
-	}
-}
-
 // Connect connects two jacks, warning about pathological connections.
 func Connect(j1, j2 *Jack) error {
 	if j1 == j2 {

@@ -125,12 +125,6 @@ func (u *Debugger) FindSwitch(name string) (Switch, error) {
 	return nil, fmt.Errorf("invalid debugger switch %s", name)
 }
 
-func (u *Debugger) Reset() {
-	for i := range u.breakpoint {
-		u.breakpoint[i].Disconnect()
-	}
-}
-
 // assertion checks an accumulator value when triggered and stops if false:
 //   p 1-1 debug.assert.0
 //   s debug.assert.0 a5~Mxxxxxxxxxx

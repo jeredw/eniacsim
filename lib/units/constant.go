@@ -94,10 +94,8 @@ func (u *Constant) Stat() string {
 func (u *Constant) Reset() {
 	for i := 0; i < 30; i++ {
 		u.sel[i] = 0
-		u.programInput[i].Disconnect()
 		u.inff1[i] = false
 		u.inff2[i] = false
-		u.programOutput[i].Disconnect()
 	}
 	for i := 0; i < 8; i++ {
 		for j := 0; j < 10; j++ {
@@ -114,7 +112,6 @@ func (u *Constant) Reset() {
 	u.jSign[1] = false
 	u.kSign[0] = false
 	u.kSign[1] = false
-	u.out.Disconnect()
 }
 
 func (u *Constant) FindJack(jack string) (*Jack, error) {
