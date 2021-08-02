@@ -16,15 +16,12 @@ type Trays struct {
 
 func NewTrays() *Trays {
 	t := &Trays{}
-	forward := func(j *Jack, val int) {
-		j.Transmit(val)
-	}
 	for i := range t.data {
-		t.data[i] = NewJack(fmt.Sprintf("%d", i+1), forward, nil)
+		t.data[i] = NewForwardingJack(fmt.Sprintf("%d", i+1))
 	}
 	for i := range t.program {
 		for j := range t.program[0] {
-			t.program[i][j] = NewJack(fmt.Sprintf("%d-%d", i+1, j+1), forward, nil)
+			t.program[i][j] = NewForwardingJack(fmt.Sprintf("%d-%d", i+1, j+1))
 		}
 	}
 	return t

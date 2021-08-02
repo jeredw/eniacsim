@@ -19,7 +19,8 @@ type Jack struct {
 	Receivers   []*Jack
 	Disabled    bool  // to skip work for inactive accum inputs
 
-	visited bool
+	visited     bool
+	forward     bool  // forwarding node (for trays)
 }
 
 func NewJack(name string, onReceive JackHandler, onTransmit JackHandler) *Jack {
@@ -39,6 +40,12 @@ func NewOutput(name string, onTransmit JackHandler) *Jack {
 	return NewJack(name, nil, onTransmit)
 }
 
+func NewForwardingJack(name string) *Jack {
+	jack := NewJack(name, nil, nil)
+	jack.forward = true
+	return jack
+}
+
 // Transmit sends val on jack j, invoking receiver callbacks for each connected
 // receiver and afterwards invoking j's transmit callback.
 func (j *Jack) Transmit(val int) {
@@ -54,7 +61,10 @@ func (j *Jack) Transmit(val int) {
 	j.visited = true
 	transmitted := false
 	for _, r := range j.Receivers {
-		if !r.Disabled && !r.visited {
+		if r.forward {
+			transmitted = true
+			r.Transmit(val)
+		} else if !r.visited && !r.Disabled {
 			transmitted = true
 			r.OnReceive(r, val)
 		}
@@ -99,10 +109,10 @@ func Connect(j1, j2 *Jack) error {
 			return fmt.Errorf("%s is already connected to %s", j1, j2)
 		}
 	}
-	if j1.OnReceive != nil {
+	if j1.OnReceive != nil || j1.forward {
 	  j2.Receivers = append(j2.Receivers, j1)
 	}
-	if j2.OnReceive != nil {
+	if j2.OnReceive != nil || j2.forward {
 	  j1.Receivers = append(j1.Receivers, j2)
 	}
 	return nil
