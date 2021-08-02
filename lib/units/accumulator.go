@@ -132,7 +132,7 @@ func (u *Accumulator) doTenp() {
 }
 
 func (u *Accumulator) doNinep() {
-	if u.activeProgram&(opA|opAS) != 0 && u.A.Connected() {
+	if u.activeProgram&(opA|opAS) != 0 {
 		n := 0
 		for i := 0; i < 10; i++ {
 			if u.carry[i] {
@@ -146,7 +146,7 @@ func (u *Accumulator) doNinep() {
 			u.A.Transmit(n)
 		}
 	}
-	if u.activeProgram&(opAS|opS) != 0 && u.S.Connected() {
+	if u.activeProgram&(opAS|opS) != 0 {
 		n := 0
 		for i := 0; i < 10; i++ {
 			if !u.carry[i] {
@@ -173,7 +173,7 @@ func (u *Accumulator) doOnepp() {
 			}
 		}
 	}
-	if u.activeProgram&(opAS|opS) != 0 && u.S.Connected() {
+	if u.activeProgram&(opAS|opS) != 0 && u.S.Connected {
 		// Transmit a final +1 in the least significant decade on S.
 		//
 		// Behavior of figures switches for interconnected accumulators is

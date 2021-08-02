@@ -18,6 +18,7 @@ type Jack struct {
 	OnTransmit  JackHandler
 	Receivers   []*Jack
 	Disabled    bool  // to skip work for inactive accum inputs
+	Connected   bool
 
 	visited     bool
 	forward     bool  // forwarding node (for trays)
@@ -90,10 +91,6 @@ func (j *Jack) ConnectionsString() string {
 	return b.String()
 }
 
-func (j *Jack) Connected() bool {
-	return len(j.Receivers) > 0
-}
-
 // Connect connects two jacks, warning about pathological connections.
 func Connect(j1, j2 *Jack) error {
 	if j1 == j2 {
@@ -110,10 +107,12 @@ func Connect(j1, j2 *Jack) error {
 		}
 	}
 	if j1.OnReceive != nil || j1.forward {
-	  j2.Receivers = append(j2.Receivers, j1)
+		j2.Receivers = append(j2.Receivers, j1)
+		j2.Connected = true
 	}
 	if j2.OnReceive != nil || j2.forward {
-	  j1.Receivers = append(j1.Receivers, j2)
+		j1.Receivers = append(j1.Receivers, j2)
+		j1.Connected = true
 	}
 	return nil
 }

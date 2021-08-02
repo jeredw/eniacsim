@@ -375,7 +375,7 @@ func (u *Multiplier) Clock(c Pulse) {
 			}
 		}
 		// Transmit +5 in the roundoff place.
-		if u.sigfig == 0 && u.lhppII.Connected() {
+		if u.sigfig == 0 && u.lhppII.Connected {
 			u.lhppII.Transmit(1 << 10)
 		} else if u.sigfig > 0 && u.sigfig < 9 {
 			u.lhppI.Transmit(1 << uint(u.sigfig-1))

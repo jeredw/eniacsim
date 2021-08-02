@@ -251,11 +251,11 @@ func (u *Constant) readCardField(i int, field string) {
 	for j := bank * 6; j < bank*6+6; j++ {
 		switch u.sel[j] {
 		case selC1 + selLeft, selC1 + selRight:
-			if i%2 == 0 && u.programInput[j].Connected() {
+			if i%2 == 0 && u.programInput[j].Connected {
 				tenDigitNumber = false
 			}
 		case selC2 + selLeft, selC2 + selRight:
-			if i%2 == 1 && u.programInput[j].Connected() {
+			if i%2 == 1 && u.programInput[j].Connected {
 				tenDigitNumber = false
 			}
 		}
