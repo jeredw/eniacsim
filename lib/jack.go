@@ -19,6 +19,7 @@ type Jack struct {
 	Receivers   []*Jack
 	Disabled    bool  // to skip work for inactive accum inputs
 	Connected   bool
+	OutJack     *Jack
 
 	visited     bool
 	forward     bool  // forwarding node (for trays)

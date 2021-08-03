@@ -68,6 +68,7 @@ func NewAdapters() *Adapters {
 		a.sd[i].out = NewOutput(fmt.Sprintf("ad.sd.o.%d", i+1), nil)
 		a.permute[i].in = NewInput(fmt.Sprintf("ad.permute.i.%d", i+1), permuteInput(i))
 		a.permute[i].out = NewOutput(fmt.Sprintf("ad.permute.o.%d", i+1), nil)
+		a.permute[i].in.OutJack = a.permute[i].out
 	}
 	return a
 }
@@ -122,7 +123,7 @@ func (s *permuteSwitch) Set(value string) error {
 		}
 	}
 	if fn, ok := getCustomPermuter(s.ad.order); ok {
-		s.ad.adapt = fn
+		s.ad.in.OnReceive = fn
 	} else if nonSwappedLines == 11 {
 		s.ad.adapt = (*permuter).adaptWithMask
 		s.ad.mask = mask
