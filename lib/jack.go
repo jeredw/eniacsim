@@ -24,7 +24,7 @@ type Jack struct {
 	forward     bool  // forwarding node (for trays)
 }
 
-func NewJack(name string, onReceive JackHandler, onTransmit JackHandler) *Jack {
+func newJack(name string, onReceive JackHandler, onTransmit JackHandler) *Jack {
 	return &Jack{
 		Name:        name,
 		OnReceive:   onReceive,
@@ -34,15 +34,15 @@ func NewJack(name string, onReceive JackHandler, onTransmit JackHandler) *Jack {
 }
 
 func NewInput(name string, onReceive JackHandler) *Jack {
-	return NewJack(name, onReceive, nil)
+	return newJack(name, onReceive, nil)
 }
 
 func NewOutput(name string, onTransmit JackHandler) *Jack {
-	return NewJack(name, nil, onTransmit)
+	return newJack(name, nil, onTransmit)
 }
 
 func NewForwardingJack(name string) *Jack {
-	jack := NewJack(name, nil, nil)
+	jack := newJack(name, nil, nil)
 	jack.forward = true
 	return jack
 }

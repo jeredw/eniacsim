@@ -95,6 +95,8 @@ type permuteSwitch struct {
 	ad *permuter
 }
 
+//go:generate go run codegen/gen_permuters.go
+
 func (s *permuteSwitch) Set(value string) error {
 	order := strings.Split(value, ",")
 	if len(order) != 11 {
@@ -119,7 +121,9 @@ func (s *permuteSwitch) Set(value string) error {
 			}
 		}
 	}
-	if nonSwappedLines == 11 {
+	if fn, ok := getCustomPermuter(s.ad.order); ok {
+		s.ad.adapt = fn
+	} else if nonSwappedLines == 11 {
 		s.ad.adapt = (*permuter).adaptWithMask
 		s.ad.mask = mask
 	} else {
