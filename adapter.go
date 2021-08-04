@@ -188,6 +188,7 @@ func (a *Adapters) FindJack(name string) (*Jack, error) {
 		if !(digit >= 1 && digit <= 11) {
 			return nil, fmt.Errorf("invalid digit %s in %s", p[3], name)
 		}
+		a.dp[i].refMask |= (1 << (digit-1))
 		return a.dp[i].out[digit-1], nil
 	case kind == "s" && dir == "i":
 		return a.shift[i].in, nil
@@ -212,14 +213,49 @@ func (a *Adapters) FindJack(name string) (*Jack, error) {
 type digitProgram struct {
 	in  *Jack
 	out [11]*Jack
+	refMask int // which digit outs have been referenced
 }
 
 // Emit program pulses when one or more digit positions activate.
 func (a *digitProgram) adapt(val int) {
-	for i := uint(0); i < 11; i++ {
-		if val&(1<<i) != 0 {
-			a.out[i].Transmit(1)
-		}
+	//for i := uint(0); i < 11; i++ {
+	//	if val&(1<<i) != 0 {
+	//		a.out[i].Transmit(1)
+	//	}
+	//}
+	refMask := a.refMask
+	if val&(1<<0) != 0 && refMask&(1<<0) != 0 {
+		a.out[0].Transmit(1)
+	}
+	if val&(1<<1) != 0 && refMask&(1<<1) != 0 {
+		a.out[1].Transmit(1)
+	}
+	if val&(1<<2) != 0 && refMask&(1<<2) != 0 {
+		a.out[2].Transmit(1)
+	}
+	if val&(1<<3) != 0 && refMask&(1<<3) != 0 {
+		a.out[3].Transmit(1)
+	}
+	if val&(1<<4) != 0 && refMask&(1<<4) != 0 {
+		a.out[4].Transmit(1)
+	}
+	if val&(1<<5) != 0 && refMask&(1<<5) != 0 {
+		a.out[5].Transmit(1)
+	}
+	if val&(1<<6) != 0 && refMask&(1<<6) != 0 {
+		a.out[6].Transmit(1)
+	}
+	if val&(1<<7) != 0 && refMask&(1<<7) != 0 {
+		a.out[7].Transmit(1)
+	}
+	if val&(1<<8) != 0 && refMask&(1<<8) != 0 {
+		a.out[8].Transmit(1)
+	}
+	if val&(1<<9) != 0 && refMask&(1<<9) != 0 {
+		a.out[9].Transmit(1)
+	}
+	if val&(1<<10) != 0 && refMask&(1<<10) != 0 {
+		a.out[10].Transmit(1)
 	}
 }
 
