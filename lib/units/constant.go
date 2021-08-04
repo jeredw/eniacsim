@@ -42,6 +42,7 @@ type Constant struct {
 
 	inff1, inff2 [30]bool
 	whichrp      bool
+	sending	int
 
 	tracer Tracer
 }
@@ -112,6 +113,7 @@ func (u *Constant) Reset() {
 	u.jSign[1] = false
 	u.kSign[0] = false
 	u.kSign[1] = false
+	u.sending = 0
 }
 
 func (u *Constant) FindJack(jack string) (*Jack, error) {
@@ -357,25 +359,22 @@ func (u *Constant) selectConstant(program int) {
 }
 
 func (u *Constant) Clock(cyc Pulse) {
-	sending := -1
-	for i := 0; i < 30; i++ {
-		if u.inff2[i] {
-			// FIXME "Simultaneous stimulation of two program controls" is actually
-			// allowed in some restricted cases described in ETM, Table 8-6.  This
-			// implementation assumes only one active program.
-			sending = i
-			u.selectConstant(i)
-			break
-		}
-	}
 	if cyc&Ccg != 0 {
 		u.whichrp = false
 	} else if cyc&Rp != 0 {
 		if u.whichrp {
 			for i := 0; i < 30; i++ {
 				if u.inff1[i] {
+					if u.sending != 0 {
+						// FIXME "Simultaneous stimulation of two program controls" is actually
+						// allowed in some restricted cases described in ETM, Table 8-6.  This
+						// implementation assumes only one active program.
+						panic("simultaneous constant sends not supported")
+					}
 					u.inff1[i] = false
 					u.inff2[i] = true
+					u.sending = i+1
+					u.selectConstant(i)
 				}
 			}
 			u.whichrp = false
@@ -383,11 +382,11 @@ func (u *Constant) Clock(cyc Pulse) {
 			u.whichrp = true
 		}
 	}
-	if sending > -1 {
+	if u.sending != 0 {
 		if cyc&Cpp != 0 {
-			u.programOutput[sending].Transmit(1)
-			u.inff2[sending] = false
-			sending = -1
+			u.programOutput[u.sending-1].Transmit(1)
+			u.inff2[u.sending-1] = false
+			u.sending = 0
 		} else if cyc&Ninep != 0 {
 			n := 0
 			for i := 0; i < 10; i++ {
