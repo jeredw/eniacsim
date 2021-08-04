@@ -35,7 +35,7 @@ type Accumulator struct {
 	selectiveClear bool     // If true, initiate unit may trigger clear
 
 	sign   bool     // True if negative
-	decade [10]int  // Ten digits 0-9.  Index 0 is least significant.
+	decade uint64   // Ten digits 0-9 in BCD
 	carry  int      // Bitmask of carry ff per decade
 	carry2 int      // Temp for ripple carries
 
@@ -121,13 +121,22 @@ func (u *Accumulator) Clock(cyc Pulse) {
 
 func (u *Accumulator) doTenp() {
 	if u.activeProgram&(opA|opAS|opS) != 0 {
-		for i := 0; i < 10; i++ {
-			u.decade[i]++
-			if u.decade[i] == 10 {
-				u.decade[i] = 0
-				u.carry |= 1 << uint(i)
-			}
-		}
+		increment := u.decade + 0x1111111111
+		// Only 9+3=12 will have both bits 2+3 set
+		nines := (u.decade + 0x3333333333) & 0xcccccccccc
+		nines = (nines & (nines >> 1)) >> 2
+		// Subtract 10 from positions that had 9s
+		u.decade = increment - ((nines << 1) | (nines << 3))
+		u.carry |= int((nines&0x1) |
+				((nines>>3)&0x2) |
+				((nines>>6)&0x4) |
+				((nines>>9)&0x8) |
+				((nines>>12)&0x10) |
+				((nines>>15)&0x20) |
+				((nines>>18)&0x40) |
+				((nines>>21)&0x80) |
+				((nines>>24)&0x100) |
+				((nines>>27)&0x200))
 	}
 }
 
@@ -156,9 +165,9 @@ func (u *Accumulator) doOnepp() {
 	if u.activeProgram&opCorrect != 0 {
 		// Apply tens' complement correction to the lowest order decade.
 		if u.right == nil {
-			u.decade[0]++
-			if u.decade[0] > 9 {
-				u.decade[0] = 0
+			u.decade += 1
+			if u.decade&0xf > 9 {
+				u.decade &= 0xfffffffff0
 				u.carry |= 1
 			}
 		}
@@ -191,11 +200,9 @@ func (u *Accumulator) doCcg() {
 func (u *Accumulator) clearInternal() {
 	u.carry = 0
 	u.carry2 = 0
-	for i := 0; i < 10; i++ {
-		u.decade[i] = 0
-	}
+	u.decade = 0
 	if u.figures < 10 {
-		u.decade[9-u.figures] = 5
+		u.decade |= 5 << (4 * (9-u.figures))
 	}
 	u.sign = false
 }
@@ -216,15 +223,31 @@ func (u *Accumulator) doRp1() {
 }
 
 func (u *Accumulator) ripple() {
-	for i := 0; i < 9; i++ {
-		if (u.carry | u.carry2) & (1 << uint(i)) != 0 {
-			u.decade[i+1]++
-			if u.decade[i+1] == 10 {
-				u.decade[i+1] = 0
-				u.carry2 |= 1 << uint(i+1)
-			}
-		}
-	}
+	x := uint64((u.carry | u.carry2) << 1)
+	digits := ((x<<3)&0x10) |
+		((x<<6)&0x100) |
+		((x<<9)&0x1000) |
+		((x<<12)&0x10000) |
+		((x<<15)&0x100000) |
+		((x<<18)&0x1000000) |
+		((x<<21)&0x10000000) |
+		((x<<24)&0x100000000) |
+		((x<<27)&0x1000000000)
+	sum := u.decade + digits + 0x6666666666
+	noncarry := ^(sum ^ u.decade ^ digits) & 0x11111111110
+	carry := (noncarry ^ 0x11111111110) >> 4
+	u.decade = (sum - ((noncarry >> 2) | (noncarry >> 3))) & 0xffffffffff
+	u.carry2 |= int(
+			(carry&0x1) |
+			((carry>>3)&0x2) |
+			((carry>>6)&0x4) |
+			((carry>>9)&0x8) |
+			((carry>>12)&0x10) |
+			((carry>>15)&0x20) |
+			((carry>>18)&0x40) |
+			((carry>>21)&0x80) |
+			((carry>>24)&0x100) |
+			((carry>>27)&0x200))
 	if u.left == nil {
 		// Carry from final decade into sign.
 		if (u.carry | u.carry2) & (1 << 9) != 0 {
@@ -234,9 +257,9 @@ func (u *Accumulator) ripple() {
 		// This is the right half of a pair of interconnected accumulators.
 		// Carry from final decade into decade 1 of left half.
 		if (u.carry | u.carry2) & (1 << 9) != 0 {
-			u.left.decade[0]++
-			if u.left.decade[0] == 10 {
-				u.left.decade[0] = 0
+			u.left.decade += 1
+			if u.left.decade&0xf == 10 {
+				u.left.decade &= 0xfffffffff0
 				u.left.carry2 |= 1
 			}
 		}
@@ -382,17 +405,34 @@ func (u *Accumulator) newDigitInput(name string, programMask int) *Jack {
 }
 
 func (u *Accumulator) receive(value int) {
-	for i := 0; i < 10; i++ {
-		if value&1 == 1 {
-			u.decade[i]++
-			if u.decade[i] >= 10 {
-				u.carry |= (1 << uint(i))
-				u.decade[i] -= 10
-			}
-		}
-		value >>= 1
-	}
-	if value&1 == 1 {
+	x := uint64(value)
+	digits := (x&1) |
+		((x<<3)&0x10) |
+		((x<<6)&0x100) |
+		((x<<9)&0x1000) |
+		((x<<12)&0x10000) |
+		((x<<15)&0x100000) |
+		((x<<18)&0x1000000) |
+		((x<<21)&0x10000000) |
+		((x<<24)&0x100000000) |
+		((x<<27)&0x1000000000)
+	sum := u.decade + digits
+	// Only digits which overflowed to 9+1=10 will have both bits 2+3 set
+	carry := (sum + 0x2222222222) & 0xcccccccccc
+	carry = (carry & (carry >> 1)) >> 2
+	// Subtract 10 from positions that overflowed
+	u.decade = sum - ((carry << 1) | (carry << 3))
+	u.carry |= int((carry&0x1) |
+			((carry>>3)&0x2) |
+			((carry>>6)&0x4) |
+			((carry>>9)&0x8) |
+			((carry>>12)&0x10) |
+			((carry>>15)&0x20) |
+			((carry>>18)&0x40) |
+			((carry>>21)&0x80) |
+			((carry>>24)&0x100) |
+			((carry>>27)&0x200))
+	if value&(1<<10) != 0 {
 		u.sign = !u.sign
 	}
 }
@@ -446,7 +486,7 @@ func (u *Accumulator) Stat() string {
 		s += "P "
 	}
 	for i := 9; i >= 0; i-- {
-		s += fmt.Sprintf("%d", u.decade[i])
+		s += fmt.Sprintf("%d", (u.decade >> (4*i)) & 0xf)
 	}
 	s += " "
 	for i := 9; i >= 0; i-- {
@@ -469,12 +509,14 @@ type accJson struct {
 
 func (u *Accumulator) State() json.RawMessage {
 	carry := [10]bool{}
+	decade := [10]int{}
 	for i := 0; i < 10; i++ {
 		carry[i] = u.carry & (1 << uint(i)) != 0
+		decade[i] = int((u.decade >> (4*i)) & 0xf)
 	}
 	s := accJson{
 		Sign:    u.sign,
-		Decade:  u.decade,
+		Decade:  decade,
 		Carry:   carry,
 		Repeat:  u.repeatCount,
 		Program: u.inff2,
@@ -489,7 +531,7 @@ func (u *Accumulator) AttachTracer(tracer Tracer) {
 	decade := u.terminal("decade")
 	tracer.RegisterValueCallback(func() {
 		tracer.LogValue(sign, 1, BoolToInt64(u.sign))
-		tracer.LogValue(decade, 40, TenDigitsToInt64BCD(u.decade))
+		tracer.LogValue(decade, 40, int64(u.decade))
 	})
 }
 
@@ -541,7 +583,8 @@ func (u *Accumulator) updateValueString() {
 	}
 	u.valueString[1] = ' '
 	for i := 0; i <= 9; i++ {
-		u.valueString[2+i] = '0' + byte(u.decade[9 - i])
+		digit := (u.decade >> uint(4 * (9-i))) & 0xf
+		u.valueString[2+i] = '0' + byte(digit)
 	}
 }
 
@@ -561,8 +604,9 @@ func (u *Accumulator) Set(value int64) {
 	}
 	u.carry = 0
 	u.carry2 = 0
+	u.decade = 0
 	for i := 0; i < 10; i++ {
-		u.decade[i] = int(value % 10)
+		u.decade |= uint64(value % 10) << (4*i)
 		value /= 10
 	}
 }
