@@ -36,8 +36,8 @@ type Accumulator struct {
 
 	sign   bool     // True if negative
 	decade uint64   // Ten digits 0-9 in BCD
-	carry  int      // Bitmask of carry ff per decade
-	carry2 int      // Temp for ripple carries
+	carry  uint64   // Carry ffs per decade in BCD
+	carry2 uint64   // Temp for ripple carries (also BCD)
 
 	inff1, inff2    [12]bool
 	repeating       bool
@@ -127,22 +127,22 @@ func (u *Accumulator) doTenp() {
 		nines = (nines & (nines >> 1)) >> 2
 		// Subtract 10 from positions that had 9s
 		u.decade = increment - ((nines << 1) | (nines << 3))
-		u.carry |= int((nines&0x1) |
-				((nines>>3)&0x2) |
-				((nines>>6)&0x4) |
-				((nines>>9)&0x8) |
-				((nines>>12)&0x10) |
-				((nines>>15)&0x20) |
-				((nines>>18)&0x40) |
-				((nines>>21)&0x80) |
-				((nines>>24)&0x100) |
-				((nines>>27)&0x200))
+		u.carry |= nines
 	}
 }
 
 func (u *Accumulator) doNinep() {
 	if u.activeProgram&(opA|opAS) != 0 {
-		n := u.carry
+		n := int((u.carry&0x1) |
+				((u.carry>>3)&0x2) |
+				((u.carry>>6)&0x4) |
+				((u.carry>>9)&0x8) |
+				((u.carry>>12)&0x10) |
+				((u.carry>>15)&0x20) |
+				((u.carry>>18)&0x40) |
+				((u.carry>>21)&0x80) |
+				((u.carry>>24)&0x100) |
+				((u.carry>>27)&0x200))
 		if u.sign {
 			n |= 1 << 10
 		}
@@ -151,7 +151,17 @@ func (u *Accumulator) doNinep() {
 		}
 	}
 	if u.activeProgram&(opAS|opS) != 0 {
-		n := (^u.carry) & 0x3ff
+		n := int((u.carry&0x1) |
+				((u.carry>>3)&0x2) |
+				((u.carry>>6)&0x4) |
+				((u.carry>>9)&0x8) |
+				((u.carry>>12)&0x10) |
+				((u.carry>>15)&0x20) |
+				((u.carry>>18)&0x40) |
+				((u.carry>>21)&0x80) |
+				((u.carry>>24)&0x100) |
+				((u.carry>>27)&0x200))
+		n = (^n) & 0x3ff
 		if !u.sign {
 			n |= 1 << 10
 		}
@@ -223,40 +233,21 @@ func (u *Accumulator) doRp1() {
 }
 
 func (u *Accumulator) ripple() {
-	x := uint64((u.carry | u.carry2) << 1)
-	digits := ((x<<3)&0x10) |
-		((x<<6)&0x100) |
-		((x<<9)&0x1000) |
-		((x<<12)&0x10000) |
-		((x<<15)&0x100000) |
-		((x<<18)&0x1000000) |
-		((x<<21)&0x10000000) |
-		((x<<24)&0x100000000) |
-		((x<<27)&0x1000000000)
+	digits := ((u.carry | u.carry2) << 4) & 0xfffffffff0
 	sum := u.decade + digits + 0x6666666666
 	noncarry := ^(sum ^ u.decade ^ digits) & 0x11111111110
 	carry := (noncarry ^ 0x11111111110) >> 4
 	u.decade = (sum - ((noncarry >> 2) | (noncarry >> 3))) & 0xffffffffff
-	u.carry2 |= int(
-			(carry&0x1) |
-			((carry>>3)&0x2) |
-			((carry>>6)&0x4) |
-			((carry>>9)&0x8) |
-			((carry>>12)&0x10) |
-			((carry>>15)&0x20) |
-			((carry>>18)&0x40) |
-			((carry>>21)&0x80) |
-			((carry>>24)&0x100) |
-			((carry>>27)&0x200))
+	u.carry2 |= carry
 	if u.left == nil {
 		// Carry from final decade into sign.
-		if (u.carry | u.carry2) & (1 << 9) != 0 {
+		if (u.carry | u.carry2) & (1 << (4*9)) != 0 {
 			u.sign = !u.sign
 		}
 	} else {
 		// This is the right half of a pair of interconnected accumulators.
 		// Carry from final decade into decade 1 of left half.
-		if (u.carry | u.carry2) & (1 << 9) != 0 {
+		if (u.carry | u.carry2) & (1 << (4*9)) != 0 {
 			u.left.decade += 1
 			if u.left.decade&0xf == 10 {
 				u.left.decade &= 0xfffffffff0
@@ -422,16 +413,7 @@ func (u *Accumulator) receive(value int) {
 	carry = (carry & (carry >> 1)) >> 2
 	// Subtract 10 from positions that overflowed
 	u.decade = sum - ((carry << 1) | (carry << 3))
-	u.carry |= int((carry&0x1) |
-			((carry>>3)&0x2) |
-			((carry>>6)&0x4) |
-			((carry>>9)&0x8) |
-			((carry>>12)&0x10) |
-			((carry>>15)&0x20) |
-			((carry>>18)&0x40) |
-			((carry>>21)&0x80) |
-			((carry>>24)&0x100) |
-			((carry>>27)&0x200))
+	u.carry |= carry
 	if value&(1<<10) != 0 {
 		u.sign = !u.sign
 	}
@@ -490,7 +472,7 @@ func (u *Accumulator) Stat() string {
 	}
 	s += " "
 	for i := 9; i >= 0; i-- {
-		s += ToBin(u.carry & (1 << uint(i)) != 0)
+		s += ToBin(u.carry & (1 << uint(4*i)) != 0)
 	}
 	s += fmt.Sprintf(" %d ", u.repeatCount)
 	for _, f := range u.inff2 {
@@ -511,7 +493,7 @@ func (u *Accumulator) State() json.RawMessage {
 	carry := [10]bool{}
 	decade := [10]int{}
 	for i := 0; i < 10; i++ {
-		carry[i] = u.carry & (1 << uint(i)) != 0
+		carry[i] = u.carry & (1 << uint(4*i)) != 0
 		decade[i] = int((u.decade >> (4*i)) & 0xf)
 	}
 	s := accJson{
