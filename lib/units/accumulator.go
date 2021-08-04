@@ -36,8 +36,8 @@ type Accumulator struct {
 
 	sign   bool     // True if negative
 	decade [10]int  // Ten digits 0-9.  Index 0 is least significant.
-	carry  [10]bool // Carry ff per decade
-	carry2 [10]bool // Temp for ripple carries
+	carry  int      // Bitmask of carry ff per decade
+	carry2 int      // Temp for ripple carries
 
 	inff1, inff2    [12]bool
 	repeating       bool
@@ -125,7 +125,7 @@ func (u *Accumulator) doTenp() {
 			u.decade[i]++
 			if u.decade[i] == 10 {
 				u.decade[i] = 0
-				u.carry[i] = true
+				u.carry |= 1 << uint(i)
 			}
 		}
 	}
@@ -133,12 +133,7 @@ func (u *Accumulator) doTenp() {
 
 func (u *Accumulator) doNinep() {
 	if u.activeProgram&(opA|opAS) != 0 {
-		n := 0
-		for i := 0; i < 10; i++ {
-			if u.carry[i] {
-				n |= 1 << uint(i)
-			}
-		}
+		n := u.carry
 		if u.sign {
 			n |= 1 << 10
 		}
@@ -147,12 +142,7 @@ func (u *Accumulator) doNinep() {
 		}
 	}
 	if u.activeProgram&(opAS|opS) != 0 {
-		n := 0
-		for i := 0; i < 10; i++ {
-			if !u.carry[i] {
-				n |= 1 << uint(i)
-			}
-		}
+		n := (^u.carry) & 0x3ff
 		if !u.sign {
 			n |= 1 << 10
 		}
@@ -169,7 +159,7 @@ func (u *Accumulator) doOnepp() {
 			u.decade[0]++
 			if u.decade[0] > 9 {
 				u.decade[0] = 0
-				u.carry[0] = true
+				u.carry |= 1
 			}
 		}
 	}
@@ -199,10 +189,10 @@ func (u *Accumulator) doCcg() {
 }
 
 func (u *Accumulator) clearInternal() {
+	u.carry = 0
+	u.carry2 = 0
 	for i := 0; i < 10; i++ {
 		u.decade[i] = 0
-		u.carry[i] = false
-		u.carry2[i] = false
 	}
 	if u.figures < 10 {
 		u.decade[9-u.figures] = 5
@@ -222,34 +212,32 @@ func (u *Accumulator) doRp1() {
 	// Carry propagation will set some carry ffs again as ripple occurs.  We
 	// track these in carry2.  This would happen over the next 5 pulse times
 	// but just do it here.
-	for i := 0; i < 10; i++ {
-		u.carry[i] = u.carry2[i]
-	}
+	u.carry = u.carry2
 }
 
 func (u *Accumulator) ripple() {
 	for i := 0; i < 9; i++ {
-		if u.carry[i] || u.carry2[i] {
+		if (u.carry | u.carry2) & (1 << uint(i)) != 0 {
 			u.decade[i+1]++
 			if u.decade[i+1] == 10 {
 				u.decade[i+1] = 0
-				u.carry2[i+1] = true
+				u.carry2 |= 1 << uint(i+1)
 			}
 		}
 	}
 	if u.left == nil {
 		// Carry from final decade into sign.
-		if u.carry[9] || u.carry2[9] {
+		if (u.carry | u.carry2) & (1 << 9) != 0 {
 			u.sign = !u.sign
 		}
 	} else {
 		// This is the right half of a pair of interconnected accumulators.
 		// Carry from final decade into decade 1 of left half.
-		if u.carry[9] || u.carry2[9] {
+		if (u.carry | u.carry2) & (1 << 9) != 0 {
 			u.left.decade[0]++
 			if u.left.decade[0] == 10 {
 				u.left.decade[0] = 0
-				u.left.carry2[0] = true
+				u.left.carry2 |= 1
 			}
 		}
 		u.left.ripple()
@@ -282,10 +270,8 @@ func (u *Accumulator) doCpp(cyc Pulse) {
 
 func (u *Accumulator) doRp2() {
 	// The second Rp clears any leftover ripple carries.
-	for i := 0; i < 10; i++ {
-		u.carry[i] = false
-		u.carry2[i] = false
-	}
+	u.carry = 0
+	u.carry2 = 0
 	// Apply programs setup on Cpp; see the note in trigger().
 	for i := 0; i < 12; i++ {
 		if u.inff1[i] {
@@ -400,7 +386,7 @@ func (u *Accumulator) receive(value int) {
 		if value&1 == 1 {
 			u.decade[i]++
 			if u.decade[i] >= 10 {
-				u.carry[i] = true
+				u.carry |= (1 << uint(i))
 				u.decade[i] -= 10
 			}
 		}
@@ -464,7 +450,7 @@ func (u *Accumulator) Stat() string {
 	}
 	s += " "
 	for i := 9; i >= 0; i-- {
-		s += ToBin(u.carry[i])
+		s += ToBin(u.carry & (1 << uint(i)) != 0)
 	}
 	s += fmt.Sprintf(" %d ", u.repeatCount)
 	for _, f := range u.inff2 {
@@ -482,10 +468,14 @@ type accJson struct {
 }
 
 func (u *Accumulator) State() json.RawMessage {
+	carry := [10]bool{}
+	for i := 0; i < 10; i++ {
+		carry[i] = u.carry & (1 << uint(i)) != 0
+	}
 	s := accJson{
 		Sign:    u.sign,
 		Decade:  u.decade,
-		Carry:   u.carry,
+		Carry:   carry,
 		Repeat:  u.repeatCount,
 		Program: u.inff2,
 	}
@@ -569,10 +559,10 @@ func (u *Accumulator) Set(value int64) {
 	if value < 0 {
 		value = -value
 	}
+	u.carry = 0
+	u.carry2 = 0
 	for i := 0; i < 10; i++ {
 		u.decade[i] = int(value % 10)
-		u.carry[i] = false
-		u.carry2[i] = false
 		value /= 10
 	}
 }
