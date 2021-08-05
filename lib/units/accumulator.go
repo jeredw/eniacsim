@@ -39,7 +39,7 @@ type Accumulator struct {
 	carry  uint64   // Carry ffs per decade in BCD
 	carry2 uint64   // Temp for ripple carries (also BCD)
 
-	inff1, inff2    [12]bool
+	inff1, inff2    int  // 12-bit bitmasks
 	repeating       bool
 	repeatCount     int
 	afterFirstRp    bool
@@ -259,17 +259,13 @@ func (u *Accumulator) ripple() {
 }
 
 func (u *Accumulator) doCpp(cyc Pulse) {
-	for i := 0; i < 4; i++ {
-		if u.inff2[i] {
-			u.inff2[i] = false
-		}
-	}
+	u.inff2 &= 0xff0
 	if u.repeating {
 		u.repeatCount++
 		done := false
 		for i := 4; i < 12; i++ {
-			if u.inff2[i] && u.repeatCount == u.repeat[i-4]+1 {
-				u.inff2[i] = false
+			if u.inff2 & (1 << uint(i)) != 0 && u.repeatCount == u.repeat[i-4]+1 {
+				u.inff2 &= ^(1 << uint(i))
 				done = true
 				t := (i-4)*2 + 5
 				u.program[t].Transmit(1)
@@ -287,15 +283,9 @@ func (u *Accumulator) doRp2() {
 	u.carry = 0
 	u.carry2 = 0
 	// Apply programs setup on Cpp; see the note in trigger().
-	for i := 0; i < 12; i++ {
-		if u.inff1[i] {
-			u.inff1[i] = false
-			u.inff2[i] = true
-			if i >= 4 {
-				u.repeating = true
-			}
-		}
-	}
+	u.inff2 |= u.inff1
+	u.inff1 = 0
+	u.repeating = u.inff2 & 0xff0 != 0
 	u.updateActiveProgram()
 }
 
@@ -319,8 +309,8 @@ func (u *Accumulator) updateActiveProgram() {
 func (u *Accumulator) updateOwnActiveProgram() {
 	x := 0
 	numActivePrograms := 0
-	for i := range u.inff2 {
-		if u.inff2[i] {
+	for i := 0; i < 12; i++ {
+		if u.inff2 & (1 << uint(i)) != 0 {
 			numActivePrograms++
 			x |= u.operation[i]
 			if u.clear[i] {
@@ -339,14 +329,14 @@ func (u *Accumulator) updateOwnActiveProgram() {
 		operation := 0
 		haveClear := false
 		clear := false
-		activePrograms := make([]int, 0, len(u.inff2))
-		for i := range u.inff2 {
-			if u.inff2[i] {
+		activePrograms := make([]int, 0, 12)
+		for i := 0; i < 12; i++ {
+			if u.inff2 & (1 << uint(i)) != 0 {
 				activePrograms = append(activePrograms, i+1)
 			}
 		}
-		for i := range u.inff2 {
-			if u.inff2[i] {
+		for i := 0; i < 12; i++ {
+			if u.inff2 & (1 << uint(i)) != 0 {
 				if operation != 0 && u.operation[i] != 0 {
 					panic(fmt.Sprintf("multiple active programs with conflicting op on a%d: %v\n", u.unit+1, activePrograms))
 				}
@@ -435,16 +425,14 @@ func (u *Accumulator) trigger(input int) {
 		// So that simulator clocking order doesn't matter, programs are registered
 		// in inff1 and applied on the Rp pulse following Cpp.  (Pulse order is Rp,
 		// ..., Cpp, ..., Rp, so this input is during Cpp.)
-		u.inff1[input] = true
+		u.inff1 |= 1 << uint(input)
 	} else {
 		// Inputs from digit pulse adapters arrive before Cpp, and take effect for
 		// the current add cycle - in particular, a dummy program driven by digit
 		// pulses triggers its output on Cpp of the same add cycle as its input.
 		// (See Technical Manual IV-26, Table 4-3.)
-		u.inff2[input] = true
-		if input >= 4 {
-			u.repeating = true
-		}
+		u.inff2 |= 1 << uint(input)
+		u.repeating = input >= 4
 		if u.operation[input] != 0 {
 			// This is probably not intended and won't be simulated correctly.
 			panic("attempt to trigger non-dummy acc program from non-cpp")
@@ -475,7 +463,8 @@ func (u *Accumulator) Stat() string {
 		s += ToBin(u.carry & (1 << uint(4*i)) != 0)
 	}
 	s += fmt.Sprintf(" %d ", u.repeatCount)
-	for _, f := range u.inff2 {
+	for i := 0; i < 12; i++ {
+		f := u.inff2 & (1 << uint(i)) != 0
 		s += ToBin(f)
 	}
 	return s
@@ -496,12 +485,16 @@ func (u *Accumulator) State() json.RawMessage {
 		carry[i] = u.carry & (1 << uint(4*i)) != 0
 		decade[i] = int((u.decade >> (4*i)) & 0xf)
 	}
+	program := [12]bool{}
+	for i := 0; i < 12; i++ {
+		program[i] = u.inff2 & (1 << uint(i)) != 0
+	}
 	s := accJson{
 		Sign:    u.sign,
 		Decade:  decade,
 		Carry:   carry,
 		Repeat:  u.repeatCount,
-		Program: u.inff2,
+		Program: program,
 	}
 	result, _ := json.Marshal(s)
 	return result
@@ -518,9 +511,9 @@ func (u *Accumulator) AttachTracer(tracer Tracer) {
 }
 
 func (u *Accumulator) Reset() {
+	u.inff1 = 0
+	u.inff2 = 0
 	for i := 0; i < 12; i++ {
-		u.inff1[i] = false
-		u.inff2[i] = false
 		u.operation[i] = opα
 		u.clear[i] = false
 	}
