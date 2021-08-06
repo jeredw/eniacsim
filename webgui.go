@@ -4,32 +4,18 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 )
 
-func webGui() {
-	http.HandleFunc("/", serveFile("webgui/webgui.html"))
-	http.HandleFunc("/webgui.js", serveFile("webgui/webgui.js"))
-	http.HandleFunc("/webgui.css", serveFile("webgui/webgui.css"))
-	http.HandleFunc("/eniac.svg", serveFile("webgui/eniac.svg"))
-	http.HandleFunc("/controller.svg", serveFile("webgui/controller.svg"))
-	http.HandleFunc("/trays.svg", serveFile("webgui/trays.svg"))
-	http.HandleFunc("/table1.svg", serveFile("webgui/table1.svg"))
-	http.HandleFunc("/table2.svg", serveFile("webgui/table2.svg"))
-	http.HandleFunc("/neons.json", serveFile("webgui/neons.json"))
-	http.HandleFunc("/panels.json", serveFile("webgui/panels.json"))
-	http.HandleFunc("/ports.json", serveFile("webgui/ports.json"))
-	http.HandleFunc("/switches.json", serveFile("webgui/switches.json"))
-	http.HandleFunc("/events", streamEvents)
-	http.HandleFunc("/command", postCommand)
-	http.ListenAndServe(":8000", nil)
-}
-
-func serveFile(path string) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, req *http.Request) {
-		http.ServeFile(w, req, path)
-	}
+func webGui(dir string) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/events", streamEvents)
+	mux.HandleFunc("/command", postCommand)
+	mux.Handle("/", http.FileServer(http.Dir(dir)))
+	err := http.ListenAndServe(":8000", mux)
+	log.Fatal(err)
 }
 
 func streamEvents(w http.ResponseWriter, req *http.Request) {

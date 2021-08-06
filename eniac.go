@@ -34,14 +34,14 @@ func main() {
 	tkKludge := flag.Bool("K", false, "work around wish memory leaks")
 	width := flag.Int("w", 0, "`width` of the simulation window in pixels")
 	testCycles := flag.Int("t", 0, "run for n add cycles and dump state")
-	useWebGui := flag.Bool("W", false, "run web GUI")
+	useWebGui := flag.String("W", "", "run web GUI from given directory")
 	useTkGui := flag.Bool("T", false, "run tk GUI")
 	quiet := flag.Bool("q", false, "don't print a prompt")
 	flag.Parse()
 
 	var ppunch chan string
-	if *useWebGui {
-		go webGui()
+	if *useWebGui != "" {
+		go webGui(*useWebGui)
 	} else if *useTkGui {
 		go gui(*demoMode, *tkKludge, *useControl, *width)
 		ppunch = make(chan string)
