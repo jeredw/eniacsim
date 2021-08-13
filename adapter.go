@@ -122,6 +122,7 @@ func (s *permuteSwitch) Set(value string) error {
 			}
 		}
 	}
+	//fmt.Printf("%#v\n", s.ad.order)
 	if fn, ok := getCustomPermuter(s.ad.order); ok {
 		s.ad.in.OnReceive = fn
 	} else if nonSwappedLines == 11 {

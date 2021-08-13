@@ -152,18 +152,9 @@ func permute15(j *Jack, val int) {
 	}
 }
 
-// [0 0 5 6 0 0 0 0 0 0 0]
-//go:nosplit
-func permute16(j *Jack, val int) {
-	val = ((val >> 2) & 0xc)
-	if val != 0 {
-		j.OutJack.Transmit(val)
-	}
-}
-
 // [0 2 3 4 5 6 7 8 9 10 0]
 //go:nosplit
-func permute17(j *Jack, val int) {
+func permute16(j *Jack, val int) {
 	val = (val & 0x3fe)
 	if val != 0 {
 		j.OutJack.Transmit(val)
@@ -172,7 +163,7 @@ func permute17(j *Jack, val int) {
 
 // [1 2 3 4 0 0 0 0 0 0 0]
 //go:nosplit
-func permute18(j *Jack, val int) {
+func permute17(j *Jack, val int) {
 	val = (val & 0xf)
 	if val != 0 {
 		j.OutJack.Transmit(val)
@@ -181,7 +172,7 @@ func permute18(j *Jack, val int) {
 
 // [1 2 3 4 5 6 7 8 0 0 0]
 //go:nosplit
-func permute19(j *Jack, val int) {
+func permute18(j *Jack, val int) {
 	val = (val & 0xff)
 	if val != 0 {
 		j.OutJack.Transmit(val)
@@ -190,7 +181,7 @@ func permute19(j *Jack, val int) {
 
 // [1 2 3 4 5 6 7 8 0 0 11]
 //go:nosplit
-func permute20(j *Jack, val int) {
+func permute19(j *Jack, val int) {
 	val = (val & 0x4ff)
 	if val != 0 {
 		j.OutJack.Transmit(val)
@@ -199,7 +190,7 @@ func permute20(j *Jack, val int) {
 
 // [1 2 3 4 5 6 7 8 10 9 11]
 //go:nosplit
-func permute21(j *Jack, val int) {
+func permute20(j *Jack, val int) {
 	val = ((val << 1) & 0x200) |
 		(val & 0x4ff) |
 		((val >> 1) & 0x100)
@@ -210,10 +201,19 @@ func permute21(j *Jack, val int) {
 
 // [1 2 3 4 5 6 7 8 11 11 0]
 //go:nosplit
-func permute22(j *Jack, val int) {
+func permute21(j *Jack, val int) {
 	val = (val & 0xff) |
 		((val >> 1) & 0x200) |
 		((val >> 2) & 0x100)
+	if val != 0 {
+		j.OutJack.Transmit(val)
+	}
+}
+
+// [1 2 3 4 5 6 7 8 9 0 11]
+//go:nosplit
+func permute22(j *Jack, val int) {
+	val = (val & 0x5ff)
 	if val != 0 {
 		j.OutJack.Transmit(val)
 	}
@@ -433,25 +433,25 @@ func getCustomPermuter(order [11]int) (JackHandler, bool) {
 	if order == [11]int{0, 0, 3, 4, 5, 6, 7, 8, 9, 10, 11} {
 		return permute15, true
 	}
-	if order == [11]int{0, 0, 5, 6, 0, 0, 0, 0, 0, 0, 0} {
+	if order == [11]int{0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 0} {
 		return permute16, true
 	}
-	if order == [11]int{0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 0} {
+	if order == [11]int{1, 2, 3, 4, 0, 0, 0, 0, 0, 0, 0} {
 		return permute17, true
 	}
-	if order == [11]int{1, 2, 3, 4, 0, 0, 0, 0, 0, 0, 0} {
+	if order == [11]int{1, 2, 3, 4, 5, 6, 7, 8, 0, 0, 0} {
 		return permute18, true
 	}
-	if order == [11]int{1, 2, 3, 4, 5, 6, 7, 8, 0, 0, 0} {
+	if order == [11]int{1, 2, 3, 4, 5, 6, 7, 8, 0, 0, 11} {
 		return permute19, true
 	}
-	if order == [11]int{1, 2, 3, 4, 5, 6, 7, 8, 0, 0, 11} {
+	if order == [11]int{1, 2, 3, 4, 5, 6, 7, 8, 10, 9, 11} {
 		return permute20, true
 	}
-	if order == [11]int{1, 2, 3, 4, 5, 6, 7, 8, 10, 9, 11} {
+	if order == [11]int{1, 2, 3, 4, 5, 6, 7, 8, 11, 11, 0} {
 		return permute21, true
 	}
-	if order == [11]int{1, 2, 3, 4, 5, 6, 7, 8, 11, 11, 0} {
+	if order == [11]int{1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 11} {
 		return permute22, true
 	}
 	if order == [11]int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 0} {
