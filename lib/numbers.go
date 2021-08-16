@@ -90,44 +90,72 @@ func StringToSignAndDigits(s string) (sign bool, digits []int) {
 // e.g. the first digit.
 
 // TensComplementToIBMCard converts a sign and ten's complement digits to a
-// signed magnitude number in IBM card code.
-func TensComplementToIBMCard(sign byte, digits string, omitSign bool) string {
+// signed magnitude number in IBM card code with the sign indicated in the
+// leftmost digit position.
+func TensComplementToIBMCard(sign byte, digits string) string {
 	if sign == 'P' {
 		return digits
 	}
 
-	// Compute magnitude of digits and store the accompanying sign with an
-	// 11-punch in the leftmost digit (see diagram).
-	nz := findFirstNonZero(digits)
+	// Sign is M so have to convert from 10's complement to signed magnitude.
+	nz := findRightmostNonZero(digits)
 	if nz < 0 {
-		// negative 0 is still 0
-		return digits
-	}
-	baseChar := byte('J')
-	if omitSign {
-		baseChar = byte('0')
+		// M00000...=-10^k requires an extra digit in signed magnitude
+		// The conversion process described in ENIAC Technical Manual IX-12
+		// suggests M0 would punch as 11-0, which we represent as '-'.
+		return string('-') + digits[1:]
 	}
 	if nz == 0 {
-		// special case for 10's comp and 11-punch
+		// Subtract leading digit from 10 i.e. M9 -> 11-1 (J)
 		// -[123456789]000000... -> [RQPONMLKJ]000000...
-		return string(baseChar + '9' - digits[0]) + digits[1:]
+		return string('J'+'9'-digits[0]) + digits[1:]
 	}
 	// nz > 0
-	sc := string(baseChar + '9' - digits[0] - 1)
+	// Subtract leading digit from 9 and indicate sign.
+	sc := string('I' + '9' - digits[0])
 	if sc == "I" {
-		// 0 + 11-punch is an illegal encoding, so just use "-" which is 11-punch
-		// on its own.
 		sc = "-"
 	}
-	if sc == "/" {
-		// Same as above when omitting sign
-		sc = "0"
-	}
+	// Use 9s complement of digits up to rightmost nz.
 	// 10^k - n = ((10^k-1) - n) + 1
 	for i := 1; i < nz; i++ {
 		sc += string('0' + '9' - digits[i])
 	}
-	sc += string('0' + '9' - digits[nz] + 1)
+	// Subtract rightmost nz digit from 10 instead of 9.
+	sc += string('1' + '9' - digits[nz])
+	// Preserve digits to right of rightmost nz.
+	sc += digits[nz+1:]
+	return sc
+}
+
+// TensComplementToIBMCardDigits converts a sign and ten's complement digits
+// to a signed magnitude number in IBM card code, returning just the digits.
+func TensComplementToIBMCardDigits(sign byte, digits string) string {
+	if sign == 'P' {
+		return digits
+	}
+
+	// Sign is M so have to convert from 10's complement to signed magnitude.
+	nz := findRightmostNonZero(digits)
+	if nz < 0 {
+		// M00000...=-10^k will punch the first 0
+		return digits
+	}
+	if nz == 0 {
+		// Subtract leading digit from 10 i.e. M9 -> 11-1 (J)
+		// -[123456789]000000... -> [987654321]000000...
+		return string('1'+'9'-digits[0]) + digits[1:]
+	}
+	sc := ""
+	// nz > 0 (first digit is not rightmost zero)
+	// Use 9s complement of digits up to rightmost nz.
+	// 10^k - n = ((10^k-1) - n) + 1
+	for i := 0; i < nz; i++ {
+		sc += string('0' + '9' - digits[i])
+	}
+	// Subtract rightmost nz digit from 10 instead of 9.
+	sc += string('1' + '9' - digits[nz])
+	// Preserve digits to right of rightmost nz.
 	sc += digits[nz+1:]
 	return sc
 }
@@ -159,7 +187,7 @@ func IBMCardToNinesComplement(field string) (sign bool, digits []int) {
 	return
 }
 
-func findFirstNonZero(digits string) int {
+func findRightmostNonZero(digits string) int {
 	for i := len(digits) - 1; i >= 0; i-- {
 		if digits[i] != '0' {
 			return i

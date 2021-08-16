@@ -2,28 +2,29 @@ package units
 
 import (
 	"fmt"
-	. "github.com/jeredw/eniacsim/lib"
 	"strconv"
 	"strings"
+
+	. "github.com/jeredw/eniacsim/lib"
 )
 
 // Simulates the ENIAC printer.
 type Printer struct {
 	Io PrinterConn
 
-	printing [16]bool // Should the field print
-	coupling [16]bool // Treat the field as part of the next one
-	magnets [80]punchWiring // Plugboard wiring for punch magnets
-	usingPlugboard bool // True if any plugboard switch set
+	printing       [16]bool        // Should the field print
+	coupling       [16]bool        // Treat the field as part of the next one
+	magnets        [80]punchWiring // Plugboard wiring for punch magnets
+	usingPlugboard bool            // True if any plugboard switch set
 }
 
 type punchWiring struct {
-	wasSet bool    // if true, switch was set
-	nc bool		     // if true, not connected
-	fixed int      // 0: don't punch, 1-13 mean punch row 0-12
-	signGroup int  // 0: no sign, 1-16 indicate sign group
-	digitGroup int // 0: no digit, 1-16 indicate digit group
-	digitIndex int // 0: no digit, 1-5 which digit of group
+	wasSet     bool // if true, switch was set
+	nc         bool // if true, not connected
+	fixed      int  // 0: don't punch, 1-13 mean punch row 0-12
+	signGroup  int  // 0: no sign, 1-16 indicate sign group
+	digitGroup int  // 0: no digit, 1-16 indicate digit group
+	digitIndex int  // 0: no digit, 1-5 which digit of group
 }
 
 // Connections to printer.
@@ -103,7 +104,11 @@ func (u *Printer) Print() string {
 	for i := 0; i < 16; i++ {
 		if !u.coupling[i] || i == 15 {
 			groupEnd = (i + 1) * 5
-			ibmDigits += TensComplementToIBMCard(signs[i], digits[groupStart:groupEnd], u.usingPlugboard)
+			if u.usingPlugboard {
+				ibmDigits += TensComplementToIBMCard(signs[i], digits[groupStart:groupEnd])
+			} else {
+				ibmDigits += TensComplementToIBMCardDigits(signs[i], digits[groupStart:groupEnd])
+			}
 			groupStart = groupEnd
 		}
 	}
@@ -121,9 +126,9 @@ func (u *Printer) Print() string {
 			if p.nc {
 				card += " "
 			} else if p.fixed > 0 {
-				card += string("0123456789-&"[p.fixed - 1])
+				card += string("0123456789-&"[p.fixed-1])
 			} else {
-				digit := ibmDigits[5*(p.digitGroup-1) + (p.digitIndex-1)]
+				digit := ibmDigits[5*(p.digitGroup-1)+(p.digitIndex-1)]
 				if p.signGroup > 0 && signs[p.signGroup-1] == 'M' {
 					if digit == '0' {
 						digit = '-'
@@ -148,7 +153,7 @@ func (s *punchMagnetSwitch) Get() string {
 		return "nc"
 	}
 	if s.Data.fixed > 0 {
-		return fmt.Sprintf("%d", s.Data.fixed - 1)
+		return fmt.Sprintf("%d", s.Data.fixed-1)
 	}
 	f := make([]string, 0, 3)
 	f = append(f, fmt.Sprintf("%d", s.Data.digitGroup))

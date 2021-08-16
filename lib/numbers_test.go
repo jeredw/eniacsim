@@ -12,8 +12,24 @@ func TestTensComplementToIBMCard_P(t *testing.T) {
 	}
 }
 
+func TestTensComplementToIBMCardDigits_P(t *testing.T) {
+	got := TensComplementToIBMCardDigits('P', "42")
+	expected := "42"
+	if got != expected {
+		t.Errorf("expected %s got %s", expected, got)
+	}
+}
+
 func TestTensComplementToIBMCard_N0(t *testing.T) {
 	got := TensComplementToIBMCard('M', "0")
+	expected := "-"
+	if got != expected {
+		t.Errorf("expected %s got %s", expected, got)
+	}
+}
+
+func TestTensComplementToIBMCardDigits_N0(t *testing.T) {
+	got := TensComplementToIBMCardDigits('M', "0")
 	expected := "0"
 	if got != expected {
 		t.Errorf("expected %s got %s", expected, got)
@@ -28,9 +44,25 @@ func TestTensComplementToIBMCard_N10(t *testing.T) {
 	}
 }
 
+func TestTensComplementToIBMCardDigits_N10(t *testing.T) {
+	got := TensComplementToIBMCardDigits('M', "10")
+	expected := "90"
+	if got != expected {
+		t.Errorf("expected %s got %s", expected, got)
+	}
+}
+
 func TestTensComplementToIBMCard_N123000(t *testing.T) {
 	got := TensComplementToIBMCard('M', "123000")
 	expected := "Q77000" // 877000 i.e. 1000000 - 123000
+	if got != expected {
+		t.Errorf("expected %s got %s", expected, got)
+	}
+}
+
+func TestTensComplementToIBMCardDigits_N123000(t *testing.T) {
+	got := TensComplementToIBMCardDigits('M', "123000")
+	expected := "877000" // 877000 i.e. 1000000 - 123000
 	if got != expected {
 		t.Errorf("expected %s got %s", expected, got)
 	}
@@ -44,9 +76,25 @@ func TestTensComplementToIBMCard_N123(t *testing.T) {
 	}
 }
 
+func TestTensComplementToIBMCardDigits_N123(t *testing.T) {
+	got := TensComplementToIBMCardDigits('M', "321")
+	expected := "679" // 679 i.e. 1000 - 321
+	if got != expected {
+		t.Errorf("expected %s got %s", expected, got)
+	}
+}
+
 func TestTensComplementToIBMCard_N1(t *testing.T) {
 	got := TensComplementToIBMCard('M', "9999999999")
 	expected := "-000000001" // -1
+	if got != expected {
+		t.Errorf("expected %s got %s", expected, got)
+	}
+}
+
+func TestTensComplementToIBMCardDigits_N1(t *testing.T) {
+	got := TensComplementToIBMCardDigits('M', "9999999999")
+	expected := "0000000001" // -1
 	if got != expected {
 		t.Errorf("expected %s got %s", expected, got)
 	}
@@ -76,8 +124,8 @@ func TestIBMCardToNinesComplement_P(t *testing.T) {
 }
 
 func TestIBMCardToNinesComplement_N0(t *testing.T) {
-	gotSign, gotDigits := IBMCardToNinesComplement("0")
-	expectedSign, expectedDigits := false, []int{0}
+	gotSign, gotDigits := IBMCardToNinesComplement("-")
+	expectedSign, expectedDigits := true, []int{9}
 	if gotSign != expectedSign {
 		t.Errorf("expected sign %v got %v", expectedSign, gotSign)
 	}

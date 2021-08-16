@@ -5,7 +5,7 @@ type Pulse int
 
 // Kinds of pulses (most descriptions from Technical Manual Part 2, Table 3-1.)
 const (
-	// A program pulse used to control tbe activity of the various units of the
+	// A program pulse used to control the activity of the various units of the
 	// ENIAC.
 	Cpp = 1 << iota
 	// Used to cycle the decades of accumulator during the process of
