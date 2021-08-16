@@ -673,7 +673,7 @@ func (u *Divsr) Clock(p Pulse) {
 			u.su3 &^= opA | opS | opClear
 		}
 		if u.curprog >= 0 {
-			if u.psrcff == false { // Gate F4
+			if !u.psrcff { // Gate F4
 				u.doGP()
 			} else { // Gate F5
 				u.doIIIP()
@@ -709,7 +709,7 @@ func (u *Divsr) Clock(p Pulse) {
 		if u.m1 || u.m2 {
 			u.answer.Transmit(1)
 		}
-		if u.psrcff == false && u.sα { // Gate L45
+		if !u.psrcff && u.sα { // Gate L45
 			u.placering++
 		}
 	}

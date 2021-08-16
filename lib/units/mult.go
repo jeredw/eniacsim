@@ -98,7 +98,7 @@ func (u *Multiplier) AttachTracer(tracer Tracer) {
 
 func (u *Multiplier) Stat() string {
 	s := fmt.Sprintf("%d ", u.stage)
-	for i, _ := range u.multff {
+	for i := range u.multff {
 		if u.multff[i] {
 			s += "1"
 		} else {

@@ -334,18 +334,18 @@ func (u *Ft) addlookup(c Pulse) {
 	}
 	if c&Twopp != 0 {
 		for i := 0; i < 4; i++ {
-			if x := u.cons[i]; x == 8 || x == 8 {
+			if x := u.cons[i]; x == 8 {
 				a |= 1 << (9 - uint(i))
 			}
-			if x := u.cons[i+4]; x == 8 || x == 8 {
+			if x := u.cons[i+4]; x == 8 {
 				b |= 1 << (9 - uint(i))
 			}
 		}
 		for i := 0; i < 6; i++ {
-			if x := u.tab[arg][i+1]; x == 8 || x == 8 {
+			if x := u.tab[arg][i+1]; x == 8 {
 				a |= 1 << (5 - uint(i))
 			}
-			if x := u.tab[arg][i+7]; x == 8 || x == 8 {
+			if x := u.tab[arg][i+7]; x == 8 {
 				b |= 1 << (5 - uint(i))
 			}
 		}
@@ -605,7 +605,7 @@ func (u *Ft) Clock(p Pulse) {
 	}
 	if c&Rp != 0 {
 		if u.whichrp {
-			for i, _ := range u.inff1 {
+			for i := range u.inff1 {
 				if u.inff1[i] {
 					u.inff1[i] = false
 					u.inff2[i] = true

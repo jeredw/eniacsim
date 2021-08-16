@@ -11,10 +11,10 @@ import (
 
 // Mp simulates the ENIAC master programmer unit.
 type Mp struct {
-	stepper    [10]mpStepper // Steppers (A-K)
-	decade     [20]mpDecade  // Decade counters (#20 down to #1)
-	associator [8]byte       // Stepper to decade associations
-	unplugDecades bool       // Disassociate all decades from steppers
+	stepper       [10]mpStepper // Steppers (A-K)
+	decade        [20]mpDecade  // Decade counters (#20 down to #1)
+	associator    [8]byte       // Stepper to decade associations
+	unplugDecades bool          // Disassociate all decades from steppers
 }
 
 type mpStepper struct {
@@ -284,11 +284,11 @@ func (u *Mp) FindSwitch(name string) (Switch, error) {
 		return &IntSwitch{name, &u.decade[20-d].limit[s-1], mpDecadeSettings()}, nil
 	case 'c', 'C':
 		if len(name) < 2 {
-			return nil, fmt.Errorf("invalid stepper %s\n", name)
+			return nil, fmt.Errorf("invalid stepper %s", name)
 		}
 		s := stepperNameToIndex(name[1])
 		if s == -1 {
-			return nil, fmt.Errorf("invalid stepper %s\n", name)
+			return nil, fmt.Errorf("invalid stepper %s", name)
 		}
 		return &IntSwitch{name, &u.stepper[s].csw, mpClearSettings()}, nil
 	}
