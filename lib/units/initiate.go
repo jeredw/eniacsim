@@ -25,7 +25,6 @@ type Initiate struct {
 
 // InitiateConn defines connections needed for the unit
 type InitiateConn struct {
-	InitButton Button
 	Ppunch     chan string
 	Units      []Cleared
 	ReadCard   func(string)

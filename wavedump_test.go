@@ -66,19 +66,19 @@ func TestWriteVcdValue_OneBit(t *testing.T) {
 func TestWriteVcd(t *testing.T) {
 	tr := wavedump{
 		signals: map[string]*waveform{
-			"A.foo": &waveform{
+			"A.foo": {
 				kind:   "wire",
 				name:   "A.foo",
 				bits:   1,
 				values: []datapoint{{0, 0}, {10, 1}, {20, 0}},
 			},
-			"A.bar_α": &waveform{
+			"A.bar_α": {
 				kind:   "reg",
 				name:   "A.bar_α",
 				bits:   6,
 				values: []datapoint{{0, 0}, {10, 42}},
 			},
-			"B.baz": &waveform{
+			"B.baz": {
 				kind:   "wire",
 				name:   "B.baz",
 				bits:   1,
@@ -169,13 +169,13 @@ func TestPulseTracing(t *testing.T) {
 	tr.LogPulse("Unit.signal", 1, 1)
 	want := wavedump{
 		signals: map[string]*waveform{
-			"Unit.signal": &waveform{
+			"Unit.signal": {
 				kind:   "wire",
 				name:   "Unit.signal",
 				bits:   1,
 				values: []datapoint{{0, 1}, {1, 0}, {2, 1}, {3, 0}},
 			},
-			"Unit.signal2": &waveform{
+			"Unit.signal2": {
 				kind:   "wire",
 				name:   "Unit.signal2",
 				bits:   6,
@@ -224,13 +224,13 @@ func TestRegTracing(t *testing.T) {
 	}
 	want := wavedump{
 		signals: map[string]*waveform{
-			"Unit.reg1": &waveform{
+			"Unit.reg1": {
 				kind:   "reg",
 				name:   "Unit.reg1",
 				bits:   6,
 				values: []datapoint{{0, 42}, {1, 0}},
 			},
-			"Unit.reg2": &waveform{
+			"Unit.reg2": {
 				kind:   "reg",
 				name:   "Unit.reg2",
 				bits:   1,

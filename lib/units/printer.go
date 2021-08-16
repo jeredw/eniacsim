@@ -104,7 +104,7 @@ func (u *Printer) Print() string {
 	for i := 0; i < 16; i++ {
 		if !u.coupling[i] || i == 15 {
 			groupEnd = (i + 1) * 5
-			if u.usingPlugboard {
+			if !u.usingPlugboard {
 				ibmDigits += TensComplementToIBMCard(signs[i], digits[groupStart:groupEnd])
 			} else {
 				ibmDigits += TensComplementToIBMCardDigits(signs[i], digits[groupStart:groupEnd])

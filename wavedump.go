@@ -193,7 +193,7 @@ type scope struct {
 
 func (t *wavedump) groupSignals() []scope {
 	scopes := make(map[string]*scope)
-	for signalName, _ := range t.signals {
+	for signalName := range t.signals {
 		p := strings.IndexByte(signalName, '.')
 		if p == -1 {
 			panic(fmt.Sprintf("signal name not like foo.bar: '%s'", signalName))
@@ -209,7 +209,7 @@ func (t *wavedump) groupSignals() []scope {
 	// Sort the signal names within each scope and the scopes themselves
 	// alphabetically so that trace output order is stable.
 	keys := make([]string, 0, len(scopes))
-	for name, _ := range scopes {
+	for name := range scopes {
 		keys = append(keys, name)
 	}
 	sort.Strings(keys)
