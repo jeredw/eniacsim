@@ -69,6 +69,8 @@ func doCommand(w io.Writer, command string) int {
 		doTraceStart(w, f)
 	case "te":
 		doTraceEnd(w, f)
+	case "dg":
+		doDumpGraph(w, f)
 	case "u":
 	case "dt":
 	case "pt":
@@ -266,7 +268,7 @@ func doPlug(w io.Writer, command string, f []string) {
 		fmt.Fprintf(w, "Adapter: %s\n", err)
 		return
 	}
-	err = Connect(jack1, jack2)
+	err = Connect(ratsNest, jack1, jack2)
 	if err != nil {
 		fmt.Fprintf(w, "Plug error: %s\n", err)
 		return
@@ -596,6 +598,21 @@ func doTraceEnd(w io.Writer, f []string) {
 	}
 	bw := bufio.NewWriter(fd)
 	waves.WriteVcd(bw, time.Now())
+	bw.Flush()
+}
+
+func doDumpGraph(w io.Writer, f []string) {
+	if len(f) != 2 {
+		fmt.Fprintln(w, "dump graph syntax: dg file")
+		return
+	}
+	fd, err := os.Create(f[1])
+	if err != nil {
+		fmt.Fprintf(w, "dump graph create: %s\n", err)
+		return
+	}
+	bw := bufio.NewWriter(fd)
+	ratsNest.DumpGraph(bw)
 	bw.Flush()
 }
 

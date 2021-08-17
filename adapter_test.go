@@ -1,8 +1,9 @@
 package main
 
 import (
-	. "github.com/jeredw/eniacsim/lib"
 	"testing"
+
+	. "github.com/jeredw/eniacsim/lib"
 )
 
 func send(digits [11]int, jack *Jack) {
@@ -38,8 +39,8 @@ func testShifter(digits [11]int, amount int) [11]int {
 	testSink := NewInput("ti", func(j *Jack, val int) {
 		receive(&result, val)
 	})
-	Connect(testSource, s.in)
-	Connect(s.out, testSink)
+	Connect(NewRatsNest(), testSource, s.in)
+	Connect(NewRatsNest(), s.out, testSink)
 	send(digits, testSource)
 	return result
 }
@@ -55,8 +56,8 @@ func testDeleter(digits [11]int, digit int) [11]int {
 	testSink := NewInput("ti", func(j *Jack, val int) {
 		receive(&result, val)
 	})
-	Connect(testSource, d.in)
-	Connect(d.out, testSink)
+	Connect(NewRatsNest(), testSource, d.in)
+	Connect(NewRatsNest(), d.out, testSink)
 	send(digits, testSource)
 	return result
 }
@@ -74,8 +75,8 @@ func testPermuter(digits [11]int, order string) [11]int {
 	testSink := NewInput("ti", func(j *Jack, val int) {
 		receive(&result, val)
 	})
-	Connect(testSource, p.in)
-	Connect(p.out, testSink)
+	Connect(NewRatsNest(), testSource, p.in)
+	Connect(NewRatsNest(), p.out, testSink)
 	send(digits, testSource)
 	return result
 }

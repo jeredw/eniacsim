@@ -21,6 +21,7 @@ var trays *Trays
 var adapters *Adapters
 var pulseAmps *PulseAmps
 
+var ratsNest *RatsNest
 var waves *wavedump
 
 func main() {
@@ -54,6 +55,7 @@ func main() {
 		fmt.Println(http.ListenAndServe("localhost:6060", nil))
 	}()
 
+	ratsNest = NewRatsNest()
 	trays = NewTrays()
 	adapters = NewAdapters()
 	pulseAmps = NewPulseAmps()

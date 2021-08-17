@@ -189,7 +189,7 @@ func (a *Adapters) FindJack(name string) (*Jack, error) {
 		if !(digit >= 1 && digit <= 11) {
 			return nil, fmt.Errorf("invalid digit %s in %s", p[3], name)
 		}
-		a.dp[i].refMask |= (1 << (digit-1))
+		a.dp[i].refMask |= (1 << (digit - 1))
 		return a.dp[i].out[digit-1], nil
 	case kind == "s" && dir == "i":
 		return a.shift[i].in, nil
@@ -212,8 +212,8 @@ func (a *Adapters) FindJack(name string) (*Jack, error) {
 }
 
 type digitProgram struct {
-	in  *Jack
-	out [11]*Jack
+	in      *Jack
+	out     [11]*Jack
 	refMask int // which digit outs have been referenced
 }
 
