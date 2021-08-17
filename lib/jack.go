@@ -144,7 +144,29 @@ func (r *RatsNest) DumpGraph(w io.Writer) {
 	fmt.Fprintf(w, "digraph eniac {\n")
 	fmt.Fprintf(w, "\trankdir=\"LR\";\n")
 	for fromName, fromJack := range r.jacks {
+		if strings.HasPrefix(fromName, "pa.") {
+			// pas are converted to edges
+			continue
+		}
+		if matched, _ := regexp.MatchString(`^(\d+)|(\d+-\d+)$`, fromName); matched {
+			fmt.Fprintf(w, "\t\"%s\" [ shape=diamond label=\"\" style=filled fillcolor=darkgray ];\n", fromName)
+		}
 		for _, toJack := range fromJack.Receivers {
+			if parts := pa.FindStringSubmatch(toJack.Name); len(parts) != 0 {
+				bSideName := fmt.Sprintf("pa.%s.sb.%s", parts[1], parts[2])
+				if bSide, ok := r.jacks[bSideName]; ok {
+					for _, toJack := range bSide.Receivers {
+						fmt.Fprintf(w, "\t\"%s\" -> \"%s\" [ color=\"gray:invis:gray\" ];\n", fromName, toJack.Name)
+					}
+				} else {
+					panic("missing pa output")
+				}
+				continue
+			}
+			// FIXME non-forwarder inputs should not have forwarders in their receivers list
+			if fromJack.OnReceive != nil && !fromJack.forward && toJack.forward {
+				continue
+			}
 			fmt.Fprintf(w, "\t\"%s\" -> \"%s\";\n", fromName, toJack.Name)
 		}
 		if strings.HasPrefix(fromName, "ad.permute.i.") {
@@ -155,6 +177,10 @@ func (r *RatsNest) DumpGraph(w io.Writer) {
 			outputJack := strings.Replace(fromName, "ad.s.i.", "ad.s.o.", 1)
 			fmt.Fprintf(w, "\t\"%s\" -> \"%s\";\n", fromJack, outputJack)
 		}
+		if strings.HasPrefix(fromName, "ad.d.i.") {
+			outputJack := strings.Replace(fromName, "ad.d.i.", "ad.d.o.", 1)
+			fmt.Fprintf(w, "\t\"%s\" -> \"%s\";\n", fromJack, outputJack)
+		}
 		if strings.HasPrefix(fromName, "ad.dp.i") {
 			outBase := strings.Replace(fromName, "ad.dp.i.", "ad.dp.o.", 1)
 			for k := 0; k < 12; k++ {
@@ -163,9 +189,6 @@ func (r *RatsNest) DumpGraph(w io.Writer) {
 					fmt.Fprintf(w, "\t\"%s\" -> \"%s\";\n", fromJack, outputJack)
 				}
 			}
-		}
-		if parts := pa.FindStringSubmatch(fromName); len(parts) != 0 {
-			fmt.Fprintf(w, "\t\"%s\" -> \"pa.%s.sb.%s\";\n", fromJack, parts[1], parts[2])
 		}
 		if parts := ct.FindStringSubmatch(fromName); len(parts) != 0 {
 			fmt.Fprintf(w, "\t\"%s\" -> \"c.%so\" [ style=dashed ];\n", fromName, parts[1])
@@ -191,6 +214,7 @@ func (r *RatsNest) DumpGraph(w io.Writer) {
 			}
 		}
 	}
+	fmt.Fprintf(w, "\t\"i.Pi\" -> \"i.Po\" [ style=dashed ];\n")
 	// NOTE this connectivity of multiplier outputs is peculiar to eniac-chess
 	fmt.Fprintf(w, "\t\"m.1i\" -> \"m.Rα\" [ style=dashed ];\n")
 	fmt.Fprintf(w, "\t\"m.2i\" -> \"m.Rβ\" [ style=dashed ];\n")
@@ -216,13 +240,18 @@ func (r *RatsNest) DumpGraph(w io.Writer) {
 		"p.B1o", "p.B2o", "p.B3o", "p.B4o", "p.B5o", "p.B6o", "p.C1o", "p.C2o", "p.C3o", "p.C4o", "p.C5o", "p.C6o", "p.D1o", "p.D2o", "p.D3o", "p.D4o", "p.D5o", "p.D6o", "p.E1o", "p.E2o", "p.E3o", "p.E4o", "p.E5o", "p.E6o", "p.F1o", "p.F2o", "p.F3o", "p.F4o", "p.F5o", "p.F6o", "p.G4o", "p.G5o", "p.G6o", "p.H1o", "p.H2o", "p.H3o", "p.H4o", "p.H5o", "p.H6o", "p.J1o", "p.J2o", "p.J3o", "p.J4o", "p.J5o", "p.J6o", "p.K1o", "p.K2o", "p.K3o", "p.K4o", "p.K5o", "p.K6o",
 	}
 	for _, decodeOutput := range decodeOutputs {
-		fmt.Fprintf(w, "\t\"%s\" [ style=filled ];\n", decodeOutput)
+		fmt.Fprintf(w, "\t\"%s\" [ style=filled shape=box ];\n", decodeOutput)
 	}
 	fmt.Fprintf(w, "\t{ rank=same \"%s\"}\n", strings.Join(decodeOutputs, `" "`))
-	// HACK for eniac-chess memory system
-	accumDecoders := []string{
-		"a6.S", "a7.S", "a16.S", "a9.S",
+	// Making digit sources "sources" in the graph just generally makes sense.
+	sources := []string{
+		"f1.A", "f1.B", "f2.A", "f2.B", "f3.A", "f3.B",
+		"c.o",
+		"a1.A", "a1.S", "a2.A", "a2.S", "a3.A", "a3.S", "a4.A", "a4.S", "a5.A", "a5.S", "a6.A", "a6.S", "a7.A", "a7.S", "a8.A", "a8.S", "a9.A", "a9.S", "a10.A", "a10.S", "a11.A", "a11.S", "a12.A", "a12.S", "a13.A", "a13.S", "a14.A", "a14.S", "a15.A", "a15.S", "a16.A", "a16.S", "a17.A", "a17.S", "a18.A", "a18.S", "a19.A", "a19.S", "a20.A", "a20.S",
 	}
-	fmt.Fprintf(w, "\t{ rank=same \"%s\"}\n", strings.Join(accumDecoders, `" "`))
+	for _, source := range sources {
+		fmt.Fprintf(w, "\t\"%s\" [ style=bold ];\n", source)
+	}
+	fmt.Fprintf(w, "\t{ rank=source \"%s\"}\n", strings.Join(sources, `" "`))
 	fmt.Fprintf(w, "}\n")
 }
