@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
-	. "github.com/jeredw/eniacsim/lib"
-	. "github.com/jeredw/eniacsim/lib/units"
 	"os"
 	"strconv"
 	"strings"
+
+	. "github.com/jeredw/eniacsim/lib"
+	. "github.com/jeredw/eniacsim/lib/units"
 )
 
 type Debugger struct {
@@ -27,7 +28,7 @@ func NewDebugger() *Debugger {
 	for i := range u.breakpoint {
 		num := i + 1
 		u.breakpoint[i] = NewInput(fmt.Sprintf("debug.bp.%d", num), func(j *Jack, val int) {
-			fmt.Printf("[debug.bp.%d] break on %s", num, j.ConnectionsString())
+			fmt.Printf("[debug.bp.%d] break", num)
 			cycle.Stop()
 		})
 	}
@@ -56,26 +57,6 @@ func NewDebugger() *Debugger {
 		os.Exit(0)
 	})
 	return u
-}
-
-func (u *Debugger) Stat() string {
-	var s string
-	for i := range u.breakpoint {
-		if len(u.breakpoint[i].Receivers) != 0 {
-			s += fmt.Sprintf("bp.%d: %s", i+1, u.breakpoint[i].ConnectionsString())
-		}
-	}
-	for i := range u.assert {
-		if len(u.assert[i].trigger.Receivers) != 0 {
-			s += fmt.Sprintf("assert.%d: %s", i+1, u.assert[i].trigger.ConnectionsString())
-		}
-	}
-	for i := range u.dump {
-		if len(u.dump[i].trigger.Receivers) != 0 {
-			s += fmt.Sprintf("dump.%d: %s", i+1, u.dump[i].trigger.ConnectionsString())
-		}
-	}
-	return s
 }
 
 func (u *Debugger) FindJack(name string) (*Jack, error) {

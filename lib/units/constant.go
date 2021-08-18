@@ -42,7 +42,7 @@ type Constant struct {
 
 	inff1, inff2 [30]bool
 	whichrp      bool
-	sending	int
+	sending      int
 
 	tracer Tracer
 }
@@ -144,9 +144,9 @@ const (
 )
 
 type selSwitch struct {
-	name  string
-	prog  int
-	data  *int
+	name string
+	prog int
+	data *int
 }
 
 func (s *selSwitch) Get() string {
@@ -250,14 +250,18 @@ func (u *Constant) readCardField(i int, field string) {
 	}
 	bank := i / 2
 	tenDigitNumber := true
+	// Constant selector switches in same bank must all bet set to LR for
+	// 10-digit constants; per the operating manual, "... conversely, if the E
+	// set is not divided, then any or all of the constant selector switches 13
+	// to 18 may be set to Elr but not to El or Er"
 	for j := bank * 6; j < bank*6+6; j++ {
 		switch u.sel[j] {
 		case selC1 + selLeft, selC1 + selRight:
-			if i%2 == 0 && u.programInput[j].Connected {
+			if i%2 == 0 {
 				tenDigitNumber = false
 			}
 		case selC2 + selLeft, selC2 + selRight:
-			if i%2 == 1 && u.programInput[j].Connected {
+			if i%2 == 1 {
 				tenDigitNumber = false
 			}
 		}
@@ -373,7 +377,7 @@ func (u *Constant) Clock(cyc Pulse) {
 					}
 					u.inff1[i] = false
 					u.inff2[i] = true
-					u.sending = i+1
+					u.sending = i + 1
 					u.selectConstant(i)
 				}
 			}

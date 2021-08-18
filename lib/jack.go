@@ -24,9 +24,10 @@ type Jack struct {
 	OnReceive  JackHandler
 	OnTransmit JackHandler
 	Receivers  []*Jack
-	Disabled   bool // to skip work for inactive accum inputs
-	Connected  bool
-	OutJack    *Jack
+
+	OutputConnected bool  // to skip sending 1pp when S outputs not connected
+	Disabled        bool  // to skip work for inactive accum inputs
+	OutJack         *Jack // short circuit adapter callbacks
 
 	visited bool
 	forward bool // forwarding node (for trays)
@@ -114,17 +115,25 @@ func Connect(r *RatsNest, j1, j2 *Jack) error {
 			return fmt.Errorf("%s is already connected to %s", j1, j2)
 		}
 	}
-	if j1.OnReceive != nil || j1.forward {
+	if j2.isOutput() && j1.isInput() {
 		j2.Receivers = append(j2.Receivers, j1)
-		j2.Connected = true
+		j2.OutputConnected = true
 	}
-	if j2.OnReceive != nil || j2.forward {
+	if j1.isOutput() && j2.isInput() {
 		j1.Receivers = append(j1.Receivers, j2)
-		j1.Connected = true
+		j1.OutputConnected = true
 	}
 	r.jacks[j1.Name] = j1
 	r.jacks[j2.Name] = j2
 	return nil
+}
+
+func (j *Jack) isOutput() bool {
+	return j.forward || j.OnReceive == nil
+}
+
+func (j *Jack) isInput() bool {
+	return j.forward || j.OnReceive != nil
 }
 
 func NewRatsNest() *RatsNest {
@@ -161,10 +170,6 @@ func (r *RatsNest) DumpGraph(w io.Writer) {
 				} else {
 					panic("missing pa output")
 				}
-				continue
-			}
-			// FIXME non-forwarder inputs should not have forwarders in their receivers list
-			if fromJack.OnReceive != nil && !fromJack.forward && toJack.forward {
 				continue
 			}
 			fmt.Fprintf(w, "\t\"%s\" -> \"%s\";\n", fromName, toJack.Name)

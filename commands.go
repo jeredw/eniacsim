@@ -110,8 +110,6 @@ func doDump(w io.Writer, f []string) {
 			return
 		}
 		fmt.Fprintln(w, u.Accumulator[unit-1].Stat())
-	case 'b':
-		fmt.Fprintln(w, debugger.Stat())
 	case 'c':
 		fmt.Fprintln(w, u.Constant.Stat())
 	case 'd':
