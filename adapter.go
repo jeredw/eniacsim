@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	. "github.com/jeredw/eniacsim/lib"
 	"strconv"
 	"strings"
+
+	. "github.com/jeredw/eniacsim/lib"
 )
 
 type Adapters struct {
@@ -68,7 +69,8 @@ func NewAdapters() *Adapters {
 		a.sd[i].out = NewOutput(fmt.Sprintf("ad.sd.o.%d", i+1), nil)
 		a.permute[i].in = NewInput(fmt.Sprintf("ad.permute.i.%d", i+1), permuteInput(i))
 		a.permute[i].out = NewOutput(fmt.Sprintf("ad.permute.o.%d", i+1), nil)
-		a.permute[i].in.OutJack = a.permute[i].out
+		a.permute[i].in.OtherSide = a.permute[i].out
+		a.permute[i].out.OtherSide = a.permute[i].in
 	}
 	return a
 }

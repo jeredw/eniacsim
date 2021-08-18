@@ -25,15 +25,16 @@ type Jack struct {
 	OnTransmit JackHandler
 	Receivers  []*Jack
 
-	OutputConnected bool  // to skip sending 1pp when S outputs not connected
-	Disabled        bool  // to skip work for inactive accum inputs
-	OutJack         *Jack // short circuit adapter callbacks
+	OutputConnected bool // to skip sending 1pp when S outputs not connected
+	Disabled        bool // to skip work for inactive accum inputs
 
 	finalReceivers []*Jack // receivers after routing
 
 	visited  bool
 	forward  bool // jack forwards inputs
 	polarity int  // polarity (0=unspecified, 1=input, 2=output, 3=both)
+
+	OtherSide *Jack // jack for other side of adapter
 }
 
 func newJack(name string, onReceive JackHandler, onTransmit JackHandler) *Jack {
@@ -157,6 +158,14 @@ func (r *RatsNest) updateFinalReceivers() {
 	for _, jack := range r.jacks {
 		if jack.isOutput() && !jack.forward {
 			jack.finalReceivers = findFinalReceivers(jack, make([]*Jack, 0, 4))
+			if jack.OtherSide != nil {
+				// When adapters have only one connected receiver, hardwire it
+				if len(jack.finalReceivers) == 1 {
+					(jack.OtherSide).OtherSide = jack.finalReceivers[0]
+				} else {
+					(jack.OtherSide).OtherSide = jack
+				}
+			}
 		}
 	}
 }
@@ -197,7 +206,7 @@ func (r *RatsNest) DumpGraph(w io.Writer) {
 		if matched, _ := regexp.MatchString(`^(\d+)|(\d+-\d+)$`, fromName); matched {
 			fmt.Fprintf(w, "\t\"%s\" [ shape=diamond label=\"\" style=filled fillcolor=darkgray ];\n", fromName)
 		}
-		for _, toJack := range fromJack.Receivers {
+		for _, toJack := range fromJack.finalReceivers {
 			if parts := pa.FindStringSubmatch(toJack.Name); len(parts) != 0 {
 				bSideName := fmt.Sprintf("pa.%s.sb.%s", parts[1], parts[2])
 				if bSide, ok := r.jacks[bSideName]; ok {

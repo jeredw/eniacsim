@@ -52,7 +52,7 @@ var orders [][11]int = [][11]int{
 }
 
 func writePermuteFunction(f *os.File, id int, order [11]int) {
-	shifts := [11+11]int{}
+	shifts := [11 + 11]int{}
 	for j, pos := range order {
 		if !(pos >= 0 && pos <= 11) {
 			fmt.Fprintf(os.Stderr, "invalid digit field in permutation")
@@ -65,9 +65,10 @@ func writePermuteFunction(f *os.File, id int, order [11]int) {
 	fmt.Fprintf(f, "// %v\n", order)
 	fmt.Fprintf(f, "//go:nosplit\n")
 	fmt.Fprintf(f, "func permute%d(j *Jack, val int) {\n", id)
+	fmt.Fprintf(f, "\tif !j.OtherSide.Disabled {\n")
 	terms := []string{}
 	for i, digits := range shifts {
-		amount := i-11
+		amount := i - 11
 		if digits != 0 {
 			term := ""
 			if amount > 0 {
@@ -80,9 +81,14 @@ func writePermuteFunction(f *os.File, id int, order [11]int) {
 			terms = append(terms, term)
 		}
 	}
-	fmt.Fprintf(f, "\tval = %s\n", strings.Join(terms, " |\n\t\t"))
-	fmt.Fprintf(f, "\tif val != 0 {\n")
-	fmt.Fprintf(f, "\t\tj.OutJack.Transmit(val)\n")
+	fmt.Fprintf(f, "\t\tval = %s\n", strings.Join(terms, " |\n\t\t"))
+	fmt.Fprintf(f, "\t\tif val != 0 {\n")
+	fmt.Fprintf(f, "\t\t\tif j.OtherSide.OnReceive != nil {\n")
+	fmt.Fprintf(f, "\t\t\t\tj.OtherSide.OnReceive(j.OtherSide, val)\n")
+	fmt.Fprintf(f, "\t\t\t} else {\n")
+	fmt.Fprintf(f, "\t\t\t\tj.OtherSide.Transmit(val)\n")
+	fmt.Fprintf(f, "\t\t\t}\n")
+	fmt.Fprintf(f, "\t\t}\n")
 	fmt.Fprintf(f, "\t}\n")
 	fmt.Fprintf(f, "}\n\n")
 }

@@ -8,379 +8,613 @@ import (
 // [0 0 0 0 0 0 0 0 0 0 11]
 //go:nosplit
 func permute0(j *Jack, val int) {
-	val = (val & 0x400)
-	if val != 0 {
-		j.OutJack.Transmit(val)
+	if !j.OtherSide.Disabled {
+		val = (val & 0x400)
+		if val != 0 {
+			if j.OtherSide.OnReceive != nil {
+				j.OtherSide.OnReceive(j.OtherSide, val)
+			} else {
+				j.OtherSide.Transmit(val)
+			}
+		}
 	}
 }
 
 // [0 0 0 0 0 0 0 0 0 0 3]
 //go:nosplit
 func permute1(j *Jack, val int) {
-	val = ((val << 8) & 0x400)
-	if val != 0 {
-		j.OutJack.Transmit(val)
+	if !j.OtherSide.Disabled {
+		val = ((val << 8) & 0x400)
+		if val != 0 {
+			if j.OtherSide.OnReceive != nil {
+				j.OtherSide.OnReceive(j.OtherSide, val)
+			} else {
+				j.OtherSide.Transmit(val)
+			}
+		}
 	}
 }
 
 // [0 0 0 0 0 0 0 0 0 0 4]
 //go:nosplit
 func permute2(j *Jack, val int) {
-	val = ((val << 7) & 0x400)
-	if val != 0 {
-		j.OutJack.Transmit(val)
+	if !j.OtherSide.Disabled {
+		val = ((val << 7) & 0x400)
+		if val != 0 {
+			if j.OtherSide.OnReceive != nil {
+				j.OtherSide.OnReceive(j.OtherSide, val)
+			} else {
+				j.OtherSide.Transmit(val)
+			}
+		}
 	}
 }
 
 // [0 0 0 0 0 0 0 0 1 2 0]
 //go:nosplit
 func permute3(j *Jack, val int) {
-	val = ((val << 8) & 0x300)
-	if val != 0 {
-		j.OutJack.Transmit(val)
+	if !j.OtherSide.Disabled {
+		val = ((val << 8) & 0x300)
+		if val != 0 {
+			if j.OtherSide.OnReceive != nil {
+				j.OtherSide.OnReceive(j.OtherSide, val)
+			} else {
+				j.OtherSide.Transmit(val)
+			}
+		}
 	}
 }
 
 // [0 0 0 0 0 0 0 0 3 4 0]
 //go:nosplit
 func permute4(j *Jack, val int) {
-	val = ((val << 6) & 0x300)
-	if val != 0 {
-		j.OutJack.Transmit(val)
+	if !j.OtherSide.Disabled {
+		val = ((val << 6) & 0x300)
+		if val != 0 {
+			if j.OtherSide.OnReceive != nil {
+				j.OtherSide.OnReceive(j.OtherSide, val)
+			} else {
+				j.OtherSide.Transmit(val)
+			}
+		}
 	}
 }
 
 // [0 0 0 0 0 0 0 0 5 6 0]
 //go:nosplit
 func permute5(j *Jack, val int) {
-	val = ((val << 4) & 0x300)
-	if val != 0 {
-		j.OutJack.Transmit(val)
+	if !j.OtherSide.Disabled {
+		val = ((val << 4) & 0x300)
+		if val != 0 {
+			if j.OtherSide.OnReceive != nil {
+				j.OtherSide.OnReceive(j.OtherSide, val)
+			} else {
+				j.OtherSide.Transmit(val)
+			}
+		}
 	}
 }
 
 // [0 0 0 0 0 0 0 0 7 8 0]
 //go:nosplit
 func permute6(j *Jack, val int) {
-	val = ((val << 2) & 0x300)
-	if val != 0 {
-		j.OutJack.Transmit(val)
+	if !j.OtherSide.Disabled {
+		val = ((val << 2) & 0x300)
+		if val != 0 {
+			if j.OtherSide.OnReceive != nil {
+				j.OtherSide.OnReceive(j.OtherSide, val)
+			} else {
+				j.OtherSide.Transmit(val)
+			}
+		}
 	}
 }
 
 // [0 0 0 0 0 0 0 0 9 10 0]
 //go:nosplit
 func permute7(j *Jack, val int) {
-	val = (val & 0x300)
-	if val != 0 {
-		j.OutJack.Transmit(val)
+	if !j.OtherSide.Disabled {
+		val = (val & 0x300)
+		if val != 0 {
+			if j.OtherSide.OnReceive != nil {
+				j.OtherSide.OnReceive(j.OtherSide, val)
+			} else {
+				j.OtherSide.Transmit(val)
+			}
+		}
 	}
 }
 
 // [0 0 0 0 0 0 1 2 3 4 11]
 //go:nosplit
 func permute8(j *Jack, val int) {
-	val = ((val << 6) & 0x3c0) |
+	if !j.OtherSide.Disabled {
+		val = ((val << 6) & 0x3c0) |
 		(val & 0x400)
-	if val != 0 {
-		j.OutJack.Transmit(val)
+		if val != 0 {
+			if j.OtherSide.OnReceive != nil {
+				j.OtherSide.OnReceive(j.OtherSide, val)
+			} else {
+				j.OtherSide.Transmit(val)
+			}
+		}
 	}
 }
 
 // [0 0 0 0 0 1 2 3 4 5 0]
 //go:nosplit
 func permute9(j *Jack, val int) {
-	val = ((val << 5) & 0x3e0)
-	if val != 0 {
-		j.OutJack.Transmit(val)
+	if !j.OtherSide.Disabled {
+		val = ((val << 5) & 0x3e0)
+		if val != 0 {
+			if j.OtherSide.OnReceive != nil {
+				j.OtherSide.OnReceive(j.OtherSide, val)
+			} else {
+				j.OtherSide.Transmit(val)
+			}
+		}
 	}
 }
 
 // [0 0 0 0 0 6 7 8 9 10 11]
 //go:nosplit
 func permute10(j *Jack, val int) {
-	val = (val & 0x7e0)
-	if val != 0 {
-		j.OutJack.Transmit(val)
+	if !j.OtherSide.Disabled {
+		val = (val & 0x7e0)
+		if val != 0 {
+			if j.OtherSide.OnReceive != nil {
+				j.OtherSide.OnReceive(j.OtherSide, val)
+			} else {
+				j.OtherSide.Transmit(val)
+			}
+		}
 	}
 }
 
 // [0 0 0 0 1 2 3 4 0 0 0]
 //go:nosplit
 func permute11(j *Jack, val int) {
-	val = ((val << 4) & 0xf0)
-	if val != 0 {
-		j.OutJack.Transmit(val)
+	if !j.OtherSide.Disabled {
+		val = ((val << 4) & 0xf0)
+		if val != 0 {
+			if j.OtherSide.OnReceive != nil {
+				j.OtherSide.OnReceive(j.OtherSide, val)
+			} else {
+				j.OtherSide.Transmit(val)
+			}
+		}
 	}
 }
 
 // [0 0 0 0 5 6 3 4 1 2 0]
 //go:nosplit
 func permute12(j *Jack, val int) {
-	val = ((val << 8) & 0x300) |
+	if !j.OtherSide.Disabled {
+		val = ((val << 8) & 0x300) |
 		((val << 4) & 0xc0) |
 		(val & 0x30)
-	if val != 0 {
-		j.OutJack.Transmit(val)
+		if val != 0 {
+			if j.OtherSide.OnReceive != nil {
+				j.OtherSide.OnReceive(j.OtherSide, val)
+			} else {
+				j.OtherSide.Transmit(val)
+			}
+		}
 	}
 }
 
 // [0 0 0 0 5 6 7 8 0 0 0]
 //go:nosplit
 func permute13(j *Jack, val int) {
-	val = (val & 0xf0)
-	if val != 0 {
-		j.OutJack.Transmit(val)
+	if !j.OtherSide.Disabled {
+		val = (val & 0xf0)
+		if val != 0 {
+			if j.OtherSide.OnReceive != nil {
+				j.OtherSide.OnReceive(j.OtherSide, val)
+			} else {
+				j.OtherSide.Transmit(val)
+			}
+		}
 	}
 }
 
 // [0 0 11 0 0 0 0 0 0 0 0]
 //go:nosplit
 func permute14(j *Jack, val int) {
-	val = ((val >> 8) & 0x4)
-	if val != 0 {
-		j.OutJack.Transmit(val)
+	if !j.OtherSide.Disabled {
+		val = ((val >> 8) & 0x4)
+		if val != 0 {
+			if j.OtherSide.OnReceive != nil {
+				j.OtherSide.OnReceive(j.OtherSide, val)
+			} else {
+				j.OtherSide.Transmit(val)
+			}
+		}
 	}
 }
 
 // [0 0 3 4 5 6 7 8 9 10 11]
 //go:nosplit
 func permute15(j *Jack, val int) {
-	val = (val & 0x7fc)
-	if val != 0 {
-		j.OutJack.Transmit(val)
+	if !j.OtherSide.Disabled {
+		val = (val & 0x7fc)
+		if val != 0 {
+			if j.OtherSide.OnReceive != nil {
+				j.OtherSide.OnReceive(j.OtherSide, val)
+			} else {
+				j.OtherSide.Transmit(val)
+			}
+		}
 	}
 }
 
 // [0 2 3 4 5 6 7 8 9 10 0]
 //go:nosplit
 func permute16(j *Jack, val int) {
-	val = (val & 0x3fe)
-	if val != 0 {
-		j.OutJack.Transmit(val)
+	if !j.OtherSide.Disabled {
+		val = (val & 0x3fe)
+		if val != 0 {
+			if j.OtherSide.OnReceive != nil {
+				j.OtherSide.OnReceive(j.OtherSide, val)
+			} else {
+				j.OtherSide.Transmit(val)
+			}
+		}
 	}
 }
 
 // [1 2 3 4 0 0 0 0 0 0 0]
 //go:nosplit
 func permute17(j *Jack, val int) {
-	val = (val & 0xf)
-	if val != 0 {
-		j.OutJack.Transmit(val)
+	if !j.OtherSide.Disabled {
+		val = (val & 0xf)
+		if val != 0 {
+			if j.OtherSide.OnReceive != nil {
+				j.OtherSide.OnReceive(j.OtherSide, val)
+			} else {
+				j.OtherSide.Transmit(val)
+			}
+		}
 	}
 }
 
 // [1 2 3 4 5 6 7 8 0 0 0]
 //go:nosplit
 func permute18(j *Jack, val int) {
-	val = (val & 0xff)
-	if val != 0 {
-		j.OutJack.Transmit(val)
+	if !j.OtherSide.Disabled {
+		val = (val & 0xff)
+		if val != 0 {
+			if j.OtherSide.OnReceive != nil {
+				j.OtherSide.OnReceive(j.OtherSide, val)
+			} else {
+				j.OtherSide.Transmit(val)
+			}
+		}
 	}
 }
 
 // [1 2 3 4 5 6 7 8 0 0 11]
 //go:nosplit
 func permute19(j *Jack, val int) {
-	val = (val & 0x4ff)
-	if val != 0 {
-		j.OutJack.Transmit(val)
+	if !j.OtherSide.Disabled {
+		val = (val & 0x4ff)
+		if val != 0 {
+			if j.OtherSide.OnReceive != nil {
+				j.OtherSide.OnReceive(j.OtherSide, val)
+			} else {
+				j.OtherSide.Transmit(val)
+			}
+		}
 	}
 }
 
 // [1 2 3 4 5 6 7 8 10 9 11]
 //go:nosplit
 func permute20(j *Jack, val int) {
-	val = ((val << 1) & 0x200) |
+	if !j.OtherSide.Disabled {
+		val = ((val << 1) & 0x200) |
 		(val & 0x4ff) |
 		((val >> 1) & 0x100)
-	if val != 0 {
-		j.OutJack.Transmit(val)
+		if val != 0 {
+			if j.OtherSide.OnReceive != nil {
+				j.OtherSide.OnReceive(j.OtherSide, val)
+			} else {
+				j.OtherSide.Transmit(val)
+			}
+		}
 	}
 }
 
 // [1 2 3 4 5 6 7 8 11 11 0]
 //go:nosplit
 func permute21(j *Jack, val int) {
-	val = (val & 0xff) |
+	if !j.OtherSide.Disabled {
+		val = (val & 0xff) |
 		((val >> 1) & 0x200) |
 		((val >> 2) & 0x100)
-	if val != 0 {
-		j.OutJack.Transmit(val)
+		if val != 0 {
+			if j.OtherSide.OnReceive != nil {
+				j.OtherSide.OnReceive(j.OtherSide, val)
+			} else {
+				j.OtherSide.Transmit(val)
+			}
+		}
 	}
 }
 
 // [1 2 3 4 5 6 7 8 9 0 11]
 //go:nosplit
 func permute22(j *Jack, val int) {
-	val = (val & 0x5ff)
-	if val != 0 {
-		j.OutJack.Transmit(val)
+	if !j.OtherSide.Disabled {
+		val = (val & 0x5ff)
+		if val != 0 {
+			if j.OtherSide.OnReceive != nil {
+				j.OtherSide.OnReceive(j.OtherSide, val)
+			} else {
+				j.OtherSide.Transmit(val)
+			}
+		}
 	}
 }
 
 // [1 2 3 4 5 6 7 8 9 10 0]
 //go:nosplit
 func permute23(j *Jack, val int) {
-	val = (val & 0x3ff)
-	if val != 0 {
-		j.OutJack.Transmit(val)
+	if !j.OtherSide.Disabled {
+		val = (val & 0x3ff)
+		if val != 0 {
+			if j.OtherSide.OnReceive != nil {
+				j.OtherSide.OnReceive(j.OtherSide, val)
+			} else {
+				j.OtherSide.Transmit(val)
+			}
+		}
 	}
 }
 
 // [1 2 3 4 5 6 9 10 7 8 0]
 //go:nosplit
 func permute24(j *Jack, val int) {
-	val = ((val << 2) & 0x300) |
+	if !j.OtherSide.Disabled {
+		val = ((val << 2) & 0x300) |
 		(val & 0x3f) |
 		((val >> 2) & 0xc0)
-	if val != 0 {
-		j.OutJack.Transmit(val)
+		if val != 0 {
+			if j.OtherSide.OnReceive != nil {
+				j.OtherSide.OnReceive(j.OtherSide, val)
+			} else {
+				j.OtherSide.Transmit(val)
+			}
+		}
 	}
 }
 
 // [1 2 3 4 5 6 9 10 7 8 11]
 //go:nosplit
 func permute25(j *Jack, val int) {
-	val = ((val << 2) & 0x300) |
+	if !j.OtherSide.Disabled {
+		val = ((val << 2) & 0x300) |
 		(val & 0x43f) |
 		((val >> 2) & 0xc0)
-	if val != 0 {
-		j.OutJack.Transmit(val)
+		if val != 0 {
+			if j.OtherSide.OnReceive != nil {
+				j.OtherSide.OnReceive(j.OtherSide, val)
+			} else {
+				j.OtherSide.Transmit(val)
+			}
+		}
 	}
 }
 
 // [1 2 3 4 9 10 7 8 5 6 0]
 //go:nosplit
 func permute26(j *Jack, val int) {
-	val = ((val << 4) & 0x300) |
+	if !j.OtherSide.Disabled {
+		val = ((val << 4) & 0x300) |
 		(val & 0xcf) |
 		((val >> 4) & 0x30)
-	if val != 0 {
-		j.OutJack.Transmit(val)
+		if val != 0 {
+			if j.OtherSide.OnReceive != nil {
+				j.OtherSide.OnReceive(j.OtherSide, val)
+			} else {
+				j.OtherSide.Transmit(val)
+			}
+		}
 	}
 }
 
 // [1 2 3 4 9 10 7 8 5 6 11]
 //go:nosplit
 func permute27(j *Jack, val int) {
-	val = ((val << 4) & 0x300) |
+	if !j.OtherSide.Disabled {
+		val = ((val << 4) & 0x300) |
 		(val & 0x4cf) |
 		((val >> 4) & 0x30)
-	if val != 0 {
-		j.OutJack.Transmit(val)
+		if val != 0 {
+			if j.OtherSide.OnReceive != nil {
+				j.OtherSide.OnReceive(j.OtherSide, val)
+			} else {
+				j.OtherSide.Transmit(val)
+			}
+		}
 	}
 }
 
 // [1 2 9 10 5 6 7 8 3 4 0]
 //go:nosplit
 func permute28(j *Jack, val int) {
-	val = ((val << 6) & 0x300) |
+	if !j.OtherSide.Disabled {
+		val = ((val << 6) & 0x300) |
 		(val & 0xf3) |
 		((val >> 6) & 0xc)
-	if val != 0 {
-		j.OutJack.Transmit(val)
+		if val != 0 {
+			if j.OtherSide.OnReceive != nil {
+				j.OtherSide.OnReceive(j.OtherSide, val)
+			} else {
+				j.OtherSide.Transmit(val)
+			}
+		}
 	}
 }
 
 // [1 2 9 10 5 6 7 8 3 4 11]
 //go:nosplit
 func permute29(j *Jack, val int) {
-	val = ((val << 6) & 0x300) |
+	if !j.OtherSide.Disabled {
+		val = ((val << 6) & 0x300) |
 		(val & 0x4f3) |
 		((val >> 6) & 0xc)
-	if val != 0 {
-		j.OutJack.Transmit(val)
+		if val != 0 {
+			if j.OtherSide.OnReceive != nil {
+				j.OtherSide.OnReceive(j.OtherSide, val)
+			} else {
+				j.OtherSide.Transmit(val)
+			}
+		}
 	}
 }
 
 // [10 0 0 0 0 0 0 0 0 0 0]
 //go:nosplit
 func permute30(j *Jack, val int) {
-	val = ((val >> 9) & 0x1)
-	if val != 0 {
-		j.OutJack.Transmit(val)
+	if !j.OtherSide.Disabled {
+		val = ((val >> 9) & 0x1)
+		if val != 0 {
+			if j.OtherSide.OnReceive != nil {
+				j.OtherSide.OnReceive(j.OtherSide, val)
+			} else {
+				j.OtherSide.Transmit(val)
+			}
+		}
 	}
 }
 
 // [3 4 1 2 0 0 0 0 0 0 0]
 //go:nosplit
 func permute31(j *Jack, val int) {
-	val = ((val << 2) & 0xc) |
+	if !j.OtherSide.Disabled {
+		val = ((val << 2) & 0xc) |
 		((val >> 2) & 0x3)
-	if val != 0 {
-		j.OutJack.Transmit(val)
+		if val != 0 {
+			if j.OtherSide.OnReceive != nil {
+				j.OtherSide.OnReceive(j.OtherSide, val)
+			} else {
+				j.OtherSide.Transmit(val)
+			}
+		}
 	}
 }
 
 // [3 4 5 6 7 8 9 10 1 2 11]
 //go:nosplit
 func permute32(j *Jack, val int) {
-	val = ((val << 8) & 0x300) |
+	if !j.OtherSide.Disabled {
+		val = ((val << 8) & 0x300) |
 		(val & 0x400) |
 		((val >> 2) & 0xff)
-	if val != 0 {
-		j.OutJack.Transmit(val)
+		if val != 0 {
+			if j.OtherSide.OnReceive != nil {
+				j.OtherSide.OnReceive(j.OtherSide, val)
+			} else {
+				j.OtherSide.Transmit(val)
+			}
+		}
 	}
 }
 
 // [5 6 7 8 0 0 0 0 0 0 0]
 //go:nosplit
 func permute33(j *Jack, val int) {
-	val = ((val >> 4) & 0xf)
-	if val != 0 {
-		j.OutJack.Transmit(val)
+	if !j.OtherSide.Disabled {
+		val = ((val >> 4) & 0xf)
+		if val != 0 {
+			if j.OtherSide.OnReceive != nil {
+				j.OtherSide.OnReceive(j.OtherSide, val)
+			} else {
+				j.OtherSide.Transmit(val)
+			}
+		}
 	}
 }
 
 // [7 0 0 0 0 0 0 0 0 0 0]
 //go:nosplit
 func permute34(j *Jack, val int) {
-	val = ((val >> 6) & 0x1)
-	if val != 0 {
-		j.OutJack.Transmit(val)
+	if !j.OtherSide.Disabled {
+		val = ((val >> 6) & 0x1)
+		if val != 0 {
+			if j.OtherSide.OnReceive != nil {
+				j.OtherSide.OnReceive(j.OtherSide, val)
+			} else {
+				j.OtherSide.Transmit(val)
+			}
+		}
 	}
 }
 
 // [9 0 0 0 0 0 0 0 0 11 10]
 //go:nosplit
 func permute35(j *Jack, val int) {
-	val = ((val << 1) & 0x400) |
+	if !j.OtherSide.Disabled {
+		val = ((val << 1) & 0x400) |
 		((val >> 1) & 0x200) |
 		((val >> 8) & 0x1)
-	if val != 0 {
-		j.OutJack.Transmit(val)
+		if val != 0 {
+			if j.OtherSide.OnReceive != nil {
+				j.OtherSide.OnReceive(j.OtherSide, val)
+			} else {
+				j.OtherSide.Transmit(val)
+			}
+		}
 	}
 }
 
 // [9 10 0 0 0 0 0 0 0 0 0]
 //go:nosplit
 func permute36(j *Jack, val int) {
-	val = ((val >> 8) & 0x3)
-	if val != 0 {
-		j.OutJack.Transmit(val)
+	if !j.OtherSide.Disabled {
+		val = ((val >> 8) & 0x3)
+		if val != 0 {
+			if j.OtherSide.OnReceive != nil {
+				j.OtherSide.OnReceive(j.OtherSide, val)
+			} else {
+				j.OtherSide.Transmit(val)
+			}
+		}
 	}
 }
 
 // [9 10 3 4 5 6 7 8 1 2 0]
 //go:nosplit
 func permute37(j *Jack, val int) {
-	val = ((val << 8) & 0x300) |
+	if !j.OtherSide.Disabled {
+		val = ((val << 8) & 0x300) |
 		(val & 0xfc) |
 		((val >> 8) & 0x3)
-	if val != 0 {
-		j.OutJack.Transmit(val)
+		if val != 0 {
+			if j.OtherSide.OnReceive != nil {
+				j.OtherSide.OnReceive(j.OtherSide, val)
+			} else {
+				j.OtherSide.Transmit(val)
+			}
+		}
 	}
 }
 
 // [9 10 3 4 5 6 7 8 1 2 11]
 //go:nosplit
 func permute38(j *Jack, val int) {
-	val = ((val << 8) & 0x300) |
+	if !j.OtherSide.Disabled {
+		val = ((val << 8) & 0x300) |
 		(val & 0x4fc) |
 		((val >> 8) & 0x3)
-	if val != 0 {
-		j.OutJack.Transmit(val)
+		if val != 0 {
+			if j.OtherSide.OnReceive != nil {
+				j.OtherSide.OnReceive(j.OtherSide, val)
+			} else {
+				j.OtherSide.Transmit(val)
+			}
+		}
 	}
 }
 
