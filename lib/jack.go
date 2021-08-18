@@ -29,6 +29,8 @@ type Jack struct {
 	Disabled        bool  // to skip work for inactive accum inputs
 	OutJack         *Jack // short circuit adapter callbacks
 
+	finalReceivers []*Jack // receivers after routing
+
 	visited  bool
 	forward  bool // jack forwards inputs
 	polarity int  // polarity (0=unspecified, 1=input, 2=output, 3=both)
@@ -61,22 +63,9 @@ func NewRoutingJack(name string, polarity int) *Jack {
 // Transmit sends val on jack j, invoking receiver callbacks for each connected
 // receiver and afterwards invoking j's transmit callback.
 func (j *Jack) Transmit(val int) {
-	if j.visited {
-		// A previous call to Transmit() on this jack triggered this call.  Break
-		// the cycle and return early here.
-		//
-		// This isn't an error, and can happen legitimately when e.g. two trunks
-		// are connected, like p 1 2.  Transmitting on trunk 1 will call transmit
-		// on trunk 2, which will attempt to transmit on trunk 1 again.
-		return
-	}
-	j.visited = true
 	transmitted := false
-	for _, r := range j.Receivers {
-		if r.forward {
-			transmitted = true
-			r.Transmit(val)
-		} else if !r.visited && !r.Disabled {
+	for _, r := range j.finalReceivers {
+		if !r.Disabled {
 			transmitted = true
 			r.OnReceive(r, val)
 		}
@@ -84,7 +73,6 @@ func (j *Jack) Transmit(val int) {
 	if transmitted && j.OnTransmit != nil {
 		j.OnTransmit(j, val)
 	}
-	j.visited = false
 }
 
 func (j *Jack) String() string {
@@ -127,6 +115,7 @@ func Connect(r *RatsNest, j1, j2 *Jack) error {
 	}
 	r.jacks[j1.Name] = j1
 	r.jacks[j2.Name] = j2
+	r.updateFinalReceivers()
 	return nil
 }
 
@@ -162,6 +151,32 @@ func NewRatsNest() *RatsNest {
 	return &RatsNest{
 		jacks: make(map[string]*Jack, 10),
 	}
+}
+
+func (r *RatsNest) updateFinalReceivers() {
+	for _, jack := range r.jacks {
+		if jack.isOutput() && !jack.forward {
+			jack.finalReceivers = findFinalReceivers(jack, make([]*Jack, 0, 4))
+		}
+	}
+}
+
+func findFinalReceivers(j *Jack, receivers []*Jack) []*Jack {
+	if j.visited {
+		return receivers
+	}
+	j.visited = true
+	for _, r := range j.Receivers {
+		if !r.forward {
+			// r is a non-routing receiver
+			receivers = append(receivers, r)
+		} else {
+			// search through forwarder's receivers to find non-routing connections
+			receivers = findFinalReceivers(r, receivers)
+		}
+	}
+	j.visited = false
+	return receivers
 }
 
 func (r *RatsNest) DumpGraph(w io.Writer) {
