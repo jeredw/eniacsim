@@ -17,11 +17,11 @@ type Trays struct {
 func NewTrays() *Trays {
 	t := &Trays{}
 	for i := range t.data {
-		t.data[i] = NewForwardingJack(fmt.Sprintf("%d", i+1))
+		t.data[i] = NewRoutingJack(fmt.Sprintf("%d", i+1), 3)
 	}
 	for i := range t.program {
 		for j := range t.program[0] {
-			t.program[i][j] = NewForwardingJack(fmt.Sprintf("%d-%d", i+1, j+1))
+			t.program[i][j] = NewRoutingJack(fmt.Sprintf("%d-%d", i+1, j+1), 3)
 		}
 	}
 	return t

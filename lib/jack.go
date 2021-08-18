@@ -29,8 +29,9 @@ type Jack struct {
 	Disabled        bool  // to skip work for inactive accum inputs
 	OutJack         *Jack // short circuit adapter callbacks
 
-	visited bool
-	forward bool // forwarding node (for trays)
+	visited  bool
+	forward  bool // jack forwards inputs
+	polarity int  // polarity (0=unspecified, 1=input, 2=output, 3=both)
 }
 
 func newJack(name string, onReceive JackHandler, onTransmit JackHandler) *Jack {
@@ -50,8 +51,9 @@ func NewOutput(name string, onTransmit JackHandler) *Jack {
 	return newJack(name, nil, onTransmit)
 }
 
-func NewForwardingJack(name string) *Jack {
+func NewRoutingJack(name string, polarity int) *Jack {
 	jack := newJack(name, nil, nil)
+	jack.polarity = polarity
 	jack.forward = true
 	return jack
 }
@@ -128,12 +130,32 @@ func Connect(r *RatsNest, j1, j2 *Jack) error {
 	return nil
 }
 
-func (j *Jack) isOutput() bool {
-	return j.forward || j.OnReceive == nil
+func (j *Jack) isInput() bool {
+	switch j.polarity {
+	case 0:
+		return j.OnReceive != nil
+	case 1:
+		return true
+	case 2:
+		return false
+	case 3:
+		return true
+	}
+	return false
 }
 
-func (j *Jack) isInput() bool {
-	return j.forward || j.OnReceive != nil
+func (j *Jack) isOutput() bool {
+	switch j.polarity {
+	case 0:
+		return j.OnReceive == nil
+	case 1:
+		return false
+	case 2:
+		return true
+	case 3:
+		return true
+	}
+	return false
 }
 
 func NewRatsNest() *RatsNest {
