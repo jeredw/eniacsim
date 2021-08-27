@@ -174,6 +174,20 @@ func doFile(w io.Writer, f []string) {
 }
 
 func doRun(w io.Writer, f []string) {
+	throttle := 0.0
+	if len(f) == 2 {
+		if strings.HasSuffix(f[1], "x") {
+			rate, _ := strconv.Atoi(f[1][:len(f[1])-1])
+			if !(rate >= 0 && rate <= 10000) {
+				fmt.Fprintf(w, "Invalid throttle setting %s (expect e.g. 20x)\n", f[1])
+				return
+			}
+			throttle = float64(rate)
+		} else {
+			fmt.Fprintf(w, "Invalid throttle setting %s (expect e.g. 20x)\n", f[1])
+			return
+		}
+	}
 	doSetSwitch(w, "s cy.op co", []string{"s", "cy.op", "co"})
 	interrupt := make(chan os.Signal, 1)
 	done := make(chan int)
@@ -193,6 +207,16 @@ func doRun(w io.Writer, f []string) {
 				if cycle.StepNAddCycles(10000) {
 					stoppedByDebugger = true
 					break loop
+				}
+			}
+			if throttle != 0.0 {
+				elapsedTime = time.Since(startTime)
+				elapsedCycles = cycle.AddCycle - startCycle
+				rate := float64(elapsedCycles) / elapsedTime.Seconds()
+				speedup := rate / 5000.0
+				if speedup > throttle {
+					extraTime := time.Duration(float64(elapsedTime) * (1 - throttle/speedup))
+					time.Sleep(extraTime)
 				}
 			}
 		}
