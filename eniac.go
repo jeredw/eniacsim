@@ -99,6 +99,7 @@ func main() {
 	cycle.Io.Units = u
 	cycle.Io.SelectiveClear = func() bool { return u.Initiate.SelectiveClear() }
 	cycle.Io.StepAndVerifyVM = func() { vm.StepAndVerify() }
+	cycle.Io.StepAheadVM = func(cycle int64) { vm.StepAhead(cycle) }
 	u.Initiate.Io.Units = clearedUnits
 	u.Initiate.Io.AddCycle = func() int64 { return cycle.AddCycle }
 	u.Initiate.Io.Stepping = func() bool { return cycle.Stepping() }

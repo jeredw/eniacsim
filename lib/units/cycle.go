@@ -23,29 +23,32 @@ type ClockedUnits struct {
 // Cycle simulates ENIAC's clock generation circuits
 type Cycle struct {
 	Io CycleConn // Connections to other units
-
 	checkpointInput *Jack
-	checkpoint bool // true if at instruction-level sim checkpoint
 
-	mode       int
+	checkpoint      bool // true if at instruction-level sim checkpoint
+	crossValidate   bool // if true, cross-validate with vm, else run ahead
 
-	AddCycle   int64
-	phase      int
-	stop       bool
-	tracer     Tracer
+	mode            int
+	AddCycle        int64
+	targetAddCycle  int64
+	phase           int
+	stop            bool
+	tracer          Tracer
 }
 
 // CycleConn defines connections needed for the cycle unit
 type CycleConn struct {
 	Units           *ClockedUnits // Clocked units
-	StepAndVerifyVM func()        // function to step vm model
+
+	StepAndVerifyVM func()        // Cross-validate checkpoint with vm
+	StepAheadVM     func(n int64) // Step ahead up to cycle n with vm
 	SelectiveClear  func() bool   // Clear gate (from initiate unit)
 }
 
 // Clock operating modes
 const (
-	OnePulse   = iota // Run for one pulse, then wait for CycleButton
-	OneAdd            // Run for one add cycle, then wait for CycleButton
+	OnePulse   = iota // Run for one pulse
+	OneAdd            // Run for one add cycle
 	Continuous        // Run continuously
 	Test              // Running in test mode (debugger doesn't actually stop)
 )
@@ -180,7 +183,11 @@ func (u *Cycle) StepOnePulse() {
 		}
 		u.AddCycle++
 		if u.checkpoint {
-			u.Io.StepAndVerifyVM()
+			if u.crossValidate {
+				u.Io.StepAndVerifyVM()
+			} else if u.mode == Continuous {
+				u.Io.StepAheadVM(u.targetAddCycle)
+			}
 			u.checkpoint = false
 		}
 	}
@@ -189,8 +196,8 @@ func (u *Cycle) StepOnePulse() {
 // Returns true if stopped by debugger
 func (u *Cycle) StepNAddCycles(n int) bool {
 	start := u.AddCycle;
-	maxAddCycle := start + int64(n)
-	for u.AddCycle < maxAddCycle {
+	u.targetAddCycle = start + int64(n)
+	for u.AddCycle < u.targetAddCycle {
 		u.StepOnePulse()
 		if u.stop {
 			// If debugger requested a stop, step to start of next add cycle
@@ -236,9 +243,19 @@ func modeSettings() []IntSwitchSetting {
 	}
 }
 
+func vmSettings() []BoolSwitchSetting {
+	return []BoolSwitchSetting{
+		{"check", true},
+		{"run", false},
+	}
+}
+
 func (u *Cycle) FindSwitch(name string) (Switch, error) {
 	if name == "op" {
 		return &IntSwitch{name, &u.mode, modeSettings()}, nil
+	}
+	if name == "vm" {
+		return &BoolSwitch{name, &u.crossValidate, vmSettings()}, nil
 	}
 	return nil, fmt.Errorf("unknown switch %s", name)
 }

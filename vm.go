@@ -17,6 +17,7 @@ typedef struct eniac_t {
 typedef void* (*vmNewFunc) (void);
 typedef int (*vmImportFunc) (void *vm, ENIAC* eniac);
 typedef void (*vmStepFunc) (void *vm);
+typedef void (*vmStepToFunc) (void *vm, unsigned long long cycle);
 typedef void (*vmExportFunc) (void *vm, ENIAC* eniac);
 typedef void (*vmFreeFunc) (void *vm);
 
@@ -28,6 +29,9 @@ int bridge_vm_import(vmImportFunc f, void *vm, ENIAC* eniac) {
 }
 void bridge_vm_step(vmStepFunc f, void *vm) {
 	f(vm);
+}
+void bridge_vm_step_to(vmStepToFunc f, void *vm, unsigned long long cycle) {
+	f(vm, cycle);
 }
 void bridge_vm_export(vmExportFunc f, void *vm, ENIAC* eniac) {
 	f(vm, eniac);
@@ -65,6 +69,7 @@ type sharedLibrary struct {
 	vmImport C.vmImportFunc
 	vmExport C.vmExportFunc
 	vmStep   C.vmStepFunc
+	vmStepTo C.vmStepToFunc
 }
 
 // Returns a new VM wrapper.  path points to a shared library for an
@@ -111,6 +116,23 @@ func (vm *VM) StepAndVerify() {
 	}
 }
 
+// Steps the VM ahead of eniacsim up to but not exceeding cycle, and re-imports
+// its state.  Returns early if there is I/O or break/halt.
+func (vm *VM) StepAhead(cycle int64) {
+	if vm.lib == nil {
+		return
+	}
+	vm.exportEniacState()
+	if C.bridge_vm_import(vm.lib.vmImport, vm.vm, &vm.eniac) != 0 {
+		panic("vm: error importing eniac state")
+	}
+	C.bridge_vm_step_to(vm.lib.vmStepTo, vm.vm, C.ulonglong(cycle))
+	C.bridge_vm_export(vm.lib.vmExport, vm.vm, &vm.eniac)
+	vm.importEniacState()
+	// In case we switch to checking, resync to a new checkpoint
+	vm.validState = false
+}
+
 // Exports a subset of eniac state to struct ENIAC which VM can read.
 func (vm *VM) exportEniacState() {
 	vm.eniac.cycles = C.ulonglong(cycle.AddCycle)
@@ -140,10 +162,14 @@ func (vm *VM) exportEniacState() {
 func (vm *VM) importEniacState() {
 	vm.ErrorCode = int(vm.eniac.error_code)
 	if vm.ErrorCode != 0 {
-		return
+		panic(fmt.Errorf("vm error state: %d\n", vm.ErrorCode))
 	}
 	cycle.AddCycle = int64(vm.eniac.cycles)
 	for i := 0; i < 20; i++ {
+		if vm.eniac.acc[i][0] == 0 {
+			// Skip don't-care accumulators which the vm doesn't model
+			continue
+		}
 		u.Accumulator[i].SetValue(C.GoBytes(unsafe.Pointer(&vm.eniac.acc[i]), 11))
 	}
 }
@@ -199,6 +225,7 @@ func loadLibrary(path string) (*sharedLibrary, error) {
 	vmNew := C.vmNewFunc(dlsym("vm_new", handle))
 	vmImport := C.vmImportFunc(dlsym("vm_import", handle))
 	vmStep := C.vmStepFunc(dlsym("vm_step", handle))
+	vmStepTo := C.vmStepToFunc(dlsym("vm_step_to", handle))
 	vmExport := C.vmExportFunc(dlsym("vm_export", handle))
 	vmFree := C.vmFreeFunc(dlsym("vm_free", handle))
 	if vmNew == nil || vmImport == nil || vmStep == nil || vmExport == nil || vmFree == nil {
@@ -209,6 +236,7 @@ func loadLibrary(path string) (*sharedLibrary, error) {
 		vmNew:    vmNew,
 		vmImport: vmImport,
 		vmStep:   vmStep,
+		vmStepTo: vmStepTo,
 		vmExport: vmExport,
 		vmFree:   vmFree,
 	}, nil

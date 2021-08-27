@@ -587,6 +587,7 @@ func (u *Accumulator) Set(value int64) {
 }
 
 func (u *Accumulator) SetValue(value []byte) {
+	u.decade = 0
 	u.sign = value[0] == 'M'
 	for i := 1; i <= 10; i++ {
 		u.decade |= uint64(value[i]-'0') << (4 * (10-i))
