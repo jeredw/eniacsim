@@ -586,6 +586,13 @@ func (u *Accumulator) Set(value int64) {
 	}
 }
 
+func (u *Accumulator) SetValue(value []byte) {
+	u.sign = value[0] == 'M'
+	for i := 1; i <= 10; i++ {
+		u.decade |= uint64(value[i]-'0') << (4 * (10-i))
+	}
+}
+
 // Interconnect joins two accumulators to form a 20 digit accumulator.
 func Interconnect(accumulator [20]*Accumulator, p1 []string, p2 []string) error {
 	unit1, err := strconv.Atoi(p1[0][1:])

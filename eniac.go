@@ -24,6 +24,8 @@ var pulseAmps *PulseAmps
 var ratsNest *RatsNest
 var waves *wavedump
 
+var vm *VM
+
 func main() {
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [options] [configuration file]\n", os.Args[0])
@@ -38,6 +40,7 @@ func main() {
 	useWebGui := flag.String("W", "", "run web GUI from given directory")
 	useTkGui := flag.Bool("T", false, "run tk GUI")
 	quiet := flag.Bool("q", false, "don't print a prompt")
+	vmPath := flag.String("v", "", "path to vm library if any")
 	flag.Parse()
 
 	var ppunch chan string
@@ -60,6 +63,8 @@ func main() {
 	adapters = NewAdapters()
 	pulseAmps = NewPulseAmps()
 	debugger = NewDebugger()
+	vm = NewVM(*vmPath)
+	defer vm.Close()
 	cycle = units.NewCycle(units.CycleConn{})
 	u = &units.ClockedUnits{}
 	u.Initiate = units.NewInitiate(units.InitiateConn{
@@ -93,6 +98,7 @@ func main() {
 
 	cycle.Io.Units = u
 	cycle.Io.SelectiveClear = func() bool { return u.Initiate.SelectiveClear() }
+	cycle.Io.StepAndVerifyVM = func() { vm.StepAndVerify() }
 	u.Initiate.Io.Units = clearedUnits
 	u.Initiate.Io.AddCycle = func() int64 { return cycle.AddCycle }
 	u.Initiate.Io.Stepping = func() bool { return cycle.Stepping() }

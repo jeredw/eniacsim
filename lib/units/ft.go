@@ -624,3 +624,7 @@ func (u *Ft) Clock(p Pulse) {
 func (u *Ft) trigger(input int) {
 	u.inff1[input] = true
 }
+
+func (u *Ft) GetDigit(row, digit int) int {
+	return u.tab[row][digit]
+}

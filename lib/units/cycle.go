@@ -24,6 +24,9 @@ type ClockedUnits struct {
 type Cycle struct {
 	Io CycleConn // Connections to other units
 
+	checkpointInput *Jack
+	checkpoint bool // true if at instruction-level sim checkpoint
+
 	mode       int
 
 	AddCycle   int64
@@ -34,8 +37,9 @@ type Cycle struct {
 
 // CycleConn defines connections needed for the cycle unit
 type CycleConn struct {
-	Units          *ClockedUnits // Clocked units
-	SelectiveClear func() bool // Clear gate (from initiate unit)
+	Units           *ClockedUnits // Clocked units
+	StepAndVerifyVM func()        // function to step vm model
+	SelectiveClear  func() bool   // Clear gate (from initiate unit)
 }
 
 // Clock operating modes
@@ -74,9 +78,11 @@ var phases = []Pulse{
 
 // NewCycle constructs a new Cycle instance.
 func NewCycle(io CycleConn) *Cycle {
-	return &Cycle{
-		Io: io,
-	}
+	u := &Cycle{Io: io}
+	u.checkpointInput = NewInput("cy.checkpoint", func(*Jack, int) {
+		u.checkpoint = true
+	})
+	return u
 }
 
 // Stepping returns whether the clock is being single stepped
@@ -173,6 +179,10 @@ func (u *Cycle) StepOnePulse() {
 			u.tracer.UpdateValues()
 		}
 		u.AddCycle++
+		if u.checkpoint {
+			u.Io.StepAndVerifyVM()
+			u.checkpoint = false
+		}
 	}
 }
 
@@ -231,4 +241,11 @@ func (u *Cycle) FindSwitch(name string) (Switch, error) {
 		return &IntSwitch{name, &u.mode, modeSettings()}, nil
 	}
 	return nil, fmt.Errorf("unknown switch %s", name)
+}
+
+func (u *Cycle) FindJack(name string) (*Jack, error) {
+	if name == "checkpoint" {
+		return u.checkpointInput, nil
+	}
+	return nil, fmt.Errorf("unknown jack %s", name)
 }

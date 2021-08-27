@@ -130,7 +130,7 @@ func permute7(j *Jack, val int) {
 func permute8(j *Jack, val int) {
 	if !j.OtherSide.Disabled {
 		val = ((val << 6) & 0x3c0) |
-		(val & 0x400)
+			(val & 0x400)
 		if val != 0 {
 			if j.OtherSide.OnReceive != nil {
 				j.OtherSide.OnReceive(j.OtherSide, val)
@@ -191,8 +191,8 @@ func permute11(j *Jack, val int) {
 func permute12(j *Jack, val int) {
 	if !j.OtherSide.Disabled {
 		val = ((val << 8) & 0x300) |
-		((val << 4) & 0xc0) |
-		(val & 0x30)
+			((val << 4) & 0xc0) |
+			(val & 0x30)
 		if val != 0 {
 			if j.OtherSide.OnReceive != nil {
 				j.OtherSide.OnReceive(j.OtherSide, val)
@@ -313,8 +313,8 @@ func permute19(j *Jack, val int) {
 func permute20(j *Jack, val int) {
 	if !j.OtherSide.Disabled {
 		val = ((val << 1) & 0x200) |
-		(val & 0x4ff) |
-		((val >> 1) & 0x100)
+			(val & 0x4ff) |
+			((val >> 1) & 0x100)
 		if val != 0 {
 			if j.OtherSide.OnReceive != nil {
 				j.OtherSide.OnReceive(j.OtherSide, val)
@@ -330,8 +330,8 @@ func permute20(j *Jack, val int) {
 func permute21(j *Jack, val int) {
 	if !j.OtherSide.Disabled {
 		val = (val & 0xff) |
-		((val >> 1) & 0x200) |
-		((val >> 2) & 0x100)
+			((val >> 1) & 0x200) |
+			((val >> 2) & 0x100)
 		if val != 0 {
 			if j.OtherSide.OnReceive != nil {
 				j.OtherSide.OnReceive(j.OtherSide, val)
@@ -377,8 +377,8 @@ func permute23(j *Jack, val int) {
 func permute24(j *Jack, val int) {
 	if !j.OtherSide.Disabled {
 		val = ((val << 2) & 0x300) |
-		(val & 0x3f) |
-		((val >> 2) & 0xc0)
+			(val & 0x3f) |
+			((val >> 2) & 0xc0)
 		if val != 0 {
 			if j.OtherSide.OnReceive != nil {
 				j.OtherSide.OnReceive(j.OtherSide, val)
@@ -394,8 +394,8 @@ func permute24(j *Jack, val int) {
 func permute25(j *Jack, val int) {
 	if !j.OtherSide.Disabled {
 		val = ((val << 2) & 0x300) |
-		(val & 0x43f) |
-		((val >> 2) & 0xc0)
+			(val & 0x43f) |
+			((val >> 2) & 0xc0)
 		if val != 0 {
 			if j.OtherSide.OnReceive != nil {
 				j.OtherSide.OnReceive(j.OtherSide, val)
@@ -411,8 +411,8 @@ func permute25(j *Jack, val int) {
 func permute26(j *Jack, val int) {
 	if !j.OtherSide.Disabled {
 		val = ((val << 4) & 0x300) |
-		(val & 0xcf) |
-		((val >> 4) & 0x30)
+			(val & 0xcf) |
+			((val >> 4) & 0x30)
 		if val != 0 {
 			if j.OtherSide.OnReceive != nil {
 				j.OtherSide.OnReceive(j.OtherSide, val)
@@ -428,8 +428,8 @@ func permute26(j *Jack, val int) {
 func permute27(j *Jack, val int) {
 	if !j.OtherSide.Disabled {
 		val = ((val << 4) & 0x300) |
-		(val & 0x4cf) |
-		((val >> 4) & 0x30)
+			(val & 0x4cf) |
+			((val >> 4) & 0x30)
 		if val != 0 {
 			if j.OtherSide.OnReceive != nil {
 				j.OtherSide.OnReceive(j.OtherSide, val)
@@ -445,8 +445,8 @@ func permute27(j *Jack, val int) {
 func permute28(j *Jack, val int) {
 	if !j.OtherSide.Disabled {
 		val = ((val << 6) & 0x300) |
-		(val & 0xf3) |
-		((val >> 6) & 0xc)
+			(val & 0xf3) |
+			((val >> 6) & 0xc)
 		if val != 0 {
 			if j.OtherSide.OnReceive != nil {
 				j.OtherSide.OnReceive(j.OtherSide, val)
@@ -462,8 +462,8 @@ func permute28(j *Jack, val int) {
 func permute29(j *Jack, val int) {
 	if !j.OtherSide.Disabled {
 		val = ((val << 6) & 0x300) |
-		(val & 0x4f3) |
-		((val >> 6) & 0xc)
+			(val & 0x4f3) |
+			((val >> 6) & 0xc)
 		if val != 0 {
 			if j.OtherSide.OnReceive != nil {
 				j.OtherSide.OnReceive(j.OtherSide, val)
@@ -494,7 +494,7 @@ func permute30(j *Jack, val int) {
 func permute31(j *Jack, val int) {
 	if !j.OtherSide.Disabled {
 		val = ((val << 2) & 0xc) |
-		((val >> 2) & 0x3)
+			((val >> 2) & 0x3)
 		if val != 0 {
 			if j.OtherSide.OnReceive != nil {
 				j.OtherSide.OnReceive(j.OtherSide, val)
@@ -510,8 +510,8 @@ func permute31(j *Jack, val int) {
 func permute32(j *Jack, val int) {
 	if !j.OtherSide.Disabled {
 		val = ((val << 8) & 0x300) |
-		(val & 0x400) |
-		((val >> 2) & 0xff)
+			(val & 0x400) |
+			((val >> 2) & 0xff)
 		if val != 0 {
 			if j.OtherSide.OnReceive != nil {
 				j.OtherSide.OnReceive(j.OtherSide, val)
@@ -557,8 +557,8 @@ func permute34(j *Jack, val int) {
 func permute35(j *Jack, val int) {
 	if !j.OtherSide.Disabled {
 		val = ((val << 1) & 0x400) |
-		((val >> 1) & 0x200) |
-		((val >> 8) & 0x1)
+			((val >> 1) & 0x200) |
+			((val >> 8) & 0x1)
 		if val != 0 {
 			if j.OtherSide.OnReceive != nil {
 				j.OtherSide.OnReceive(j.OtherSide, val)
@@ -589,8 +589,8 @@ func permute36(j *Jack, val int) {
 func permute37(j *Jack, val int) {
 	if !j.OtherSide.Disabled {
 		val = ((val << 8) & 0x300) |
-		(val & 0xfc) |
-		((val >> 8) & 0x3)
+			(val & 0xfc) |
+			((val >> 8) & 0x3)
 		if val != 0 {
 			if j.OtherSide.OnReceive != nil {
 				j.OtherSide.OnReceive(j.OtherSide, val)
@@ -606,8 +606,8 @@ func permute37(j *Jack, val int) {
 func permute38(j *Jack, val int) {
 	if !j.OtherSide.Disabled {
 		val = ((val << 8) & 0x300) |
-		(val & 0x4fc) |
-		((val >> 8) & 0x3)
+			(val & 0x4fc) |
+			((val >> 8) & 0x3)
 		if val != 0 {
 			if j.OtherSide.OnReceive != nil {
 				j.OtherSide.OnReceive(j.OtherSide, val)

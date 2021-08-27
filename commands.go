@@ -324,6 +324,8 @@ func findPlugboard(name string) (Plugboard, error) {
 		return u.Accumulator[n-1], nil
 	case name == "c":
 		return u.Constant, nil
+	case name == "cy":
+		return cycle, nil
 	case name == "d":
 		return u.Divsr, nil
 	case name == "debug":
