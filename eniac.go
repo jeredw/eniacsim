@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"os"
 
-	"net/http"
-	_ "net/http/pprof"
+	//"net/http"
+	//_ "net/http/pprof"
 
 	. "github.com/jeredw/eniacsim/lib"
 	"github.com/jeredw/eniacsim/lib/units"
@@ -54,9 +54,9 @@ func main() {
 		go ctlstation()
 	}
 
-	go func() {
-		fmt.Println(http.ListenAndServe("localhost:6060", nil))
-	}()
+	//go func() {
+	//	fmt.Println(http.ListenAndServe("localhost:6060", nil))
+	//}()
 
 	ratsNest = NewRatsNest()
 	trays = NewTrays()
